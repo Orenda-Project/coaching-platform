@@ -8,7 +8,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Send, GraduationCap, FileText, Headphones, Video, BookOpen } from "lucide-react";
+import { ArrowLeft, ArrowRight, Send, GraduationCap } from "lucide-react";
+import TrainingContentViewer from "@/components/training/TrainingContentViewer";
 import { Tables } from "@/integrations/supabase/types";
 
 type Training = Tables<"trainings">;
@@ -179,42 +180,7 @@ export default function TrainingModule() {
             <h1 className="text-2xl font-display font-bold text-foreground mb-2">{training.title}</h1>
             <p className="text-muted-foreground mb-6">{training.description}</p>
 
-            {/* Content format selection */}
-            <Card className="glass-card mb-6">
-              <CardHeader>
-                <CardTitle className="text-lg font-display">Select Learning Format</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-3">
-                  <button className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-accent/50 transition-all">
-                    <FileText className="w-8 h-8 text-primary" />
-                    <span className="text-sm font-medium text-foreground">Slides</span>
-                  </button>
-                  <button className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-accent/50 transition-all">
-                    <Headphones className="w-8 h-8 text-primary" />
-                    <span className="text-sm font-medium text-foreground">Audio</span>
-                  </button>
-                  <button className="flex flex-col items-center gap-2 p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-accent/50 transition-all">
-                    <Video className="w-8 h-8 text-primary" />
-                    <span className="text-sm font-medium text-foreground">Video</span>
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Simulated content area */}
-            <Card className="glass-card mb-6">
-              <CardContent className="p-8 text-center">
-                <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-display font-semibold text-foreground mb-2">Module Content</h3>
-                <p className="text-muted-foreground mb-4">
-                  Review the learning materials for "{training.title}" using your preferred format above.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Content will be loaded from your uploaded training materials.
-                </p>
-              </CardContent>
-            </Card>
+            <TrainingContentViewer trainingId={id!} trainingTitle={training.title} />
 
             <div className="flex justify-end">
               <Button onClick={loadQuiz} size="lg">
