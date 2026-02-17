@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Headphones, Video, BookOpen } from "lucide-react";
+import { FileText, Video, BookOpen } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 
 type TrainingContent = Tables<"training_content">;
@@ -9,32 +9,49 @@ type TrainingContent = Tables<"training_content">;
 interface TrainingContentViewerProps {
   trainingId: string;
   trainingTitle: string;
+  onContentCompleted?: (completed: boolean) => void;
 }
 
-export default function TrainingContentViewer({ trainingId, trainingTitle }: TrainingContentViewerProps) {
+export default function TrainingContentViewer({ trainingId, trainingTitle, onContentCompleted }: TrainingContentViewerProps) {
   const [contents, setContents] = useState<TrainingContent[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [contentCompleted, setContentCompleted] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
         .from("training_content")
         .select("*")
-        .eq("training_id", trainingId);
+        .eq("training_id", trainingId)
+        .neq("format_type", "audio");
       setContents(data || []);
       setLoading(false);
     };
     load();
   }, [trainingId]);
 
+  useEffect(() => {
+    onContentCompleted?.(contentCompleted);
+  }, [contentCompleted, onContentCompleted]);
+
   const selectedContent = contents.find((c) => c.format_type === selectedFormat);
   const availableFormats = contents.map((c) => c.format_type);
 
   const formatConfig: Record<string, { icon: typeof FileText; label: string }> = {
     slide: { icon: FileText, label: "Slides" },
-    audio: { icon: Headphones, label: "Audio" },
     video: { icon: Video, label: "Video" },
+  };
+
+  const handleVideoEnded = () => {
+    setContentCompleted(true);
+  };
+
+  const handleSlideLoad = () => {
+    // Mark slides as completed after 30 seconds of viewing
+    setTimeout(() => {
+      setContentCompleted(true);
+    }, 30000);
   };
 
   if (loading) {
@@ -54,14 +71,14 @@ export default function TrainingContentViewer({ trainingId, trainingTitle }: Tra
           <CardTitle className="text-lg font-display">Select Learning Format</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {Object.entries(formatConfig).map(([key, { icon: Icon, label }]) => {
               const available = availableFormats.includes(key);
               return (
                 <button
                   key={key}
                   disabled={!available}
-                  onClick={() => setSelectedFormat(key)}
+                  onClick={() => { setSelectedFormat(key); setContentCompleted(false); }}
                   className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
                     selectedFormat === key
                       ? "border-primary bg-primary/10"
@@ -96,21 +113,15 @@ export default function TrainingContentViewer({ trainingId, trainingTitle }: Tra
                 controls
                 className="w-full rounded-lg bg-black"
                 src={selectedContent.content_url}
+                onEnded={handleVideoEnded}
               >
                 Your browser does not support the video tag.
               </video>
-            </div>
-          ) : selectedContent.format_type === "audio" ? (
-            <div>
-              <h3 className="text-lg font-display font-semibold text-foreground mb-4">🎧 Audio Lesson</h3>
-              <div className="flex items-center justify-center p-8 bg-accent/20 rounded-lg">
-                <div className="text-center">
-                  <Headphones className="w-16 h-16 text-primary mx-auto mb-4" />
-                  <audio controls className="w-full max-w-md" src={selectedContent.content_url}>
-                    Your browser does not support the audio element.
-                  </audio>
-                </div>
-              </div>
+              {!contentCompleted && (
+                <p className="text-sm text-muted-foreground mt-2 text-center">
+                  Watch the complete video to unlock the quiz.
+                </p>
+              )}
             </div>
           ) : (
             <div>
@@ -121,8 +132,14 @@ export default function TrainingContentViewer({ trainingId, trainingTitle }: Tra
                   className="w-full h-[400px] rounded-lg border border-border"
                   allowFullScreen
                   title="Slide presentation"
+                  onLoad={handleSlideLoad}
                 />
               </div>
+              {!contentCompleted && (
+                <p className="text-sm text-muted-foreground mt-2 text-center">
+                  View the slides for at least 30 seconds to unlock the quiz.
+                </p>
+              )}
             </div>
           )}
         </CardContent>
