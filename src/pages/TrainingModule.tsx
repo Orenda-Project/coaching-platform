@@ -31,6 +31,7 @@ export default function TrainingModule() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [contentCompleted, setContentCompleted] = useState(false);
 
   useEffect(() => {
     loadTraining();
@@ -180,11 +181,11 @@ export default function TrainingModule() {
             <h1 className="text-2xl font-display font-bold text-foreground mb-2">{training.title}</h1>
             <p className="text-muted-foreground mb-6">{training.description}</p>
 
-            <TrainingContentViewer trainingId={id!} trainingTitle={training.title} />
+            <TrainingContentViewer trainingId={id!} trainingTitle={training.title} onContentCompleted={setContentCompleted} />
 
             <div className="flex justify-end">
-              <Button onClick={loadQuiz} size="lg">
-                Attempt Quiz <ArrowRight className="w-4 h-4 ml-1" />
+              <Button onClick={loadQuiz} size="lg" disabled={!contentCompleted}>
+                {contentCompleted ? "Attempt Quiz" : "Complete Content First"} <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           </div>
