@@ -7,7 +7,8 @@ import { ModuleCard } from "@/components/ModuleCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy } from "lucide-react";
+import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy, Shield } from "lucide-react";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
 
@@ -17,6 +18,7 @@ type TrainingProgress = Tables<"training_progress">;
 export default function Dashboard() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const { isAdmin } = useAdminRole();
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [progress, setProgress] = useState<TrainingProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +97,11 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             {profile?.persona && <PersonaBadge persona={profile.persona} size="sm" />}
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin/baseline-questions")}>
+                <Shield className="w-4 h-4 mr-1" /> Admin
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/login"); }}>
               <LogOut className="w-4 h-4 mr-1" />
               Sign Out

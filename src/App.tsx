@@ -13,6 +13,11 @@ import Assessment from "./pages/Assessment";
 import TrainingModule from "./pages/TrainingModule";
 import Certificate from "./pages/Certificate";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminBaselineQuestions from "./pages/admin/AdminBaselineQuestions";
+import AdminTrainings from "./pages/admin/AdminTrainings";
+import AdminTrainingContent from "./pages/admin/AdminTrainingContent";
+import AdminQuizQuestions from "./pages/admin/AdminQuizQuestions";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +36,12 @@ const App = () => (
             <Route path="/assessment/:type" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
             <Route path="/training/:id" element={<ProtectedRoute><TrainingModule /></ProtectedRoute>} />
             <Route path="/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+              <Route path="baseline-questions" element={<AdminBaselineQuestions />} />
+              <Route path="trainings" element={<AdminTrainings />} />
+              <Route path="training-content" element={<AdminTrainingContent />} />
+              <Route path="quiz-questions" element={<AdminQuizQuestions />} />
+            </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
