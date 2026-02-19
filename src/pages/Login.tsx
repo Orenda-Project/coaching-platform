@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,8 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
@@ -30,6 +33,80 @@ export default function Login() {
       navigate("/dashboard");
     }
   };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setResetSent(true);
+    }
+  };
+
+  if (forgotMode) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md animate-fade-in">
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+              <GraduationCap className="w-7 h-7 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-display font-bold text-foreground">CoachCert</h1>
+          </div>
+          <Card className="glass-card">
+            <CardHeader className="text-center">
+              <CardTitle className="font-display text-xl">Reset Password</CardTitle>
+              <CardDescription>Enter your email to receive a reset link</CardDescription>
+            </CardHeader>
+            {resetSent ? (
+              <CardContent>
+                <p className="text-sm text-center text-muted-foreground">
+                  ✅ Check your inbox for a password reset link. Click it to set a new password.
+                </p>
+              </CardContent>
+            ) : (
+              <form onSubmit={handleForgotPassword}>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col gap-3">
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setForgotMode(false)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Back to sign in
+                  </button>
+                </CardFooter>
+              </form>
+            )}
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -59,7 +136,16 @@ export default function Login() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => setForgotMode(true)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <Input
                   id="password"
                   type="password"
