@@ -13,6 +13,7 @@ import Assessment from "./pages/Assessment";
 import TrainingModule from "./pages/TrainingModule";
 import Certificate from "./pages/Certificate";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminBaselineQuestions from "./pages/admin/AdminBaselineQuestions";
 import AdminTrainings from "./pages/admin/AdminTrainings";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/assessment/:type" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
             <Route path="/training/:id" element={<ProtectedRoute><TrainingModule /></ProtectedRoute>} />
