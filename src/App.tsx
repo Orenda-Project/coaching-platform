@@ -16,8 +16,9 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminBaselineQuestions from "./pages/admin/AdminBaselineQuestions";
-import AdminTrainings from "./pages/admin/AdminTrainings";
-import AdminTrainingContent from "./pages/admin/AdminTrainingContent";
+import AdminModules from "./pages/admin/AdminModules";
+import AdminModuleUnits from "./pages/admin/AdminModuleUnits";
+import AdminUnitContent from "./pages/admin/AdminUnitContent";
 import AdminQuizQuestions from "./pages/admin/AdminQuizQuestions";
 
 const queryClient = new QueryClient();
@@ -40,8 +41,9 @@ const App = () => (
             <Route path="/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
               <Route path="baseline-questions" element={<AdminBaselineQuestions />} />
-              <Route path="trainings" element={<AdminTrainings />} />
-              <Route path="training-content" element={<AdminTrainingContent />} />
+              <Route path="modules" element={<AdminModules />} />
+              <Route path="modules/:moduleId/units" element={<AdminModuleUnits />} />
+              <Route path="units/:unitId/content" element={<AdminUnitContent />} />
               <Route path="quiz-questions" element={<AdminQuizQuestions />} />
             </Route>
             <Route path="*" element={<NotFound />} />

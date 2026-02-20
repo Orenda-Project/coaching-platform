@@ -7,21 +7,34 @@ import { ModuleCard } from "@/components/ModuleCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy, Shield } from "lucide-react";
+import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy, Shield, ChevronDown, ChevronRight } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type Training = Tables<"trainings">;
 type TrainingProgress = Tables<"training_progress">;
+
+interface Module {
+  id: string;
+  title: string;
+  description: string | null;
+  is_mandatory: boolean;
+  order_number: number;
+  competencies: string | null;
+  desired_outcomes: string | null;
+}
 
 export default function Dashboard() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { isAdmin } = useAdminRole();
+  const [modules, setModules] = useState<Module[]>([]);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [progress, setProgress] = useState<TrainingProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openModules, setOpenModules] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (profile) loadData();
@@ -30,20 +43,20 @@ export default function Dashboard() {
   const loadData = async () => {
     if (!user || !profile) return;
 
-    // Fetch trainings for user's persona (common + persona-specific)
-    let query = supabase.from("trainings").select("*").order("order_number");
-    
+    let trainingsQuery = supabase.from("trainings").select("*").order("order_number");
     if (profile.persona) {
-      query = query.or(`is_common.eq.true,persona_required.eq.${profile.persona}`);
+      trainingsQuery = trainingsQuery.or(`is_common.eq.true,persona_required.eq.${profile.persona}`);
     } else {
-      query = query.eq("is_common", true);
+      trainingsQuery = trainingsQuery.eq("is_common", true);
     }
 
-    const [{ data: trainingsData }, { data: progressData }] = await Promise.all([
-      query,
+    const [{ data: modulesData }, { data: trainingsData }, { data: progressData }] = await Promise.all([
+      supabase.from("modules").select("*").order("order_number"),
+      trainingsQuery,
       supabase.from("training_progress").select("*").eq("user_id", user.id),
     ]);
 
+    setModules((modulesData as Module[]) || []);
     setTrainings(trainingsData || []);
     setProgress(progressData || []);
     setLoading(false);
@@ -57,24 +70,43 @@ export default function Dashboard() {
     return "in_progress";
   };
 
-  const isModuleLocked = (index: number): boolean => {
-    if (profile?.endline_completed) return false; // All unlocked after completion
+  const getUnitsForModule = (moduleId: string) =>
+    trainings.filter((t) => (t as any).module_id === moduleId);
+
+  const getModuleProgress = (moduleId: string) => {
+    const units = getUnitsForModule(moduleId);
+    if (units.length === 0) return { passed: 0, total: 0, percent: 0 };
+    const passed = units.filter((u) => {
+      const p = progress.find((pr) => pr.training_id === u.id);
+      return p?.passed;
+    }).length;
+    return { passed, total: units.length, percent: (passed / units.length) * 100 };
+  };
+
+  const isUnitLocked = (moduleId: string, unitIndex: number): boolean => {
+    if (profile?.endline_completed) return false;
     if (!profile?.baseline_completed) return true;
-    if (index === 0) return false; // First module always unlocked
-    const prevTraining = trainings[index - 1];
-    if (!prevTraining) return true;
-    const prevProgress = progress.find((p) => p.training_id === prevTraining.id);
+    const units = getUnitsForModule(moduleId);
+    if (unitIndex === 0) return false;
+    const prevUnit = units[unitIndex - 1];
+    if (!prevUnit) return true;
+    const prevProgress = progress.find((p) => p.training_id === prevUnit.id);
     return !prevProgress?.passed;
   };
 
-  const passedCount = progress.filter((p) => p.passed).length;
-  const totalModules = trainings.length;
-  const overallProgress = totalModules > 0 ? (passedCount / totalModules) * 100 : 0;
-  const allModulesCompleted = passedCount === totalModules && totalModules > 0;
-
-  const handleModuleClick = (training: Training) => {
-    navigate(`/training/${training.id}`);
+  const toggleModule = (id: string) => {
+    setOpenModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
+
+  const allUnits = trainings;
+  const passedCount = progress.filter((p) => p.passed).length;
+  const totalUnits = allUnits.length;
+  const overallProgress = totalUnits > 0 ? (passedCount / totalUnits) * 100 : 0;
+  const allModulesCompleted = passedCount === totalUnits && totalUnits > 0;
 
   if (loading) {
     return (
@@ -98,7 +130,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             {profile?.persona && <PersonaBadge persona={profile.persona} size="sm" />}
             {isAdmin && (
-              <Button variant="outline" size="sm" onClick={() => navigate("/admin/baseline-questions")}>
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin/modules")}>
                 <Shield className="w-4 h-4 mr-1" /> Admin
               </Button>
             )}
@@ -160,7 +192,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Progress</p>
-                <p className="font-semibold text-foreground">{passedCount}/{totalModules} Modules</p>
+                <p className="font-semibold text-foreground">{passedCount}/{totalUnits} Units</p>
               </div>
             </CardContent>
           </Card>
@@ -240,25 +272,67 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Training Modules */}
-        {profile?.baseline_completed && trainings.length > 0 && (
-          <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+        {/* Modules with Units */}
+        {profile?.baseline_completed && modules.length > 0 && (
+          <div className="space-y-4 animate-fade-in" style={{ animationDelay: "0.2s" }}>
             <h2 className="text-lg font-display font-bold text-foreground mb-3">Training Modules</h2>
-            {trainings.map((training, index) => {
-              const status = getModuleStatus(training.id);
-              const locked = isModuleLocked(index);
-              const p = progress.find((pr) => pr.training_id === training.id);
+            {modules.map((mod, modIdx) => {
+              const units = getUnitsForModule(mod.id);
+              const modProgress = getModuleProgress(mod.id);
+              const isOpen = openModules.has(mod.id);
+
               return (
-                <ModuleCard
-                  key={training.id}
-                  title={training.title}
-                  description={training.description}
-                  orderNumber={training.order_number}
-                  isLocked={locked}
-                  status={status}
-                  score={p?.score}
-                  onClick={() => handleModuleClick(training)}
-                />
+                <Collapsible key={mod.id} open={isOpen} onOpenChange={() => toggleModule(mod.id)}>
+                  <Card className={modProgress.percent === 100 ? "border-success/30 bg-success/5" : ""}>
+                    <CollapsibleTrigger asChild>
+                      <CardContent className="p-5 cursor-pointer hover:bg-accent/30 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold font-display shrink-0">
+                            {modIdx + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold font-display text-foreground">{mod.title}</h3>
+                              {mod.is_mandatory && (
+                                <span className="text-xs bg-secondary/20 text-secondary-foreground px-2 py-0.5 rounded">Mandatory</span>
+                              )}
+                            </div>
+                            {mod.description && <p className="text-sm text-muted-foreground mt-1">{mod.description}</p>}
+                            <div className="flex items-center gap-2 mt-2">
+                              <Progress value={modProgress.percent} className="flex-1 h-1.5" />
+                              <span className="text-xs text-muted-foreground">{modProgress.passed}/{modProgress.total}</span>
+                            </div>
+                          </div>
+                          {isOpen ? <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" /> : <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />}
+                        </div>
+                      </CardContent>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="px-5 pb-4 space-y-2 border-t border-border pt-3">
+                        {units.length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-2">No training units in this module yet.</p>
+                        )}
+                        {units.map((unit, unitIdx) => {
+                          const status = getModuleStatus(unit.id);
+                          const locked = isUnitLocked(mod.id, unitIdx);
+                          const p = progress.find((pr) => pr.training_id === unit.id);
+                          return (
+                            <ModuleCard
+                              key={unit.id}
+                              title={unit.title}
+                              description={unit.description}
+                              orderNumber={unitIdx + 1}
+                              isLocked={locked}
+                              status={status}
+                              score={p?.score}
+                              onClick={() => navigate(`/training/${unit.id}`)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               );
             })}
           </div>
