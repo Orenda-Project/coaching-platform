@@ -73,6 +73,42 @@ export type Database = {
         }
         Relationships: []
       }
+      modules: {
+        Row: {
+          competencies: string | null
+          created_at: string
+          description: string | null
+          desired_outcomes: string | null
+          id: string
+          is_mandatory: boolean
+          order_number: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          competencies?: string | null
+          created_at?: string
+          description?: string | null
+          desired_outcomes?: string | null
+          id?: string
+          is_mandatory?: boolean
+          order_number?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          competencies?: string | null
+          created_at?: string
+          description?: string | null
+          desired_outcomes?: string | null
+          id?: string
+          is_mandatory?: boolean
+          order_number?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       options: {
         Row: {
           created_at: string
@@ -261,6 +297,8 @@ export type Database = {
           description: string | null
           id: string
           is_common: boolean
+          main_concepts: string | null
+          module_id: string | null
           order_number: number
           persona_required: string | null
           title: string
@@ -270,6 +308,8 @@ export type Database = {
           description?: string | null
           id?: string
           is_common?: boolean
+          main_concepts?: string | null
+          module_id?: string | null
           order_number: number
           persona_required?: string | null
           title: string
@@ -279,11 +319,21 @@ export type Database = {
           description?: string | null
           id?: string
           is_common?: boolean
+          main_concepts?: string | null
+          module_id?: string | null
           order_number?: number
           persona_required?: string | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trainings_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
