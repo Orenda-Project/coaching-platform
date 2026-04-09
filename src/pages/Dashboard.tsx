@@ -7,7 +7,7 @@ import { ModuleCard } from "@/components/ModuleCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy, Shield, ChevronDown, ChevronRight } from "lucide-react";
+import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy, Shield, ChevronDown, ChevronRight, CheckCircle2, AlertCircle, FileQuestion } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
@@ -43,21 +43,27 @@ export default function Dashboard() {
   const loadData = async () => {
     if (!user || !profile) return;
 
-    let trainingsQuery = supabase.from("trainings").select("*").order("order_number");
-    if (profile.persona) {
-      trainingsQuery = trainingsQuery.or(`is_common.eq.true,persona_required.eq.${profile.persona}`);
-    } else {
-      trainingsQuery = trainingsQuery.eq("is_common", true);
-    }
-
     const [{ data: modulesData }, { data: trainingsData }, { data: progressData }] = await Promise.all([
       supabase.from("modules").select("*").order("order_number"),
-      trainingsQuery,
+      supabase.from("trainings").select("*").order("order_number"),
       supabase.from("training_progress").select("*").eq("user_id", user.id),
     ]);
 
-    setModules((modulesData as Module[]) || []);
-    setTrainings(trainingsData || []);
+    const allModules: Module[] = (modulesData as Module[]) || [];
+    const allTrainings = trainingsData || [];
+
+    // Option A: Show Module 1 (mandatory) + modules matching weak_modules from baseline
+    const weakModules = profile.weak_modules || [];
+    const assignedModules = allModules.filter(
+      (m) => m.is_mandatory || weakModules.includes(m.title)
+    );
+    const assignedModuleIds = new Set(assignedModules.map((m) => m.id));
+    const assignedTrainings = allTrainings.filter(
+      (t) => t.module_id && assignedModuleIds.has(t.module_id)
+    );
+
+    setModules(assignedModules);
+    setTrainings(assignedTrainings);
     setProgress(progressData || []);
     setLoading(false);
   };
@@ -71,7 +77,7 @@ export default function Dashboard() {
   };
 
   const getUnitsForModule = (moduleId: string) =>
-    trainings.filter((t) => (t as any).module_id === moduleId);
+    trainings.filter((t) => t.module_id === moduleId);
 
   const getModuleProgress = (moduleId: string) => {
     const units = getUnitsForModule(moduleId);
@@ -86,13 +92,23 @@ export default function Dashboard() {
   const isUnitLocked = (moduleId: string, unitIndex: number): boolean => {
     if (profile?.endline_completed) return false;
     if (!profile?.baseline_completed) return true;
-    const units = getUnitsForModule(moduleId);
+    // Sort units by order_number (not array index) before checking sequential lock
+    const units = getUnitsForModule(moduleId).slice().sort((a, b) => a.order_number - b.order_number);
     if (unitIndex === 0) return false;
     const prevUnit = units[unitIndex - 1];
     if (!prevUnit) return true;
     const prevProgress = progress.find((p) => p.training_id === prevUnit.id);
     return !prevProgress?.passed;
   };
+
+  const allUnitsPassedForModule = (moduleId: string) => {
+    const units = getUnitsForModule(moduleId);
+    return units.length > 0 && units.every((u) => progress.find((p) => p.training_id === u.id)?.passed);
+  };
+
+  // Endline is unlocked only when ALL assigned trainings are passed
+  const allModulesCompleted = trainings.length > 0 &&
+    trainings.every((t) => progress.find((p) => p.training_id === t.id)?.passed);
 
   const toggleModule = (id: string) => {
     setOpenModules((prev) => {
@@ -102,11 +118,9 @@ export default function Dashboard() {
     });
   };
 
-  const allUnits = trainings;
   const passedCount = progress.filter((p) => p.passed).length;
-  const totalUnits = allUnits.length;
+  const totalUnits = trainings.length;
   const overallProgress = totalUnits > 0 ? (passedCount / totalUnits) * 100 : 0;
-  const allModulesCompleted = passedCount === totalUnits && totalUnits > 0;
 
   if (loading) {
     return (
@@ -211,7 +225,7 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Baseline CTA */}
+        {/* Baseline CTA — not yet attempted */}
         {!profile?.baseline_completed && (
           <Card className="glass-card mb-8 border-secondary/30 animate-fade-in">
             <CardContent className="p-6 text-center">
@@ -223,6 +237,40 @@ export default function Dashboard() {
               <Button onClick={() => navigate("/assessment/baseline")} size="lg">
                 Attempt Baseline Assessment
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Baseline Results — completed */}
+        {profile?.baseline_completed && (
+          <Card className="glass-card mb-8 border-primary/30 animate-fade-in">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 flex-wrap mb-1">
+                    <h2 className="text-lg font-display font-bold text-foreground">Baseline Complete</h2>
+                    <PersonaBadge persona={profile.persona || ""} size="sm" />
+                  </div>
+                  <p className="text-muted-foreground text-sm mb-3">
+                    You scored <span className="font-semibold text-foreground">{Math.round(profile.baseline_score || 0)}%</span> and have been assigned Persona <span className="font-semibold text-foreground">{profile.persona}</span>.
+                    {profile.weak_modules?.length > 0 && (
+                      <> Your training path targets your weak areas: <span className="font-semibold text-foreground">{profile.weak_modules.join(", ")}</span>.</>
+                    )}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-muted rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all"
+                        style={{ width: `${Math.round(profile.baseline_score || 0)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{Math.round(profile.baseline_score || 0)}%</span>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -329,6 +377,31 @@ export default function Dashboard() {
                             />
                           );
                         })}
+
+                        {/* Module Quiz CTA */}
+                        {units.length > 0 && (
+                          <div className={`mt-3 p-3 rounded-lg border flex items-center justify-between gap-3 ${allUnitsPassedForModule(mod.id) ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}>
+                            <div className="flex items-center gap-2">
+                              <FileQuestion className={`w-5 h-5 ${allUnitsPassedForModule(mod.id) ? "text-primary" : "text-muted-foreground"}`} />
+                              <div>
+                                <p className={`text-sm font-medium ${allUnitsPassedForModule(mod.id) ? "text-foreground" : "text-muted-foreground"}`}>
+                                  Module Quiz
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {allUnitsPassedForModule(mod.id) ? "All units complete — quiz unlocked" : "Complete all units to unlock"}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              disabled={!allUnitsPassedForModule(mod.id)}
+                              onClick={() => navigate(`/module-quiz/${mod.id}`)}
+                              className="shrink-0"
+                            >
+                              Attempt Quiz
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </CollapsibleContent>
                   </Card>

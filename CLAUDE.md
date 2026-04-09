@@ -1,6 +1,40 @@
-# CLAUDE.md
+# Coaching Platform — Taleemabad MVP Prototype
+# Built: 2026-04-08 | Stack: React + TypeScript + Supabase + Tailwind
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Slash Commands for This Project
+- `/coaching-dev` — implementing features
+- `/coaching-review` — code review
+- `/coaching-bugfix` — bug fixing
+- `/coaching-qa` — QA testing
+
+## Key Business Rules (Never Break)
+- Baseline: 60% to pass. <60% = fail, retry. Persona: A(≥75%) B(70%) C(65%) D(60%)
+- Module quiz: 80% to pass. Max 3 attempts. Fail = retry same module.
+- Endline: 70% to pass. Gate: ALL modules must be passed first (server-verified).
+- Content gate: Video 90% watched OR slides 30s before quiz unlocks.
+- Sequential unlock: sorted by order_number, N-1 must be passed before N.
+- Module 1 (is_common=true) = shown to all. Other modules = persona_required match.
+- Certificate: upsert on conflict user_id. ID = CC-{timestamp}-{RAND4}
+- Anti-cheat: tab-switch detection in quiz, 3+ = flagged for admin review.
+
+## Architecture Docs (Always Read Before Touching Code)
+- `/Users/mac/Desktop/data/personal assistant/agents/coaching-platform-complete-plan.md`
+- `/Users/mac/Desktop/data/personal assistant/agents/coaching-platform-owner.md`
+- `PROJECT_MAP.md` — codebase map and known issues
+
+## What Was Fixed in v2 (2026-04-08) vs coach-cert base
+- Module locking uses order_number (not array index)
+- Endline gate is server-verified (not just client CTA check)
+- Certificate uses upsert (handles retakes without crash)
+- Video: 90% watch gate + progress display (not just onEnded)
+- Anti-cheat: tab-switch detection + flagging
+- Attempt count tracking (max 3 per module)
+- Baseline/endline attempt counts tracked
+- Persona <60% = explicit fail + retry (was undefined)
+- New migration: 20260408000001_coaching_platform_v2.sql
+
+---
+
 
 ## Commands
 
