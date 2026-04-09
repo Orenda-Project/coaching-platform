@@ -236,7 +236,7 @@ export async function seedModule1(): Promise<{ success: boolean; log: string[] }
         log.push(`✅ Unit: ${unit.title}`);
       }
 
-      // Delete old content
+      // Delete old content for this training
       await supabase.from("training_content").delete().eq("training_id", training.id);
 
       // Insert slides
@@ -257,18 +257,33 @@ export async function seedModule1(): Promise<{ success: boolean; log: string[] }
       if (scErr) log.push(`  ❌ Scenario error: ${scErr.message}`);
       else log.push(`  🎭 Scenario: ${unit.scenario.steps.length} situations`);
 
-      // Upsert assessment for this training
-      const { data: assessment, error: aErr } = await supabase
+      // Get or create assessment for this training
+      const { data: existingAssessment } = await supabase
         .from("assessments")
-        .upsert({
-          title: `${unit.title} — Quiz`,
-          type: "module_quiz",
-          training_id: training.id,
-        }, { onConflict: "training_id" })
-        .select()
+        .select("id")
+        .eq("training_id", training.id)
+        .eq("type", "module_quiz")
         .single();
 
-      if (aErr) { log.push(`  ❌ Assessment error: ${aErr.message}`); continue; }
+      let assessment;
+      if (existingAssessment) {
+        assessment = existingAssessment;
+        log.push(`  📋 Assessment already exists`);
+      } else {
+        const { data: created, error: aErr } = await supabase
+          .from("assessments")
+          .insert({
+            title: `${unit.title} — Quiz`,
+            type: "module_quiz",
+            training_id: training.id,
+          })
+          .select()
+          .single();
+
+        if (aErr) { log.push(`  ❌ Assessment error: ${aErr.message}`); continue; }
+        assessment = created;
+        log.push(`  📋 Assessment created`);
+      }
 
       // Delete old questions + options
       const { data: oldQs } = await supabase.from("questions").select("id").eq("assessment_id", assessment.id);
