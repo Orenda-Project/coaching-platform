@@ -174,40 +174,67 @@ export async function seedModule1(): Promise<{ success: boolean; log: string[] }
   ];
 
   try {
-    // 1. Upsert Module 1
-    const { data: mod, error: modErr } = await supabase
+    // 1. Get or create Module 1
+    let mod;
+    const { data: existing } = await supabase
       .from("modules")
-      .upsert({
-        title: "Module 1: Universal Core Refresher",
-        description: "Mandatory foundation for all coaches. Aligns with the Taleemabad Coaching OS and redefines coaching as a catalyst for teacher growth.",
-        is_mandatory: true,
-        order_number: 1,
-        competencies: "Strategic Vision, Developmental Stance, Evidence-Based Observation, Ethical Professionalism, Context-Aware Data Validation, Universal Instructional Language",
-        desired_outcomes: "Distinguish coaching from inspection, apply Impact Cycle, use Partnership Principles, maintain confidentiality, apply Human Filter to AI data, code classroom observations",
-      }, { onConflict: "title" })
-      .select()
+      .select("id")
+      .eq("order_number", 1)
       .single();
 
-    if (modErr) throw new Error(`Module error: ${modErr.message}`);
-    log.push(`✅ Module created: ${mod.title}`);
-
-    for (const unit of units) {
-      // Insert/upsert training unit
-      const { data: training, error: tErr } = await supabase
-        .from("trainings")
-        .upsert({
-          title: unit.title,
-          description: unit.description,
-          main_concepts: unit.concepts,
-          is_common: true,
-          module_id: mod.id,
-          order_number: unit.order,
-        }, { onConflict: "title" })
+    if (existing) {
+      mod = existing;
+      log.push(`✅ Module already exists: ${existing.id}`);
+    } else {
+      const { data: created, error: modErr } = await supabase
+        .from("modules")
+        .insert({
+          title: "Module 1: Universal Core Refresher",
+          description: "Mandatory foundation for all coaches. Aligns with the Taleemabad Coaching OS and redefines coaching as a catalyst for teacher growth.",
+          is_mandatory: true,
+          order_number: 1,
+          competencies: "Strategic Vision, Developmental Stance, Evidence-Based Observation, Ethical Professionalism, Context-Aware Data Validation, Universal Instructional Language",
+          desired_outcomes: "Distinguish coaching from inspection, apply Impact Cycle, use Partnership Principles, maintain confidentiality, apply Human Filter to AI data, code classroom observations",
+        })
         .select()
         .single();
 
-      if (tErr) { log.push(`❌ Unit error (${unit.title}): ${tErr.message}`); continue; }
-      log.push(`✅ Unit: ${training.title}`);
+      if (modErr) throw new Error(`Module error: ${modErr.message}`);
+      mod = created;
+      log.push(`✅ Module created: ${mod.title}`);
+    }
+
+    for (const unit of units) {
+      // Get or create training unit
+      let training;
+      const { data: existingTraining } = await supabase
+        .from("trainings")
+        .select("id, created_at")
+        .eq("module_id", mod.id)
+        .eq("order_number", unit.order)
+        .single();
+
+      if (existingTraining) {
+        training = existingTraining;
+        log.push(`✅ Unit already exists: ${unit.title}`);
+      } else {
+        const { data: created, error: tErr } = await supabase
+          .from("trainings")
+          .insert({
+            title: unit.title,
+            description: unit.description,
+            main_concepts: unit.concepts,
+            is_common: true,
+            module_id: mod.id,
+            order_number: unit.order,
+          })
+          .select()
+          .single();
+
+        if (tErr) { log.push(`❌ Unit error (${unit.title}): ${tErr.message}`); continue; }
+        training = created;
+        log.push(`✅ Unit: ${unit.title}`);
+      }
 
       // Delete old content
       await supabase.from("training_content").delete().eq("training_id", training.id);
