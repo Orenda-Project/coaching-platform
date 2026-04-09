@@ -9,7 +9,15 @@ ALTER TABLE public.training_content
   ADD CONSTRAINT training_content_format_type_check
   CHECK (format_type IN ('slide', 'audio', 'video', 'slides', 'scenario', 'quiz'));
 
--- Add unique constraint on (training_id, format_type) for assessments upsert
+-- Fix assessments type constraint to allow module_quiz
+ALTER TABLE public.assessments
+  DROP CONSTRAINT IF EXISTS assessments_type_check;
+
+ALTER TABLE public.assessments
+  ADD CONSTRAINT assessments_type_check
+  CHECK (type IN ('baseline', 'endline', 'training', 'module_quiz'));
+
+-- Add unique constraint on (training_id, type) for assessments
 ALTER TABLE public.assessments
   ADD CONSTRAINT assessments_training_id_type_unique
   UNIQUE (training_id, type);
