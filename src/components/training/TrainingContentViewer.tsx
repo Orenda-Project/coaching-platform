@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Video, BookOpen } from "lucide-react";
+import { BookOpen, CheckCircle2, Layers, GitBranch } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
+import SlidesPlayer, { Slide } from "./SlidesPlayer";
+import ScenarioPlayer, { ScenarioStep } from "./ScenarioPlayer";
 
 type TrainingContent = Tables<"training_content">;
 
@@ -14,9 +16,12 @@ interface TrainingContentViewerProps {
 
 export default function TrainingContentViewer({ trainingId, trainingTitle, onContentCompleted }: TrainingContentViewerProps) {
   const [contents, setContents] = useState<TrainingContent[]>([]);
-  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<string | null>("slides");
   const [loading, setLoading] = useState(true);
   const [contentCompleted, setContentCompleted] = useState(false);
+  const slideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoProgress, setVideoProgress] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -39,20 +44,37 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
   const availableFormats = contents.map((c) => c.format_type);
 
   const formatConfig: Record<string, { icon: typeof FileText; label: string }> = {
-    slide: { icon: FileText, label: "Slides" },
-    video: { icon: Video, label: "Video" },
+    slides: { icon: Layers, label: "Slides" },
+    scenario: { icon: GitBranch, label: "Scenario" },
   };
 
-  const handleVideoEnded = () => {
-    setContentCompleted(true);
-  };
+  const handleVideoEnded = () => setContentCompleted(true);
 
   const handleSlideLoad = () => {
-    // Mark slides as completed after 30 seconds of viewing
-    setTimeout(() => {
-      setContentCompleted(true);
-    }, 30000);
+    if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
+    slideTimerRef.current = setTimeout(() => setContentCompleted(true), 30000);
   };
+
+  const handleVideoTimeUpdate = () => {
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    const pct = Math.round((video.currentTime / video.duration) * 100);
+    setVideoProgress(pct);
+    if (pct >= 90 && !contentCompleted) setContentCompleted(true);
+  };
+
+  // Parse JSON content_url for slides/scenario formats
+  const parsedContent = (() => {
+    if (!selectedContent) return null;
+    if (selectedContent.format_type === "slides" || selectedContent.format_type === "scenario") {
+      try {
+        return JSON.parse(selectedContent.content_url);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  })();
 
   if (loading) {
     return (
@@ -106,22 +128,39 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
                 Select a format above to start learning "{trainingTitle}".
               </p>
             </div>
+          ) : selectedContent.format_type === "slides" && parsedContent ? (
+            <SlidesPlayer
+              slides={parsedContent as Slide[]}
+              onCompleted={() => setContentCompleted(true)}
+              completed={contentCompleted}
+            />
+          ) : selectedContent.format_type === "scenario" && parsedContent ? (
+            <ScenarioPlayer
+              title={trainingTitle}
+              description=""
+              steps={parsedContent.steps as ScenarioStep[]}
+              onCompleted={() => setContentCompleted(true)}
+              completed={contentCompleted}
+            />
           ) : selectedContent.format_type === "video" ? (
             <div>
               <h3 className="text-lg font-display font-semibold text-foreground mb-4">📹 Video Lesson</h3>
               <video
+                ref={videoRef}
                 controls
                 className="w-full rounded-lg bg-black"
-                src={selectedContent.content_url}
+                src={selectedContent.content_url ?? undefined}
                 onEnded={handleVideoEnded}
+                onTimeUpdate={handleVideoTimeUpdate}
               >
                 Your browser does not support the video tag.
               </video>
-              {!contentCompleted && (
-                <p className="text-sm text-muted-foreground mt-2 text-center">
-                  Watch the complete video to unlock the quiz.
-                </p>
-              )}
+              <div className="mt-2 flex items-center justify-between text-sm text-slate-400">
+                <span>Watch progress: {videoProgress}%</span>
+                {contentCompleted
+                  ? <span className="flex items-center gap-1 text-green-400"><CheckCircle2 className="w-4 h-4" /> Complete</span>
+                  : <span>Watch to 90% to unlock quiz</span>}
+              </div>
             </div>
           ) : (
             <div>

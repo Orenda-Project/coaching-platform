@@ -143,9 +143,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          baseline_attempt_count: number
           baseline_completed: boolean
           baseline_score: number | null
           created_at: string
+          endline_attempt_count: number
           endline_completed: boolean
           endline_score: number | null
           full_name: string | null
@@ -153,11 +155,14 @@ export type Database = {
           persona: string | null
           phone: string
           updated_at: string
+          weak_modules: string[]
         }
         Insert: {
+          baseline_attempt_count?: number
           baseline_completed?: boolean
           baseline_score?: number | null
           created_at?: string
+          endline_attempt_count?: number
           endline_completed?: boolean
           endline_score?: number | null
           full_name?: string | null
@@ -165,11 +170,14 @@ export type Database = {
           persona?: string | null
           phone: string
           updated_at?: string
+          weak_modules?: string[]
         }
         Update: {
+          baseline_attempt_count?: number
           baseline_completed?: boolean
           baseline_score?: number | null
           created_at?: string
+          endline_attempt_count?: number
           endline_completed?: boolean
           endline_score?: number | null
           full_name?: string | null
@@ -177,6 +185,7 @@ export type Database = {
           persona?: string | null
           phone?: string
           updated_at?: string
+          weak_modules?: string[]
         }
         Relationships: []
       }

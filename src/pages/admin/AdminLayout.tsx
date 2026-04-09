@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { GraduationCap, ClipboardList, BookOpen, FileVideo, HelpCircle, ArrowLeft, Shield, Layers } from "lucide-react";
+import { GraduationCap, ClipboardList, HelpCircle, ArrowLeft, Shield, Layers, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminRole } from "@/hooks/useAdminRole";
 
@@ -7,6 +7,7 @@ const navItems = [
   { label: "Baseline Questions", icon: ClipboardList, path: "/admin/baseline-questions" },
   { label: "Modules", icon: Layers, path: "/admin/modules" },
   { label: "Quiz Questions", icon: HelpCircle, path: "/admin/quiz-questions" },
+  { label: "Seed Data", icon: Database, path: "/admin/seed" },
 ];
 
 export default function AdminLayout() {

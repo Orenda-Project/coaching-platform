@@ -1,73 +1,144 @@
-# Welcome to your Lovable project
+# Coach-Cert — Taleemabad
 
-## Project info
+A coaching certification platform for teachers. Teachers complete baseline assessments, persona-targeted training modules, and an endline assessment to earn a certificate.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Stack:** React 18 + TypeScript · Vite · Supabase · Tailwind CSS · shadcn-ui
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Prerequisites
 
-**Use Lovable**
+- [Node.js](https://nodejs.org/) (v18+) — install via [nvm](https://github.com/nvm-sh/nvm)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — required for local Supabase
+- [Supabase CLI](https://supabase.com/docs/guides/cli) — `brew install supabase/tap/supabase`
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## Local Development Setup
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### 1. Clone and install
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
+cd coach-cert
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 2. Start local Supabase
 
-# Step 3: Install the necessary dependencies.
-npm i
+Docker Desktop must be running first.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```sh
+supabase start
+```
+
+This pulls Docker images (first run only), starts a local Postgres instance, and applies all migrations automatically. You'll see output like:
+
+```
+Studio  │ http://127.0.0.1:54323
+API URL │ http://127.0.0.1:54321
+DB URL  │ postgresql://postgres:postgres@127.0.0.1:54322/postgres
+Publishable Key │ sb_publishable_...
+```
+
+### 3. Configure environment
+
+Create a `.env.local` file (takes priority over `.env`):
+
+```sh
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+VITE_SUPABASE_PUBLISHABLE_KEY=<Publishable Key from supabase start output>
+```
+
+> `.env` points to the production Supabase project. `.env.local` overrides it for local dev. Never commit either file.
+
+### 4. Create a local admin user
+
+1. Start the app: `npm run dev`
+2. Sign up at `http://localhost:5173/signup`
+3. Open Supabase Studio at `http://127.0.0.1:54323` → SQL Editor and run:
+
+```sql
+INSERT INTO public.user_roles (user_id, role)
+SELECT id, 'admin'
+FROM auth.users
+WHERE email = 'your-email@example.com'
+ON CONFLICT DO NOTHING;
+```
+
+### 5. Run the app
+
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+App runs at `http://localhost:5173`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## Environment Files
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+| File | Purpose | Committed? |
+|---|---|---|
+| `.env` | Production Supabase credentials | No |
+| `.env.local` | Local Supabase credentials (overrides `.env`) | No |
 
-## What technologies are used for this project?
+Vite loads `.env.local` with higher priority than `.env` automatically — no config change needed.
 
-This project is built with:
+Required variables:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Local Supabase Management
 
-## Can I connect a custom domain to my Lovable project?
+```sh
+supabase start          # Start local DB + apply migrations
+supabase stop           # Stop all containers (keeps data)
+supabase stop --no-backup  # Stop and wipe all local data
+supabase status         # Show running service URLs and keys
+supabase db reset       # Wipe DB and re-apply all migrations from scratch
+```
 
-Yes, you can!
+**Studio (local DB GUI):** http://127.0.0.1:54323
+**Mailpit (local email):** http://127.0.0.1:54324 — catches all auth emails (confirmations, password resets)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Adding a migration
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```sh
+supabase migration new <description>
+# Edit the generated file in supabase/migrations/
+supabase db reset   # Apply to local DB
+```
+
+---
+
+## Available Commands
+
+```sh
+npm run dev          # Start dev server
+npm run build        # Production build
+npm run build:dev    # Development build
+npm run lint         # ESLint
+npm run test         # Run Vitest
+npm run test:watch   # Vitest watch mode
+npm run preview      # Preview production build
+```
+
+---
+
+## Environments
+
+| Environment | Supabase | How to connect |
+|---|---|---|
+| **Local** | `http://127.0.0.1:54321` | `.env.local` + `supabase start` |
+| **Production** | `https://rdvylrymblwcwnfpjkyw.supabase.co` | `.env` (default) |
+
+Production DB tools:
+- **Dashboard:** https://supabase.com/dashboard/project/rdvylrymblwcwnfpjkyw
+- **SQL Editor:** https://supabase.com/dashboard/project/rdvylrymblwcwnfpjkyw/sql/new
+- **Table Editor:** https://supabase.com/dashboard/project/rdvylrymblwcwnfpjkyw/editor
