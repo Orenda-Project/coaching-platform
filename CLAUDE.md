@@ -17,10 +17,13 @@
 - Certificate: upsert on conflict user_id. ID = CC-{timestamp}-{RAND4}
 - Anti-cheat: tab-switch detection in quiz, 3+ = flagged for admin review.
 
-## Architecture Docs (Always Read Before Touching Code)
-- `/Users/mac/Desktop/data/personal assistant/agents/coaching-platform-complete-plan.md`
-- `/Users/mac/Desktop/data/personal assistant/agents/coaching-platform-owner.md`
-- `PROJECT_MAP.md` — codebase map and known issues
+## Architecture & Deployment Docs (Always Read Before Touching Code)
+- `/Users/mac/Desktop/data/personal assistant/agents/coaching-platform-complete-plan.md` — Full system design
+- `/Users/mac/Desktop/data/personal assistant/agents/coaching-platform-owner.md` — Domain expert agent
+- `PROJECT_MAP.md` — Codebase map and known issues
+- `DEPLOYMENT.md` — Staging → Production branching & deployment strategy
+- `ENVIRONMENT_SUMMARY.md` — Quick reference: GitHub branches, Railway projects, Supabase DBs
+- `SETUP_CHECKLIST.md` — Step-by-step staging/production infrastructure setup
 
 ## What Was Fixed in v2 (2026-04-08) vs coach-cert base
 - Module locking uses order_number (not array index)
