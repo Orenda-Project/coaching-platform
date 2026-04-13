@@ -60,7 +60,7 @@ export default function Dashboard() {
     // Option A: Show Module 1 (mandatory) + modules matching weak_modules from baseline
     const weakModules = profile.weak_modules || [];
     const assignedModules = allModules.filter(
-      (m) => m.is_mandatory || weakModules.includes(m.title)
+      (m) => m.is_mandatory || weakModules.some(wm => m.title.startsWith(wm))
     );
     const assignedModuleIds = new Set(assignedModules.map((m) => m.id));
     const assignedTrainings = allTrainings.filter(

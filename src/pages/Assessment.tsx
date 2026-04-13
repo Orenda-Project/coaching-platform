@@ -90,7 +90,7 @@ export default function Assessment() {
     const weakModules = profile.weak_modules || [];
     const assignedModuleIds = new Set(
       (allModules || [])
-        .filter((m) => m.is_mandatory || weakModules.includes(m.title))
+        .filter((m) => m.is_mandatory || weakModules.some(wm => m.title.startsWith(wm)))
         .map((m) => m.id)
     );
 
@@ -226,6 +226,7 @@ export default function Assessment() {
             .from("profiles")
             .update({ baseline_attempt_count: newAttemptCount })
             .eq("id", user.id);
+          localStorage.removeItem(`assessment_${type}_${user?.id}`);
           await refreshProfile();
           toast.error(
             `You scored ${pct}%. You need at least ${BASELINE_PASS_THRESHOLD}% to proceed. Please try again.`
@@ -237,7 +238,7 @@ export default function Assessment() {
         }
 
         const persona = assignPersona(pct);
-        await supabase
+        const { error: updateError } = await supabase
           .from("profiles")
           .update({
             persona,
@@ -248,6 +249,14 @@ export default function Assessment() {
           })
           .eq("id", user.id);
 
+        if (updateError) {
+          console.error("Profile update error:", updateError);
+          toast.error("Failed to save your results. Please try again.");
+          setSubmitting(false);
+          return;
+        }
+
+        localStorage.removeItem(`assessment_${type}_${user?.id}`);
         submittedRef.current = true;
         await refreshProfile();
         navigate("/dashboard");
@@ -260,6 +269,7 @@ export default function Assessment() {
             .from("profiles")
             .update({ endline_attempt_count: newAttemptCount })
             .eq("id", user.id);
+          localStorage.removeItem(`assessment_${type}_${user?.id}`);
           await refreshProfile();
           toast.error(
             `You scored ${pct}%. You need at least ${ENDLINE_PASS_THRESHOLD}% to earn your certificate. Please try again.`
@@ -301,6 +311,7 @@ export default function Assessment() {
           })
           .eq("id", user.id);
 
+        localStorage.removeItem(`assessment_${type}_${user?.id}`);
         await refreshProfile();
         toast.success(`Congratulations! You scored ${pct}% and earned your certificate!`);
         navigate("/certificate");
