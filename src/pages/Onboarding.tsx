@@ -39,6 +39,11 @@ export default function Onboarding() {
       return;
     }
 
+    if (!user?.id) {
+      toast.error("User not authenticated");
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase
@@ -52,14 +57,19 @@ export default function Onboarding() {
             .filter((t) => t.length > 0),
           updated_at: new Date().toISOString()
         })
-        .eq("id", user?.id);
+        .eq("id", user.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Onboarding update error:", error);
+        throw error;
+      }
 
       toast.success("Onboarding complete! Welcome to CoachCert");
       await refreshProfile();
       navigate("/dashboard");
     } catch (error: any) {
+      console.error("Onboarding error:", error);
       toast.error(error.message || "Failed to complete onboarding");
     } finally {
       setLoading(false);
@@ -186,7 +196,7 @@ export default function Onboarding() {
             </CardContent>
 
             <div className="px-6 pb-6 flex flex-col gap-3">
-              <Button type="submit" className="w-full" disabled={loading} size="lg">
+              <Button type="submit" className="w-full" disabled={loading || !user} size="lg">
                 {loading ? "Setting up..." : "Complete Profile & Start Training"}
               </Button>
               <p className="text-xs text-muted-foreground text-center">
