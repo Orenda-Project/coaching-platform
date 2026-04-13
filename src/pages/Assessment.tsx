@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Send, GraduationCap, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Send, GraduationCap, AlertTriangle, Clock, FileQuestion, CheckCircle2 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 
 type Question = Tables<"questions">;
@@ -40,11 +40,30 @@ export default function Assessment() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [endlineBlocked, setEndlineBlocked] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const submittedRef = useRef(false);
 
   const isBaseline = type === "baseline";
   const isEndline = type === "endline";
   const passThreshold = isBaseline ? BASELINE_PASS_THRESHOLD : ENDLINE_PASS_THRESHOLD;
+
+  // Auto-save progress every 5 seconds
+  useEffect(() => {
+    if (!user?.id || !hasStarted || questions.length === 0) return;
+
+    const interval = setInterval(() => {
+      localStorage.setItem(
+        `assessment_${type}_${user.id}`,
+        JSON.stringify({
+          answers,
+          currentIndex,
+          timestamp: new Date().toISOString()
+        })
+      );
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [answers, currentIndex, user?.id, type, hasStarted, questions.length]);
 
   useEffect(() => {
     if (!profile) return;
@@ -144,6 +163,21 @@ export default function Assessment() {
     }));
 
     setQuestions(questionsWithOptions);
+
+    // Load saved progress from localStorage
+    const saved = localStorage.getItem(`assessment_${type}_${user?.id}`);
+    if (saved) {
+      try {
+        const { answers: savedAnswers, currentIndex: savedIndex } = JSON.parse(saved);
+        setAnswers(savedAnswers);
+        setCurrentIndex(savedIndex);
+        setHasStarted(true);
+        toast.success("Resuming where you left off...");
+      } catch (e) {
+        // Ignore parse errors, just continue
+      }
+    }
+
     setLoading(false);
   };
 
@@ -280,20 +314,20 @@ export default function Assessment() {
   // ─── Endline blocked ───────────────────────────────────────────────────────
   if (!loading && endlineBlocked) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-orange-500/30 bg-slate-800/60">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-amber-200 bg-amber-50">
           <CardHeader className="text-center">
-            <AlertTriangle className="w-12 h-12 text-orange-400 mx-auto mb-2" />
-            <CardTitle className="text-white">Complete All Modules First</CardTitle>
+            <AlertTriangle className="w-12 h-12 text-amber-600 mx-auto mb-2" />
+            <CardTitle className="text-amber-900">Complete All Modules First</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-slate-300">
+            <p className="text-amber-800">
               You must pass all assigned training modules before attempting the endline assessment.
             </p>
-            <p className="text-slate-400 text-sm">
+            <p className="text-amber-700 text-sm">
               Return to your dashboard to complete any remaining modules.
             </p>
-            <Button onClick={() => navigate("/dashboard")} className="w-full bg-teal-600 hover:bg-teal-700">
+            <Button onClick={() => navigate("/dashboard")} className="w-full">
               Go to Dashboard
             </Button>
           </CardContent>
@@ -304,8 +338,8 @@ export default function Assessment() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-lg animate-pulse">Loading assessment…</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground text-lg animate-pulse">Loading assessment…</div>
       </div>
     );
   }
@@ -315,18 +349,101 @@ export default function Assessment() {
   const progressPct = questions.length > 0 ? (totalAnswered / questions.length) * 100 : 0;
   const canSubmit = totalAnswered === questions.length;
 
+  // Show intro screen if not started
+  if (!hasStarted) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-lg">
+          <Card className="glass-card">
+            <CardHeader className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                  <GraduationCap className="w-6 h-6 text-primary-foreground" />
+                </div>
+                <h1 className="text-2xl font-display font-bold text-foreground">CoachCert</h1>
+              </div>
+              <CardTitle className="font-display text-xl">
+                {isBaseline ? "Baseline Assessment" : "Endline Assessment"}
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              <div>
+                <h2 className="font-semibold text-foreground mb-4">Welcome to Your Assessment</h2>
+
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">
+                      What {isBaseline ? "is" : "is"} {isBaseline ? "the baseline" : "the endline"}?
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isBaseline
+                        ? "A quick assessment to understand your coaching profile and identify areas for growth."
+                        : "A final assessment to show what you've learned and the progress you've made."}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">Why does it matter?</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {isBaseline
+                        ? "Your results personalize your training path and focus on your development areas."
+                        : "Your results unlock your certification certificate and show your coaching growth."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <span className="text-foreground font-medium">Time needed: ~10 minutes</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileQuestion className="w-4 h-4 text-blue-600" />
+                    <span className="text-foreground font-medium">Questions: {questions.length}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <span className="text-foreground font-medium">Can resume if interrupted</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <span className="text-foreground font-medium">Pass threshold: {passThreshold}%</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+
+            <div className="px-6 pb-6 flex flex-col gap-2">
+              <Button
+                onClick={() => setHasStarted(true)}
+                className="w-full"
+                size="lg"
+              >
+                Start Assessment
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                You can pause anytime and resume later
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-2xl space-y-4">
         {/* Header */}
-        <div className="flex items-center gap-3 text-white">
-          <GraduationCap className="w-6 h-6 text-teal-400" />
+        <div className="flex items-center gap-3">
+          <GraduationCap className="w-6 h-6 text-primary" />
           <div>
-            <h1 className="font-bold text-lg">
+            <h1 className="font-bold text-lg text-foreground">
               {isBaseline ? "Baseline Assessment" : "Endline Assessment"}
             </h1>
-            <p className="text-slate-400 text-sm">
-              Pass threshold: {passThreshold}% &nbsp;|&nbsp; Question {currentIndex + 1} of {questions.length}
+            <p className="text-muted-foreground text-sm">
+              Question {currentIndex + 1} of {questions.length} &nbsp;|&nbsp; Pass threshold: {passThreshold}%
             </p>
           </div>
         </div>
@@ -336,27 +453,28 @@ export default function Assessment() {
 
         {/* Question */}
         {currentQuestion && (
-          <Card className="bg-slate-800/60 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white text-base leading-relaxed">
+              <CardTitle className="text-foreground text-base leading-relaxed">
                 {currentIndex + 1}. {currentQuestion.question_text}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <RadioGroup
                 value={answers[currentQuestion.id] || ""}
-                onValueChange={(val) =>
-                  setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))
-                }
+                onValueChange={(val) => {
+                  setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }));
+                  setHasStarted(true); // Mark as started when first answer is selected
+                }}
                 className="space-y-3"
               >
                 {currentQuestion.options.map((option) => (
                   <div
                     key={option.id}
-                    className="flex items-center space-x-3 p-3 rounded-lg border border-slate-700 hover:border-teal-500 cursor-pointer transition-colors"
+                    className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:border-primary cursor-pointer transition-colors"
                   >
                     <RadioGroupItem value={option.id} id={option.id} />
-                    <Label htmlFor={option.id} className="text-slate-200 cursor-pointer flex-1">
+                    <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
                       {option.option_text}
                     </Label>
                   </div>
@@ -381,7 +499,7 @@ export default function Assessment() {
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="flex-1 bg-teal-600 hover:bg-teal-700"
+              className="flex-1"
             >
               {submitting ? "Submitting…" : <><Send className="w-4 h-4 mr-1" /> Submit</>}
             </Button>
@@ -393,17 +511,17 @@ export default function Assessment() {
                 if (firstUnanswered !== -1) setCurrentIndex(firstUnanswered);
                 else setCurrentIndex((i) => Math.min(questions.length - 1, i + 1));
               }}
-              className="flex-1 bg-teal-600 hover:bg-teal-700"
+              className="flex-1"
             >
               Next <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           )}
         </div>
 
-        <p className="text-center text-slate-400 text-sm">
+        <p className="text-center text-muted-foreground text-sm">
           {totalAnswered} of {questions.length} answered
           {!canSubmit && (
-            <span className="text-orange-400 ml-2">
+            <span className="text-amber-600 font-medium ml-2">
               — {questions.length - totalAnswered} question{questions.length - totalAnswered !== 1 ? "s" : ""} remaining
             </span>
           )}

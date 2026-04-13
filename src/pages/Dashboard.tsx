@@ -4,12 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PersonaBadge } from "@/components/PersonaBadge";
 import { ModuleCard } from "@/components/ModuleCard";
+import { BaselineResultsCard } from "@/components/BaselineResultsCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy, Shield, ChevronDown, ChevronRight, CheckCircle2, AlertCircle, FileQuestion } from "lucide-react";
+import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy, Shield, ChevronDown, ChevronRight, FileQuestion } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
-import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -37,8 +37,13 @@ export default function Dashboard() {
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    // Redirect to onboarding if not completed
+    if (profile && !profile.school_id) {
+      navigate("/onboarding");
+      return;
+    }
     if (profile) loadData();
-  }, [profile]);
+  }, [profile, navigate]);
 
   const loadData = async () => {
     if (!user || !profile) return;
@@ -243,36 +248,11 @@ export default function Dashboard() {
 
         {/* Baseline Results — completed */}
         {profile?.baseline_completed && (
-          <Card className="glass-card mb-8 border-primary/30 animate-fade-in">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 flex-wrap mb-1">
-                    <h2 className="text-lg font-display font-bold text-foreground">Baseline Complete</h2>
-                    <PersonaBadge persona={profile.persona || ""} size="sm" />
-                  </div>
-                  <p className="text-muted-foreground text-sm mb-3">
-                    You scored <span className="font-semibold text-foreground">{Math.round(profile.baseline_score || 0)}%</span> and have been assigned Persona <span className="font-semibold text-foreground">{profile.persona}</span>.
-                    {profile.weak_modules?.length > 0 && (
-                      <> Your training path targets your weak areas: <span className="font-semibold text-foreground">{profile.weak_modules.join(", ")}</span>.</>
-                    )}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-muted rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full transition-all"
-                        style={{ width: `${Math.round(profile.baseline_score || 0)}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-foreground">{Math.round(profile.baseline_score || 0)}%</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <BaselineResultsCard
+            baselineScore={Math.round(profile.baseline_score || 0)}
+            persona={profile.persona || ""}
+            weakModules={profile.weak_modules || []}
+          />
         )}
 
         {/* Progress bar */}
