@@ -1,11 +1,21 @@
 # Coaching Platform — Taleemabad MVP Prototype
 # Built: 2026-04-08 | Stack: React + TypeScript + Supabase + Tailwind
 
+## 🚨 Team Development Standards (READ FIRST!)
+
+**ALL work must follow these rules:**
+1. ✅ Work in feature branches (never push to main directly)
+2. ✅ Create PRs (no direct merges to staging/main)
+3. ✅ Run E2E tests before merging (signup → baseline → modules → endline → certificate)
+4. ✅ Use staging environment first (staging → main, never skip)
+
+**See:** `DEVELOPMENT_STANDARDS.md` (complete standards)
+
 ## Slash Commands for This Project
-- `/coaching-dev` — implementing features
-- `/coaching-review` — code review
-- `/coaching-bugfix` — bug fixing
-- `/coaching-qa` — QA testing
+- `/coaching-dev` — implementing features (use feature branch + PR)
+- `/coaching-review` — code review (reviewer role)
+- `/coaching-bugfix` — bug fixing (feature branch + PR + E2E tests)
+- `/coaching-qa` — QA testing (test E2E flow on staging before production merge)
 
 ## Key Business Rules (Never Break)
 - Baseline: 60% to pass. <60% = fail, retry. Persona: A(≥75%) B(70%) C(65%) D(60%)
