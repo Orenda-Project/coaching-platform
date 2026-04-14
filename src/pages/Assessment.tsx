@@ -330,7 +330,7 @@ export default function Assessment() {
   // ─── Endline blocked ───────────────────────────────────────────────────────
   if (!loading && endlineBlocked) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="max-w-md w-full border-warning/20 bg-warning/10">
           <CardHeader className="text-center">
             <AlertTriangle className="w-12 h-12 text-warning mx-auto mb-2" />
@@ -354,7 +354,7 @@ export default function Assessment() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-foreground text-lg animate-pulse">Loading assessment…</div>
       </div>
     );
@@ -368,7 +368,7 @@ export default function Assessment() {
   // Show intro screen if not started
   if (!hasStarted) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-lg">
           <Card className="glass-card">
             <CardHeader className="text-center">
@@ -449,7 +449,7 @@ export default function Assessment() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-2xl space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
