@@ -71,7 +71,7 @@ export default function ModuleQuiz() {
       .eq("module_id", moduleId)
       .maybeSingle();
 
-    const currentAttempts = (existing as any)?.attempt_count ?? 0;
+    const currentAttempts = (existing as { attempt_count?: number } | null)?.attempt_count ?? 0;
     setAttemptCount(currentAttempts);
 
     if (currentAttempts >= MAX_ATTEMPTS) {
@@ -188,12 +188,12 @@ export default function ModuleQuiz() {
         .from("module_quiz_attempts")
         .update({
           score,
-          best_score: Math.max(score, (existing as any).best_score ?? 0),
-          passed: passed || (existing as any).passed,
+          best_score: Math.max(score, (existing as { best_score?: number } | null)?.best_score ?? 0),
+          passed: passed || (existing as { passed?: boolean } | null)?.passed,
           attempt_count: newAttempt,
           completed_at: passed ? new Date().toISOString() : null,
-        } as any)
-        .eq("id", (existing as any).id);
+        })
+        .eq("id", (existing as { id: string }).id);
     } else {
       await supabase.from("module_quiz_attempts").insert({
         user_id: user.id,

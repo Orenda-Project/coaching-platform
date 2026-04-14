@@ -19,7 +19,7 @@ export default function CertificatePage() {
 
   useEffect(() => {
     loadCertificate();
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadCertificate = async () => {
     if (!user) return;

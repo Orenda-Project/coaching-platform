@@ -367,7 +367,7 @@ export async function seedModule1(): Promise<{ success: boolean; log: string[] }
       // Delete old questions + options
       const { data: oldQs } = await supabase.from("questions").select("id").eq("assessment_id", assessment.id);
       if (oldQs?.length) {
-        const ids = oldQs.map((q: any) => q.id);
+        const ids = oldQs.map((q: { id: string }) => q.id);
         await supabase.from("options").delete().in("question_id", ids);
         await supabase.from("questions").delete().eq("assessment_id", assessment.id);
       }
@@ -411,8 +411,8 @@ export async function seedModule1(): Promise<{ success: boolean; log: string[] }
 
     log.push("✅ Module 1 seed complete!");
     return { success: true, log };
-  } catch (err: any) {
-    log.push(`❌ Fatal error: ${err.message}`);
+  } catch (err: unknown) {
+    log.push(`❌ Fatal error: ${err instanceof Error ? err.message : String(err)}`);
     return { success: false, log };
   }
 }
