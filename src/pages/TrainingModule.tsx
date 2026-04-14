@@ -123,7 +123,7 @@ export default function TrainingModule() {
     const { data: assessments } = await supabase
       .from("assessments")
       .select("id")
-      .eq("type", "training")
+      .eq("type", "module_quiz")
       .eq("training_id", id);
 
     if (!assessments?.length) {
@@ -261,7 +261,7 @@ export default function TrainingModule() {
             <GraduationCap className="w-5 h-5 text-primary" />
             <span className="font-bold text-foreground">{training.title}</span>
             {phase === "quiz" && (
-              <Badge variant="outline" className="ml-2 text-orange-400 border-orange-400">
+              <Badge variant="outline" className="ml-2 text-warning border-warning">
                 Quiz — Attempt {attemptCount + 1}/{MAX_ATTEMPTS}
               </Badge>
             )}
@@ -331,29 +331,44 @@ export default function TrainingModule() {
                     Q{currentIndex + 1}. {currentQuestion.question_text}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <RadioGroup
-                    value={answers[currentQuestion.id] || ""}
-                    onValueChange={(val) =>
-                      setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))
-                    }
+                <CardContent className="space-y-3">
+                  {currentQuestion.question_type === 'open' && (
+                    <div className="space-y-2">
+                      <textarea
+                        value={answers[currentQuestion.id] || ""}
+                        onChange={(e) =>
+                          setAnswers((prev) => ({ ...prev, [currentQuestion.id]: e.target.value }))
+                        }
+                        placeholder="Enter your response here..."
+                        className="w-full min-h-[120px] p-3 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground"
+                      />
+                      <p className="text-xs text-muted-foreground italic">(does not count toward your score)</p>
+                    </div>
+                  )}
+                  {currentQuestion.question_type === 'mcq' && (
+                    <RadioGroup
+                      value={answers[currentQuestion.id] || ""}
+                      onValueChange={(val) =>
+                        setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))
+                      }
                     className="space-y-3"
                   >
-                    {currentQuestion.options.map((option) => (
-                      <div
-                        key={option.id}
-                        className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:border-primary cursor-pointer transition-colors"
-                      >
-                        <RadioGroupItem value={option.id} id={option.id} />
-                        <Label
-                          htmlFor={option.id}
-                          className="text-foreground cursor-pointer flex-1"
+                      {currentQuestion.options.map((option) => (
+                        <div
+                          key={option.id}
+                          className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:border-primary cursor-pointer transition-colors"
                         >
-                          {option.option_text}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
+                          <RadioGroupItem value={option.id} id={option.id} />
+                          <Label
+                            htmlFor={option.id}
+                            className="text-foreground cursor-pointer flex-1"
+                          >
+                            {option.option_text}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -371,7 +386,7 @@ export default function TrainingModule() {
               {currentIndex < questions.length - 1 ? (
                 <Button
                   onClick={() => setCurrentIndex((i) => i + 1)}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   Next <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -379,14 +394,14 @@ export default function TrainingModule() {
                 <Button
                   onClick={handleQuizSubmit}
                   disabled={submitting || totalAnswered < questions.length}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   {submitting ? "Submitting…" : <><Send className="w-4 h-4 mr-1" /> Submit</>}
                 </Button>
               )}
             </div>
 
-            <div className="mt-3 flex justify-between text-sm text-slate-400">
+            <div className="mt-3 flex justify-between text-sm text-muted-foreground">
               <span>{totalAnswered} of {questions.length} answered</span>
               <span>{attemptsRemaining} attempt{attemptsRemaining === 1 ? "" : "s"} remaining after this</span>
             </div>
