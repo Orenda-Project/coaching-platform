@@ -33,7 +33,7 @@ jobs:
       - name: Deploy to Railway Staging
         run: |
           npm install -g @railway/cli
-          railway up --detach
+          railway up --detach --service ${{ secrets.RAILWAY_SERVICE_STAGING }} --environment staging
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
 
@@ -52,6 +52,6 @@ jobs:
       - name: Deploy to Railway Production
         run: |
           npm install -g @railway/cli
-          railway up --detach
+          railway up --detach --service ${{ secrets.RAILWAY_SERVICE_PRODUCTION }} --environment production
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PRODUCTION }}
