@@ -261,14 +261,14 @@ export default function ScenarioFlow() {
 
   // Render Header
   const renderHeader = () => (
-    <div className="sticky top-0 z-10 bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-lg">
+    <div className="sticky top-0 z-10 bg-background border-b shadow-sm">
       <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <GraduationCap className="h-6 w-6" />
+          <GraduationCap className="h-6 w-6 text-primary" />
           <div>
-            <h1 className="font-bold text-lg">{unitTitle}</h1>
+            <h1 className="font-bold text-lg text-foreground">{unitTitle}</h1>
             {trainingTitle && (
-              <p className="text-xs text-slate-300">{trainingTitle}</p>
+              <p className="text-xs text-muted-foreground">{trainingTitle}</p>
             )}
           </div>
         </div>
@@ -276,14 +276,13 @@ export default function ScenarioFlow() {
           variant="ghost"
           size="sm"
           onClick={() => navigate("/dashboard")}
-          className="text-white hover:bg-white/10"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
       </div>
       {phase !== "summary" && (
-        <div className="px-4 pb-3 text-xs text-slate-400">
+        <div className="px-4 pb-3 text-xs text-muted-foreground">
           Scenario {currentIndex + 1} of {totalScenarios}
         </div>
       )}
@@ -363,7 +362,7 @@ export default function ScenarioFlow() {
       case "summary":
         return (
           <div className={containerClass}>
-            <Card className="border-slate-200 bg-gradient-to-b from-slate-50 to-white">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-center text-2xl">
                   You completed all scenarios!
@@ -372,7 +371,7 @@ export default function ScenarioFlow() {
               <CardContent className="space-y-6">
                 {/* Summary Stats */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-center p-4 bg-muted rounded-lg">
                     <div className="text-2xl font-bold text-blue-600">
                       {completedScenarios}
                     </div>
@@ -380,7 +379,7 @@ export default function ScenarioFlow() {
                       Completed
                     </div>
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-center p-4 bg-muted rounded-lg">
                     <div className="text-2xl font-bold text-green-600">
                       {correctCount}
                     </div>

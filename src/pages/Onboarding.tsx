@@ -105,7 +105,7 @@ export default function Onboarding() {
               <div key={idx} className="flex flex-col items-center gap-2 text-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    step.done ? "bg-green-100" : "bg-blue-100"
+                    step.done ? "bg-primary/10" : "bg-muted"
                   }`}
                 >
                   <Icon className={`w-5 h-5 ${step.done ? "text-green-600" : "text-blue-600"}`} />
@@ -184,9 +184,9 @@ export default function Onboarding() {
               </div>
 
               {/* Info box */}
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <p className="text-sm font-semibold text-blue-900 mb-2">Why we need this info:</p>
-                <ul className="text-xs text-blue-800 space-y-1">
+              <div className="bg-muted p-4 rounded-lg border border-border">
+                <p className="text-sm font-semibold text-foreground mb-2">Why we need this info:</p>
+                <ul className="text-xs text-muted-foreground space-y-1">
                   <li>✓ Personalize your training to your school context</li>
                   <li>✓ Create relevant observation templates</li>
                   <li>✓ Generate contextual reports</li>

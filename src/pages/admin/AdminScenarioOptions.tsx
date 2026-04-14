@@ -193,7 +193,7 @@ export default function AdminScenarioOptions() {
 
       {/* Scenario Context */}
       {scenario && (
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="bg-muted/50">
           <CardContent className="pt-4">
             <p className="text-sm font-semibold text-muted-foreground mb-1">
               SITUATION:
@@ -215,7 +215,7 @@ export default function AdminScenarioOptions() {
               <div className="space-y-3">
                 {/* Letter + Correct */}
                 <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-lg">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted flex items-center justify-center font-bold text-lg">
                     {option.option_letter}
                   </div>
                   <div className="flex-1">

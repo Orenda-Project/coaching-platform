@@ -70,7 +70,7 @@ export function BaselineResultsCard({
   const desc = personaDescriptions[persona] || personaDescriptions["B"];
 
   return (
-    <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-indigo-200 mb-6">
+    <Card className="mb-6">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Your Coaching Profile</CardTitle>

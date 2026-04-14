@@ -82,9 +82,9 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 shadow-sm">
+      <div className="sticky top-0 z-10 bg-background border-b shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
@@ -114,7 +114,7 @@ export default function Profile() {
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         {/* Profile Card - Identity */}
         <Card className="border-0 shadow-md">
-          <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 border-b">
+          <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
               Personal Information
@@ -217,7 +217,7 @@ export default function Profile() {
 
         {/* Account Card - Email & Auth */}
         <Card className="border-0 shadow-md">
-          <CardHeader className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 border-b">
+          <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5 text-blue-600" />
               Account Information
@@ -248,7 +248,7 @@ export default function Profile() {
 
         {/* Learning Profile Card */}
         <Card className="border-0 shadow-md">
-          <CardHeader className="bg-gradient-to-r from-amber-500/10 to-amber-500/5 border-b">
+          <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-amber-600" />
               Learning Profile
@@ -284,7 +284,7 @@ export default function Profile() {
                   Baseline Assessment
                 </p>
                 {profile.baseline_completed && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+                  <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground font-medium">
                     Completed
                   </span>
                 )}
@@ -316,7 +316,7 @@ export default function Profile() {
                   Endline Assessment
                 </p>
                 {profile.endline_completed && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+                  <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground font-medium">
                     Completed
                   </span>
                 )}
@@ -345,7 +345,7 @@ export default function Profile() {
 
         {/* Progress Metrics Card */}
         <Card className="border-0 shadow-md">
-          <CardHeader className="bg-gradient-to-r from-purple-500/10 to-purple-500/5 border-b">
+          <CardHeader className="border-b">
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-purple-600" />
               Progress Metrics
@@ -353,7 +353,7 @@ export default function Profile() {
           </CardHeader>
           <CardContent className="pt-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-muted p-4 rounded-lg">
                 <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
                   Weak Modules
                 </p>
@@ -373,7 +373,7 @@ export default function Profile() {
                 )}
               </div>
 
-              <div className="bg-green-50 p-4 rounded-lg">
+              <div className="bg-muted p-4 rounded-lg">
                 <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
                   Achievement Level
                 </p>

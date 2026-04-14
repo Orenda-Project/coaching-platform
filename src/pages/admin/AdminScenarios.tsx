@@ -349,11 +349,11 @@ export default function AdminScenarios() {
                       <span className="text-xs font-mono bg-secondary text-secondary-foreground px-2 py-1 rounded">
                         #{idx + 1}
                       </span>
-                      <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-700">
+                      <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
                         {scenario.difficulty}
                       </span>
                       {!scenario.is_active && (
-                        <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                        <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
                           Inactive
                         </span>
                       )}

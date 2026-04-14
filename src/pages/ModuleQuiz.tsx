@@ -181,8 +181,8 @@ export default function ModuleQuiz() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-900">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-400" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -194,28 +194,28 @@ export default function ModuleQuiz() {
   // Result screen
   if (result) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <Card className="bg-slate-800/80 border-slate-700 w-full max-w-md">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center space-y-4">
-            <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center ${result.passed ? "bg-green-500/20" : "bg-red-500/20"}`}>
+            <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center ${result.passed ? "bg-green-500/10" : "bg-red-500/10"}`}>
               {result.passed
-                ? <CheckCircle2 className="w-8 h-8 text-green-400" />
-                : <XCircle className="w-8 h-8 text-red-400" />}
+                ? <CheckCircle2 className="w-8 h-8 text-green-600" />
+                : <XCircle className="w-8 h-8 text-red-600" />}
             </div>
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-2xl font-bold text-foreground">
               {result.passed ? "Quiz Passed!" : "Not Quite"}
             </h2>
-            <p className="text-slate-300">
-              You got <span className="font-bold text-white">{result.correct} of {result.total}</span> correct ({result.score}%)
+            <p className="text-muted-foreground">
+              You got <span className="font-bold text-foreground">{result.correct} of {result.total}</span> correct ({result.score}%)
             </p>
             {!result.passed && attemptsRemaining > 0 && (
-              <p className="text-slate-400 text-sm">{attemptsRemaining} attempt{attemptsRemaining === 1 ? "" : "s"} remaining</p>
+              <p className="text-muted-foreground text-sm">{attemptsRemaining} attempt{attemptsRemaining === 1 ? "" : "s"} remaining</p>
             )}
             <div className="flex gap-3 pt-2">
               {!result.passed && attemptsRemaining > 0 ? (
                 <Button
                   onClick={() => { setResult(null); setAnswers({}); setCurrentIndex(0); }}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  className="flex-1"
                 >
                   Try Again
                 </Button>
@@ -223,7 +223,7 @@ export default function ModuleQuiz() {
               <Button
                 variant={result.passed || attemptsRemaining === 0 ? "default" : "outline"}
                 onClick={() => navigate("/dashboard")}
-                className={result.passed ? "flex-1 bg-teal-600 hover:bg-teal-700" : "flex-1"}
+                className="flex-1"
               >
                 Back to Dashboard
               </Button>
@@ -235,17 +235,17 @@ export default function ModuleQuiz() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <header className="border-b border-slate-700 bg-slate-900/80 sticky top-0 z-10">
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-background/80 sticky top-0 z-10 backdrop-blur-sm">
         <div className="container flex items-center justify-between h-14 px-4">
           <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-teal-400" />
-            <span className="font-bold text-white">{moduleTitle} — Quiz</span>
-            <Badge variant="outline" className="ml-2 text-orange-400 border-orange-400">
+            <GraduationCap className="w-5 h-5 text-primary" />
+            <span className="font-bold text-foreground">{moduleTitle} — Quiz</span>
+            <Badge variant="outline" className="ml-2">
               Attempt {attemptCount + 1}/{MAX_ATTEMPTS}
             </Badge>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-1" /> Dashboard
           </Button>
         </div>
@@ -254,20 +254,20 @@ export default function ModuleQuiz() {
       <main className="container px-4 py-8 max-w-2xl" ref={quizContainerRef}>
         <div className="flex items-center gap-3 mb-6">
           <Progress value={((currentIndex + 1) / questions.length) * 100} className="flex-1 h-2" />
-          <span className="text-sm text-slate-400 whitespace-nowrap">{currentIndex + 1} / {questions.length}</span>
+          <span className="text-sm text-muted-foreground whitespace-nowrap">{currentIndex + 1} / {questions.length}</span>
         </div>
 
         {tabSwitchCount > 0 && (
-          <div className="flex items-center gap-1 text-orange-400 text-sm mb-4">
+          <div className="flex items-center gap-1 text-orange-500 text-sm mb-4">
             <AlertTriangle className="w-4 h-4" />
             {tabSwitchCount} tab switch{tabSwitchCount > 1 ? "es" : ""} detected
           </div>
         )}
 
         {currentQuestion && (
-          <Card className="bg-slate-800/60 border-slate-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white text-base leading-relaxed">
+              <CardTitle className="text-foreground text-base leading-relaxed">
                 Q{currentIndex + 1}. {currentQuestion.question_text}
               </CardTitle>
             </CardHeader>
@@ -280,10 +280,10 @@ export default function ModuleQuiz() {
                 {currentQuestion.options.map((option) => (
                   <div
                     key={option.id}
-                    className="flex items-center space-x-3 p-3 rounded-lg border border-slate-700 hover:border-teal-500 cursor-pointer transition-colors"
+                    className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:border-primary cursor-pointer transition-colors"
                   >
                     <RadioGroupItem value={option.id} id={option.id} />
-                    <Label htmlFor={option.id} className="text-slate-200 cursor-pointer flex-1">
+                    <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
                       {option.option_text}
                     </Label>
                   </div>
@@ -304,21 +304,21 @@ export default function ModuleQuiz() {
           </Button>
 
           {currentIndex < questions.length - 1 ? (
-            <Button onClick={() => setCurrentIndex((i) => i + 1)} className="flex-1 bg-teal-600 hover:bg-teal-700">
+            <Button onClick={() => setCurrentIndex((i) => i + 1)} className="flex-1">
               Next <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
             <Button
               onClick={handleSubmit}
               disabled={submitting || totalAnswered < questions.length}
-              className="flex-1 bg-teal-600 hover:bg-teal-700"
+              className="flex-1"
             >
               {submitting ? "Submitting…" : <><Send className="w-4 h-4 mr-1" /> Submit</>}
             </Button>
           )}
         </div>
 
-        <div className="mt-3 flex justify-between text-sm text-slate-400">
+        <div className="mt-3 flex justify-between text-sm text-muted-foreground">
           <span>{totalAnswered} of {questions.length} answered</span>
           <span>{attemptsRemaining} attempt{attemptsRemaining === 1 ? "" : "s"} remaining after this</span>
         </div>
