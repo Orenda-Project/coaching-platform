@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -79,15 +80,15 @@ export default function ModuleQuiz() {
       return;
     }
 
-    // Load all questions for this module's module_quiz assessments
+    // Load all assessments for this module's trainings
+    const { data: trainings } = await supabase.from("trainings").select("id").eq("module_id", moduleId).order("order_number");
+    const trainingIds = trainings?.map((t) => t.id) ?? [];
+
     const { data: assessments } = await supabase
       .from("assessments")
-      .select("id")
+      .select("id, training_id")
       .eq("type", "module_quiz")
-      .in(
-        "training_id",
-        (await supabase.from("trainings").select("id").eq("module_id", moduleId)).data?.map((t) => t.id) ?? []
-      );
+      .in("training_id", trainingIds);
 
     if (!assessments?.length) {
       toast.info("No quiz questions found for this module.");
@@ -95,29 +96,79 @@ export default function ModuleQuiz() {
       return;
     }
 
+    // Load all questions grouped by assessment (unit)
     const assessmentIds = assessments.map((a) => a.id);
-    const { data: questionsData } = await supabase
+    const { data: allQuestions } = await supabase
       .from("questions")
       .select("*")
       .in("assessment_id", assessmentIds)
       .order("order_number");
 
-    if (!questionsData?.length) {
+    if (!allQuestions?.length) {
       toast.info("No questions found.");
       navigate("/dashboard");
       return;
     }
 
-    const questionIds = questionsData.map((q) => q.id);
-    const { data: optionsData } = await supabase.from("options").select("*").in("question_id", questionIds);
+    // Load options for MCQ questions
+    const mcqIds = allQuestions.filter((q) => q.question_type === "mcq").map((q) => q.id);
+    const { data: optionsData } = mcqIds.length
+      ? await supabase.from("options").select("*").in("question_id", mcqIds)
+      : { data: [] };
 
-    setQuestions(
-      questionsData.map((q) => ({
-        ...q,
-        options: (optionsData || []).filter((o) => o.question_id === q.id),
-      }))
-    );
+    const questionsWithOptions = allQuestions.map((q) => ({
+      ...q,
+      options: (optionsData || []).filter((o) => o.question_id === q.id),
+    }));
 
+    // Group by assessment (unit)
+    const byUnit: Record<string, QuestionWithOptions[]> = {};
+    for (const q of questionsWithOptions) {
+      if (!byUnit[q.assessment_id]) byUnit[q.assessment_id] = [];
+      byUnit[q.assessment_id].push(q);
+    }
+
+    // Shuffle helper
+    const shuffle = <T,>(arr: T[]): T[] => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+
+    const unitKeys = shuffle(Object.keys(byUnit));
+    const numUnits = unitKeys.length;
+
+    // Pick 16 MCQs equally across units: base = floor(16/numUnits), distribute remainder
+    const TOTAL_MCQ = 16;
+    const TOTAL_OPEN = 4;
+    const base = Math.floor(TOTAL_MCQ / numUnits);
+    let remainder = TOTAL_MCQ % numUnits;
+
+    const selectedMCQ: QuestionWithOptions[] = [];
+    const selectedOpen: QuestionWithOptions[] = [];
+
+    for (const key of unitKeys) {
+      const unitQs = byUnit[key];
+      const mcqs = shuffle(unitQs.filter((q) => q.question_type === "mcq"));
+      const openEnded = shuffle(unitQs.filter((q) => q.question_type === "open"));
+
+      const pick = base + (remainder > 0 ? 1 : 0);
+      if (remainder > 0) remainder--;
+      selectedMCQ.push(...mcqs.slice(0, pick));
+
+      if (openEnded.length > 0) selectedOpen.push(openEnded[0]);
+    }
+
+    // Pick 4 open-ended from the pool (already 1 per unit, shuffle and take 4)
+    const finalOpen = shuffle(selectedOpen).slice(0, TOTAL_OPEN);
+
+    // Combine and shuffle
+    const finalQuestions = shuffle([...selectedMCQ, ...finalOpen]);
+
+    setQuestions(finalQuestions);
     setLoading(false);
   };
 
@@ -165,17 +216,25 @@ export default function ModuleQuiz() {
     }
 
     setSubmitting(true);
+
+    const mcqQuestions = questions.filter((q) => q.question_type === "mcq");
     let correctCount = 0;
-    for (const q of questions) {
+    for (const q of mcqQuestions) {
       const correct = q.options.find((o) => o.is_correct);
       if (correct && correct.id === answers[q.id]) correctCount++;
     }
 
-    const scorePct = Math.round((correctCount / questions.length) * 100);
+    // Open-ended questions: full credit for answered (manual grading not implemented)
+    const openCount = questions.filter((q) => q.question_type === "open").length;
+
+    // Score based on MCQs only for pass/fail (open-ended graded separately)
+    const scorePct = mcqQuestions.length > 0
+      ? Math.round((correctCount / mcqQuestions.length) * 100)
+      : 100;
     const passed = scorePct >= QUIZ_PASS_THRESHOLD;
 
     await saveAttempt(scorePct, passed);
-    setResult({ score: scorePct, passed, correct: correctCount, total: questions.length });
+    setResult({ score: scorePct, passed, correct: correctCount, total: mcqQuestions.length });
     setSubmitting(false);
   };
 
@@ -188,7 +247,10 @@ export default function ModuleQuiz() {
   }
 
   const currentQuestion = questions[currentIndex];
-  const totalAnswered = Object.keys(answers).length;
+  const totalAnswered = questions.filter((q) => {
+    const ans = answers[q.id];
+    return ans && ans.trim().length > 0;
+  }).length;
   const attemptsRemaining = MAX_ATTEMPTS - attemptCount;
 
   // Result screen
@@ -206,8 +268,9 @@ export default function ModuleQuiz() {
               {result.passed ? "Quiz Passed!" : "Not Quite"}
             </h2>
             <p className="text-muted-foreground">
-              You got <span className="font-bold text-foreground">{result.correct} of {result.total}</span> correct ({result.score}%)
+              MCQs: <span className="font-bold text-foreground">{result.correct} of {result.total}</span> correct ({result.score}%)
             </p>
+            <p className="text-xs text-muted-foreground">Open-ended responses submitted for review.</p>
             {!result.passed && attemptsRemaining > 0 && (
               <p className="text-muted-foreground text-sm">{attemptsRemaining} attempt{attemptsRemaining === 1 ? "" : "s"} remaining</p>
             )}
@@ -268,28 +331,46 @@ export default function ModuleQuiz() {
         {currentQuestion && (
           <Card>
             <CardHeader>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="outline" className="text-xs shrink-0">
+                  {currentQuestion.question_type === "open" ? "Open-ended" : "MCQ"}
+                </Badge>
+              </div>
               <CardTitle className="text-foreground text-base leading-relaxed">
                 Q{currentIndex + 1}. {currentQuestion.question_text}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <RadioGroup
-                value={answers[currentQuestion.id] || ""}
-                onValueChange={(val) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))}
-                className="space-y-3"
-              >
-                {currentQuestion.options.map((option) => (
-                  <div
-                    key={option.id}
-                    className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:border-primary cursor-pointer transition-colors"
-                  >
-                    <RadioGroupItem value={option.id} id={option.id} />
-                    <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
-                      {option.option_text}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+              {currentQuestion.question_type === "open" ? (
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Write your answer here…"
+                    value={answers[currentQuestion.id] || ""}
+                    onChange={(e) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: e.target.value }))}
+                    rows={6}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">Open-ended response — write in your own words.</p>
+                </div>
+              ) : (
+                <RadioGroup
+                  value={answers[currentQuestion.id] || ""}
+                  onValueChange={(val) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))}
+                  className="space-y-3"
+                >
+                  {currentQuestion.options.map((option) => (
+                    <div
+                      key={option.id}
+                      className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:border-primary cursor-pointer transition-colors"
+                    >
+                      <RadioGroupItem value={option.id} id={option.id} />
+                      <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
+                        {option.option_text}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              )}
             </CardContent>
           </Card>
         )}

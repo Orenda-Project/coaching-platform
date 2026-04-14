@@ -75,7 +75,7 @@ export default function Assessment() {
     }
 
     if (isEndline) {
-      checkEndlineEligibility();
+      setLoading(false);
       return;
     }
 
@@ -326,6 +326,28 @@ export default function Assessment() {
       setSubmitting(false);
     }
   };
+
+  // ─── Endline coming soon ────────────────────────────────────────────────────
+  if (isEndline) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <Clock className="w-12 h-12 text-primary mx-auto mb-2" />
+            <CardTitle className="text-foreground">Coming Soon</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-muted-foreground">
+              The Endline Assessment will be available after all Modules are completed.
+            </p>
+            <Button onClick={() => navigate("/dashboard")} className="w-full">
+              Back to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // ─── Endline blocked ───────────────────────────────────────────────────────
   if (!loading && endlineBlocked) {
