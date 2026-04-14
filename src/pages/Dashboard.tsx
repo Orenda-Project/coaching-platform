@@ -43,7 +43,7 @@ export default function Dashboard() {
       return;
     }
     if (profile) loadData();
-  }, [profile, navigate]);
+  }, [profile, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     if (!user || !profile) return;

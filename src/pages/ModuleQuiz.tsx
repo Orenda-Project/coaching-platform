@@ -41,7 +41,7 @@ export default function ModuleQuiz() {
 
   useEffect(() => {
     load();
-  }, [moduleId]);
+  }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Anti-cheat: tab visibility
   useEffect(() => {
@@ -203,7 +203,7 @@ export default function ModuleQuiz() {
         passed,
         attempt_count: newAttempt,
         completed_at: passed ? new Date().toISOString() : null,
-      } as any);
+      });
     }
 
     setAttemptCount(newAttempt);

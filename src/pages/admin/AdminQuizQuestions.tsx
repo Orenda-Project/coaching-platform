@@ -24,7 +24,7 @@ export default function AdminQuizQuestions() {
   const [expanded, setExpanded] = useState<number | null>(0);
 
   useEffect(() => { loadTrainings(); }, []);
-  useEffect(() => { if (selectedTraining) loadQuiz(); }, [selectedTraining]);
+  useEffect(() => { if (selectedTraining) loadQuiz(); }, [selectedTraining]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTrainings = async () => {
     setLoading(true);

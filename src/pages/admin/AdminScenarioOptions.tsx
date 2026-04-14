@@ -119,7 +119,7 @@ export default function AdminScenarioOptions() {
     value: unknown
   ) => {
     const updated = [...options];
-    (updated[index] as any)[field] = value;
+    (updated[index] as Record<string, unknown>)[field] = value;
 
     // If marking as correct, unmark others
     if (field === "is_correct" && value) {

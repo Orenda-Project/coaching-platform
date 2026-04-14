@@ -21,7 +21,7 @@ export default function AdminTrainingContent() {
   const [form, setForm] = useState({ format_type: "video", content_url: "" });
 
   useEffect(() => { loadTrainings(); }, []);
-  useEffect(() => { if (selectedTraining) loadContent(); }, [selectedTraining]);
+  useEffect(() => { if (selectedTraining) loadContent(); }, [selectedTraining]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTrainings = async () => {
     setLoading(true);

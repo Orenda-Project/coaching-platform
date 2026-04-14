@@ -51,7 +51,7 @@ export default function AdminModules() {
       competencies: form.competencies.trim() || null,
       is_mandatory: form.is_mandatory,
       order_number: modules.length + 1,
-    } as any);
+    });
     if (error) toast.error("Failed to add module");
     else {
       toast.success("Module added!");
