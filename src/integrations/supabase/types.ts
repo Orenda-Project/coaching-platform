@@ -10,10 +10,55 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          scenario_id: string | null
+          unit_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          scenario_id?: string | null
+          unit_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          scenario_id?: string | null
+          unit_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessments: {
         Row: {
           created_at: string
@@ -54,6 +99,7 @@ export type Database = {
           certificate_id: string
           id: string
           issued_at: string
+          last_issued_at: string | null
           persona: string
           user_id: string
         }
@@ -61,6 +107,7 @@ export type Database = {
           certificate_id: string
           id?: string
           issued_at?: string
+          last_issued_at?: string | null
           persona: string
           user_id: string
         }
@@ -68,6 +115,7 @@ export type Database = {
           certificate_id?: string
           id?: string
           issued_at?: string
+          last_issued_at?: string | null
           persona?: string
           user_id?: string
         }
@@ -154,6 +202,9 @@ export type Database = {
           id: string
           persona: string | null
           phone: string
+          region: string | null
+          school_id: string | null
+          teacher_ids: string[] | null
           updated_at: string
           weak_modules: string[]
         }
@@ -169,6 +220,9 @@ export type Database = {
           id: string
           persona?: string | null
           phone: string
+          region?: string | null
+          school_id?: string | null
+          teacher_ids?: string[] | null
           updated_at?: string
           weak_modules?: string[]
         }
@@ -184,6 +238,9 @@ export type Database = {
           id?: string
           persona?: string | null
           phone?: string
+          region?: string | null
+          school_id?: string | null
+          teacher_ids?: string[] | null
           updated_at?: string
           weak_modules?: string[]
         }
@@ -230,12 +287,218 @@ export type Database = {
           },
         ]
       }
+      regions: {
+        Row: {
+          code: string
+          coordinates: Json | null
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+        }
+        Insert: {
+          code: string
+          coordinates?: Json | null
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+        }
+        Update: {
+          code?: string
+          coordinates?: Json | null
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regions_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenario_options: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          option_letter: string
+          option_text: string
+          principle_tag: string | null
+          rationale: string
+          scenario_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_letter: string
+          option_text: string
+          principle_tag?: string | null
+          rationale?: string
+          scenario_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_letter?: string
+          option_text?: string
+          principle_tag?: string | null
+          rationale?: string
+          scenario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_options_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenario_responses: {
+        Row: {
+          attempt_number: number
+          chosen_option: string
+          created_at: string
+          id: string
+          is_correct: boolean
+          scenario_id: string
+          time_spent_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          attempt_number?: number
+          chosen_option: string
+          created_at?: string
+          id?: string
+          is_correct: boolean
+          scenario_id: string
+          time_spent_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          attempt_number?: number
+          chosen_option?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          scenario_id?: string
+          time_spent_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenario_responses_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scenarios: {
+        Row: {
+          created_at: string
+          deep_content: string | null
+          difficulty: string
+          feedback_slides: Json | null
+          id: string
+          is_active: boolean
+          order_number: number
+          question: string
+          reveal_content: string | null
+          situation: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deep_content?: string | null
+          difficulty?: string
+          feedback_slides?: Json | null
+          id?: string
+          is_active?: boolean
+          order_number?: number
+          question: string
+          reveal_content?: string | null
+          situation: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deep_content?: string | null
+          difficulty?: string
+          feedback_slides?: Json | null
+          id?: string
+          is_active?: boolean
+          order_number?: number
+          question?: string
+          reveal_content?: string | null
+          situation?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenarios_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          properties: Json | null
+          training_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          properties?: Json | null
+          training_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          properties?: Json | null
+          training_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_events_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_content: {
         Row: {
           content_url: string
           created_at: string
           format_type: string
           id: string
+          scenario_data: Json | null
           training_id: string
         }
         Insert: {
@@ -243,6 +506,7 @@ export type Database = {
           created_at?: string
           format_type: string
           id?: string
+          scenario_data?: Json | null
           training_id: string
         }
         Update: {
@@ -250,6 +514,7 @@ export type Database = {
           created_at?: string
           format_type?: string
           id?: string
+          scenario_data?: Json | null
           training_id?: string
         }
         Relationships: [
@@ -264,29 +529,50 @@ export type Database = {
       }
       training_progress: {
         Row: {
+          attempt_count: number
           completed_at: string | null
+          content_completed: boolean
+          content_completed_at: string | null
           created_at: string
+          flagged_for_review: boolean
+          fullscreen_violations: number
           id: string
           passed: boolean
           score: number | null
+          started_at: string | null
+          tab_switch_count: number
           training_id: string
           user_id: string
         }
         Insert: {
+          attempt_count?: number
           completed_at?: string | null
+          content_completed?: boolean
+          content_completed_at?: string | null
           created_at?: string
+          flagged_for_review?: boolean
+          fullscreen_violations?: number
           id?: string
           passed?: boolean
           score?: number | null
+          started_at?: string | null
+          tab_switch_count?: number
           training_id: string
           user_id: string
         }
         Update: {
+          attempt_count?: number
           completed_at?: string | null
+          content_completed?: boolean
+          content_completed_at?: string | null
           created_at?: string
+          flagged_for_review?: boolean
+          fullscreen_violations?: number
           id?: string
           passed?: boolean
           score?: number | null
+          started_at?: string | null
+          tab_switch_count?: number
           training_id?: string
           user_id?: string
         }
@@ -307,9 +593,11 @@ export type Database = {
           id: string
           is_common: boolean
           main_concepts: string | null
+          max_attempts: number
           module_id: string | null
           order_number: number
           persona_required: string | null
+          quiz_unlock_requires_content: boolean
           title: string
         }
         Insert: {
@@ -318,9 +606,11 @@ export type Database = {
           id?: string
           is_common?: boolean
           main_concepts?: string | null
+          max_attempts?: number
           module_id?: string | null
           order_number: number
           persona_required?: string | null
+          quiz_unlock_requires_content?: boolean
           title: string
         }
         Update: {
@@ -329,9 +619,11 @@ export type Database = {
           id?: string
           is_common?: boolean
           main_concepts?: string | null
+          max_attempts?: number
           module_id?: string | null
           order_number?: number
           persona_required?: string | null
+          quiz_unlock_requires_content?: boolean
           title?: string
         }
         Relationships: [
@@ -340,6 +632,35 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_regions: {
+        Row: {
+          created_at: string
+          id: string
+          region_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          region_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          region_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_regions_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
             referencedColumns: ["id"]
           },
         ]
@@ -379,7 +700,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "regional_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -507,7 +828,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "regional_admin"],
     },
   },
 } as const

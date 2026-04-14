@@ -8,7 +8,7 @@ import { BaselineResultsCard } from "@/components/BaselineResultsCard";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy, Shield, ChevronDown, ChevronRight, FileQuestion } from "lucide-react";
+import { GraduationCap, LogOut, Award, ClipboardCheck, Trophy, Shield, ChevronDown, ChevronRight, FileQuestion, User } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { Tables } from "@/integrations/supabase/types";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -148,6 +148,10 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             {profile?.persona && <PersonaBadge persona={profile.persona} size="sm" />}
+            <Button variant="ghost" size="sm" onClick={() => navigate("/profile")}>
+              <User className="w-4 h-4 mr-1" />
+              Profile
+            </Button>
             {isAdmin && (
               <Button variant="outline" size="sm" onClick={() => navigate("/admin/modules")}>
                 <Shield className="w-4 h-4 mr-1" /> Admin

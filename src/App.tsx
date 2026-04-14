@@ -23,6 +23,11 @@ import AdminUnitContent from "./pages/admin/AdminUnitContent";
 import AdminQuizQuestions from "./pages/admin/AdminQuizQuestions";
 import AdminSeed from "./pages/admin/AdminSeed";
 import ModuleQuiz from "./pages/ModuleQuiz";
+import ScenarioFlow from "./pages/ScenarioFlow";
+import AdminScenarios from "./pages/admin/AdminScenarios";
+import AdminScenarioOptions from "./pages/admin/AdminScenarioOptions";
+import AdminRegions from "./pages/admin/AdminRegions";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -40,8 +45,10 @@ const App = () => (
             <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/assessment/:type" element={<ProtectedRoute><Assessment /></ProtectedRoute>} />
             <Route path="/training/:id" element={<ProtectedRoute><TrainingModule /></ProtectedRoute>} />
+            <Route path="/training/:trainingId/scenario" element={<ProtectedRoute><ScenarioFlow /></ProtectedRoute>} />
             <Route path="/module-quiz/:moduleId" element={<ProtectedRoute><ModuleQuiz /></ProtectedRoute>} />
             <Route path="/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
@@ -49,7 +56,10 @@ const App = () => (
               <Route path="modules" element={<AdminModules />} />
               <Route path="modules/:moduleId/units" element={<AdminModuleUnits />} />
               <Route path="units/:unitId/content" element={<AdminUnitContent />} />
+              <Route path="units/:unitId/scenarios" element={<AdminScenarios />} />
+              <Route path="scenarios/:scenarioId/options" element={<AdminScenarioOptions />} />
               <Route path="quiz-questions" element={<AdminQuizQuestions />} />
+              <Route path="regions" element={<AdminRegions />} />
               <Route path="seed" element={<AdminSeed />} />
             </Route>
             <Route path="*" element={<NotFound />} />
