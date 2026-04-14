@@ -80,7 +80,7 @@ export default function Assessment() {
     }
 
     loadQuestions();
-  }, [type, profile]);
+  }, [type, profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkEndlineEligibility = async () => {
     if (!user || !profile) return;
@@ -297,7 +297,7 @@ export default function Assessment() {
               certificate_id: certificateId,
               persona: profile.persona,
               issued_at: now,
-            } as any,
+            },
             { onConflict: "user_id" }
           );
 
