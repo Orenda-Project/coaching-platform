@@ -93,7 +93,7 @@ export default function Onboarding() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-4 mb-8">
           {/* Progress steps */}
           {[
             { icon: CheckCircle2, label: "Account Created", done: true },

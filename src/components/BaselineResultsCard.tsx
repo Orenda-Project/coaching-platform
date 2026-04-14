@@ -72,7 +72,7 @@ export function BaselineResultsCard({
   return (
     <Card className="mb-6">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <CardTitle className="text-lg">Your Coaching Profile</CardTitle>
           <PersonaBadge persona={persona} size="sm" />
         </div>
@@ -106,7 +106,7 @@ export function BaselineResultsCard({
           </ul>
         </div>
 
-        <div className="bg-white p-3 rounded border-l-4 border-indigo-500">
+        <div className="bg-muted p-3 rounded border-l-4 border-primary">
           <p className="text-sm font-semibold text-foreground mb-1">Next Step</p>
           <p className="text-sm text-muted-foreground">
             Complete {weakModules.length > 0 ? weakModules.length : "recommended"} personalized modules to develop expertise across all coaching areas.

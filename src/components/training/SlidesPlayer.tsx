@@ -50,8 +50,8 @@ export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesP
       <Progress value={progress} className="h-1.5" />
 
       {/* Slide card */}
-      <Card className="min-h-[380px] border-primary/20 bg-card">
-        <CardContent className="p-8 flex flex-col justify-between min-h-[380px]">
+      <Card className="min-h-[280px] sm:min-h-[380px] border-primary/20 bg-card">
+        <CardContent className="p-4 sm:p-8 flex flex-col justify-between min-h-[280px] sm:min-h-[380px]">
           <div className="flex-1">
             {/* Title */}
             <h2 className="text-xl font-display font-bold text-foreground mb-4 leading-tight">

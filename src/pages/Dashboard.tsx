@@ -139,27 +139,28 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-2">
+        <div className="container flex items-center justify-between h-16 px-4 gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-display font-bold text-lg text-foreground">CoachCert</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3">
             {profile?.persona && <PersonaBadge persona={profile.persona} size="sm" />}
             <Button variant="ghost" size="sm" onClick={() => navigate("/profile")}>
-              <User className="w-4 h-4 mr-1" />
-              Profile
+              <User className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Profile</span>
             </Button>
             {isAdmin && (
               <Button variant="outline" size="sm" onClick={() => navigate("/admin/modules")}>
-                <Shield className="w-4 h-4 mr-1" /> Admin
+                <Shield className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">Admin</span>
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate("/login"); }}>
-              <LogOut className="w-4 h-4 mr-1" />
-              Sign Out
+              <LogOut className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>
         </div>
@@ -181,7 +182,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <Card className="glass-card animate-fade-in" style={{ animationDelay: "0.1s" }}>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
@@ -323,7 +324,7 @@ export default function Dashboard() {
                             {modIdx + 1}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="font-semibold font-display text-foreground">{mod.title}</h3>
                               {mod.is_mandatory && (
                                 <span className="text-xs bg-secondary/20 text-secondary-foreground px-2 py-0.5 rounded">Mandatory</span>
@@ -364,7 +365,7 @@ export default function Dashboard() {
 
                         {/* Module Quiz CTA */}
                         {units.length > 0 && (
-                          <div className={`mt-3 p-3 rounded-lg border flex items-center justify-between gap-3 ${allUnitsPassedForModule(mod.id) ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}>
+                          <div className={`mt-3 p-3 rounded-lg border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${allUnitsPassedForModule(mod.id) ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30"}`}>
                             <div className="flex items-center gap-2">
                               <FileQuestion className={`w-5 h-5 ${allUnitsPassedForModule(mod.id) ? "text-primary" : "text-muted-foreground"}`} />
                               <div>

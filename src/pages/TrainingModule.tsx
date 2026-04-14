@@ -256,22 +256,19 @@ export default function TrainingModule() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-background sticky top-0 z-10">
-        <div className="container flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-primary" />
-            <span className="font-bold text-foreground">{training.title}</span>
+        <div className="container flex items-center justify-between h-14 px-4 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <GraduationCap className="w-5 h-5 text-primary shrink-0" />
+            <span className="font-bold text-foreground truncate text-sm sm:text-base">{training.title}</span>
             {phase === "quiz" && (
-              <Badge variant="outline" className="ml-2 text-warning border-warning">
-                Quiz — Attempt {attemptCount + 1}/{MAX_ATTEMPTS}
+              <Badge variant="outline" className="shrink-0 text-xs text-warning border-warning">
+                {attemptCount + 1}/{MAX_ATTEMPTS}
               </Badge>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/dashboard")}
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" /> Dashboard
+          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="shrink-0">
+            <ArrowLeft className="w-4 h-4 sm:mr-1" />
+            <span className="hidden sm:inline">Dashboard</span>
           </Button>
         </div>
       </header>
@@ -304,10 +301,10 @@ export default function TrainingModule() {
           </div>
         ) : (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-xl font-bold text-foreground">{training.title} — Quiz</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <h1 className="text-lg sm:text-xl font-bold text-foreground">{training.title} — Quiz</h1>
               {tabSwitchCount > 0 && (
-                <div className="flex items-center gap-1 text-warning text-sm">
+                <div className="flex items-center gap-1 text-warning text-sm shrink-0">
                   <AlertTriangle className="w-4 h-4" />
                   {tabSwitchCount} tab switch{tabSwitchCount > 1 ? "es" : ""} detected
                 </div>
