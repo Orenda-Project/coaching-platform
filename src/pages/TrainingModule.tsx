@@ -45,14 +45,14 @@ export default function TrainingModule() {
 
   useEffect(() => {
     loadTraining();
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-save when content is completed
   useEffect(() => {
     if (contentCompleted && user && id) {
       saveProgress(100, true, attemptCount + 1);
     }
-  }, [contentCompleted]);
+  }, [contentCompleted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Anti-cheat: tab visibility detection ─────────────────────────────────
   useEffect(() => {
@@ -72,13 +72,13 @@ export default function TrainingModule() {
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [phase, tabSwitchCount]);
+  }, [phase, tabSwitchCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const flagForReview = useCallback(async () => {
     if (!user || !id) return;
     await supabase
       .from("training_progress")
-      .update({ flagged_for_review: true, tab_switch_count: tabSwitchCount } as any)
+      .update({ flagged_for_review: true, tab_switch_count: tabSwitchCount })
       .eq("user_id", user.id)
       .eq("training_id", id);
   }, [user, id, tabSwitchCount]);
@@ -103,7 +103,7 @@ export default function TrainingModule() {
         .maybeSingle();
 
       if (existing) {
-        setAttemptCount((existing as any).attempt_count ?? 1);
+        setAttemptCount((existing as { attempt_count?: number }).attempt_count ?? 1);
         if (existing.passed) setContentCompleted(true);
       }
     }
@@ -184,7 +184,7 @@ export default function TrainingModule() {
           attempt_count: attempt,
           completed_at: isPassed ? now : null,
           content_completed: true,
-        } as any)
+        })
         .eq("id", existing.id);
     } else {
       await supabase.from("training_progress").insert({
@@ -195,7 +195,7 @@ export default function TrainingModule() {
         attempt_count: attempt,
         content_completed: true,
         completed_at: passed ? now : null,
-      } as any);
+      });
     }
   };
 

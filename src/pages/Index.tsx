@@ -12,7 +12,7 @@ export default function Index() {
     if (!loading && session) {
       navigate("/dashboard");
     }
-  }, [session, loading]);
+  }, [session, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen bg-background">

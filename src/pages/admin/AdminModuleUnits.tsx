@@ -31,7 +31,7 @@ export default function AdminModuleUnits() {
     title: "", description: "", main_concepts: "", is_common: true, persona_required: "",
   });
 
-  useEffect(() => { loadData(); }, [moduleId]);
+  useEffect(() => { loadData(); }, [moduleId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     if (!moduleId) return;
@@ -56,7 +56,7 @@ export default function AdminModuleUnits() {
       persona_required: (!form.is_common && form.persona_required) ? form.persona_required : null,
       module_id: moduleId,
       order_number: units.length + 1,
-    } as any);
+    });
     if (error) toast.error("Failed to add unit");
     else {
       toast.success("Training unit added!");

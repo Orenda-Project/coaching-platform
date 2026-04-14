@@ -26,7 +26,7 @@ export default function AdminUnitContent() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [form, setForm] = useState({ format_type: "video", content_url: "" });
 
-  useEffect(() => { loadData(); }, [unitId]);
+  useEffect(() => { loadData(); }, [unitId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     if (!unitId) return;
@@ -35,8 +35,8 @@ export default function AdminUnitContent() {
       supabase.from("trainings").select("title, module_id").eq("id", unitId).single(),
       supabase.from("training_content").select("*").eq("training_id", unitId),
     ]);
-    setUnitTitle((unit as any)?.title || "");
-    setModuleId((unit as any)?.module_id || null);
+    setUnitTitle((unit as { title?: string } | null)?.title || "");
+    setModuleId((unit as { module_id?: string } | null)?.module_id || null);
     setContent(contentData || []);
     setLoading(false);
   };
