@@ -184,11 +184,16 @@ export default function Assessment() {
   const handleSubmit = async () => {
     if (!user || !profile) return;
 
-    const totalQuestions = questions.length;
+    // For endline: only MCQ questions count toward pass threshold
+    const mcqQuestions = isEndline
+      ? questions.filter((q) => q.question_type === 'mcq')
+      : questions;
+
+    const totalQuestions = mcqQuestions.length;
     if (totalQuestions === 0) return;
 
     let correctCount = 0;
-    for (const q of questions) {
+    for (const q of mcqQuestions) {
       const selectedOptionId = answers[q.id];
       if (!selectedOptionId) continue;
       const selectedOption = q.options.find((o) => o.id === selectedOptionId);
@@ -272,7 +277,7 @@ export default function Assessment() {
           localStorage.removeItem(`assessment_${type}_${user?.id}`);
           await refreshProfile();
           toast.error(
-            `You scored ${pct}%. You need at least ${ENDLINE_PASS_THRESHOLD}% to earn your certificate. Please try again.`
+            `You scored ${pct}% on the 16 multiple choice questions. You need at least ${ENDLINE_PASS_THRESHOLD}% to earn your certificate. Please try again.`
           );
           setAnswers({});
           setCurrentIndex(0);
@@ -313,7 +318,7 @@ export default function Assessment() {
 
         localStorage.removeItem(`assessment_${type}_${user?.id}`);
         await refreshProfile();
-        toast.success(`Congratulations! You scored ${pct}% and earned your certificate!`);
+        toast.success(`Congratulations! You scored ${pct}% on the 16 multiple choice questions and earned your certificate!`);
         navigate("/certificate");
       }
     } catch {
@@ -326,16 +331,16 @@ export default function Assessment() {
   if (!loading && endlineBlocked) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-amber-200 bg-amber-50">
+        <Card className="max-w-md w-full border-warning/20 bg-warning/10">
           <CardHeader className="text-center">
-            <AlertTriangle className="w-12 h-12 text-amber-600 mx-auto mb-2" />
-            <CardTitle className="text-amber-900">Complete All Modules First</CardTitle>
+            <AlertTriangle className="w-12 h-12 text-warning mx-auto mb-2" />
+            <CardTitle className="text-foreground">Complete All Modules First</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-amber-800">
+            <p className="text-muted-foreground">
               You must pass all assigned training modules before attempting the endline assessment.
             </p>
-            <p className="text-amber-700 text-sm">
+            <p className="text-muted-foreground text-sm">
               Return to your dashboard to complete any remaining modules.
             </p>
             <Button onClick={() => navigate("/dashboard")} className="w-full">
@@ -404,21 +409,21 @@ export default function Assessment() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-2">
+                <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 space-y-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <Clock className="w-4 h-4 text-blue-600" />
+                    <Clock className="w-4 h-4 text-primary" />
                     <span className="text-foreground font-medium">Time needed: ~10 minutes</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <FileQuestion className="w-4 h-4 text-blue-600" />
+                    <FileQuestion className="w-4 h-4 text-primary" />
                     <span className="text-foreground font-medium">Questions: {questions.length}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <CheckCircle2 className="w-4 h-4 text-success" />
                     <span className="text-foreground font-medium">Can resume if interrupted</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <AlertTriangle className="w-4 h-4 text-warning" />
                     <span className="text-foreground font-medium">Pass threshold: {passThreshold}%</span>
                   </div>
                 </div>
@@ -469,28 +474,49 @@ export default function Assessment() {
               <CardTitle className="text-foreground text-base leading-relaxed">
                 {currentIndex + 1}. {currentQuestion.question_text}
               </CardTitle>
+              {currentQuestion.question_type === 'open' && (
+                <p className="text-muted-foreground text-sm mt-2">
+                  {isEndline ? '(Open-ended response for review - does not count toward your score)' : '(Open-ended response)'}
+                </p>
+              )}
             </CardHeader>
             <CardContent>
-              <RadioGroup
-                value={answers[currentQuestion.id] || ""}
-                onValueChange={(val) => {
-                  setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }));
-                  setHasStarted(true); // Mark as started when first answer is selected
-                }}
-                className="space-y-3"
-              >
-                {currentQuestion.options.map((option) => (
-                  <div
-                    key={option.id}
-                    className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:border-primary cursor-pointer transition-colors"
-                  >
-                    <RadioGroupItem value={option.id} id={option.id} />
-                    <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
-                      {option.option_text}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+              {/* MCQ: Radio button options */}
+              {currentQuestion.question_type === 'mcq' && (
+                <RadioGroup
+                  value={answers[currentQuestion.id] || ""}
+                  onValueChange={(val) => {
+                    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }));
+                    setHasStarted(true); // Mark as started when first answer is selected
+                  }}
+                  className="space-y-3"
+                >
+                  {currentQuestion.options.map((option) => (
+                    <div
+                      key={option.id}
+                      className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:border-primary cursor-pointer transition-colors"
+                    >
+                      <RadioGroupItem value={option.id} id={option.id} />
+                      <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
+                        {option.option_text}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              )}
+
+              {/* Open-ended: Textarea */}
+              {currentQuestion.question_type === 'open' && (
+                <textarea
+                  value={answers[currentQuestion.id] || ""}
+                  onChange={(e) => {
+                    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: e.target.value }));
+                    setHasStarted(true);
+                  }}
+                  placeholder="Type your response here..."
+                  className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-h-[150px] bg-background text-foreground"
+                />
+              )}
             </CardContent>
           </Card>
         )}
@@ -532,7 +558,7 @@ export default function Assessment() {
         <p className="text-center text-muted-foreground text-sm">
           {totalAnswered} of {questions.length} answered
           {!canSubmit && (
-            <span className="text-amber-600 font-medium ml-2">
+            <span className="text-warning font-medium ml-2">
               — {questions.length - totalAnswered} question{questions.length - totalAnswered !== 1 ? "s" : ""} remaining
             </span>
           )}

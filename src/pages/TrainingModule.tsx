@@ -242,8 +242,8 @@ export default function TrainingModule() {
 
   if (loading || !training) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-900">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-400" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -253,13 +253,13 @@ export default function TrainingModule() {
   const totalAnswered = Object.keys(answers).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-900/80 sticky top-0 z-10">
+      <header className="border-b border-border bg-background sticky top-0 z-10">
         <div className="container flex items-center justify-between h-14 px-4">
           <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-teal-400" />
-            <span className="font-bold text-white">{training.title}</span>
+            <GraduationCap className="w-5 h-5 text-primary" />
+            <span className="font-bold text-foreground">{training.title}</span>
             {phase === "quiz" && (
               <Badge variant="outline" className="ml-2 text-orange-400 border-orange-400">
                 Quiz — Attempt {attemptCount + 1}/{MAX_ATTEMPTS}
@@ -270,7 +270,6 @@ export default function TrainingModule() {
             variant="ghost"
             size="sm"
             onClick={() => navigate("/dashboard")}
-            className="text-slate-300 hover:text-white"
           >
             <ArrowLeft className="w-4 h-4 mr-1" /> Dashboard
           </Button>
@@ -280,8 +279,8 @@ export default function TrainingModule() {
       <main className="container px-4 py-8 max-w-2xl" ref={quizContainerRef}>
         {phase === "content" ? (
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">{training.title}</h1>
-            <p className="text-slate-400 mb-6">{training.description}</p>
+            <h1 className="text-2xl font-bold text-foreground mb-1">{training.title}</h1>
+            <p className="text-muted-foreground mb-6">{training.description}</p>
 
             <TrainingContentViewer
               trainingId={id!}
@@ -291,13 +290,12 @@ export default function TrainingModule() {
 
             {contentCompleted && (
               <div className="mt-6 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-green-400 text-sm">
+                <div className="flex items-center gap-2 text-success text-sm">
                   <CheckCircle2 className="w-4 h-4" />
                   Unit completed
                 </div>
                 <Button
                   onClick={() => navigate("/dashboard")}
-                  className="bg-teal-600 hover:bg-teal-700"
                 >
                   Back to Dashboard <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -307,9 +305,9 @@ export default function TrainingModule() {
         ) : (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h1 className="text-xl font-bold text-white">{training.title} — Quiz</h1>
+              <h1 className="text-xl font-bold text-foreground">{training.title} — Quiz</h1>
               {tabSwitchCount > 0 && (
-                <div className="flex items-center gap-1 text-orange-400 text-sm">
+                <div className="flex items-center gap-1 text-warning text-sm">
                   <AlertTriangle className="w-4 h-4" />
                   {tabSwitchCount} tab switch{tabSwitchCount > 1 ? "es" : ""} detected
                 </div>
@@ -321,15 +319,15 @@ export default function TrainingModule() {
                 value={((currentIndex + 1) / questions.length) * 100}
                 className="flex-1 h-2"
               />
-              <span className="text-sm text-slate-400 whitespace-nowrap">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
                 {currentIndex + 1} / {questions.length}
               </span>
             </div>
 
             {currentQuestion && (
-              <Card className="bg-slate-800/60 border-slate-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="text-white text-base leading-relaxed">
+                  <CardTitle className="text-foreground text-base leading-relaxed">
                     Q{currentIndex + 1}. {currentQuestion.question_text}
                   </CardTitle>
                 </CardHeader>
@@ -344,12 +342,12 @@ export default function TrainingModule() {
                     {currentQuestion.options.map((option) => (
                       <div
                         key={option.id}
-                        className="flex items-center space-x-3 p-3 rounded-lg border border-slate-700 hover:border-teal-500 cursor-pointer transition-colors"
+                        className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:border-primary cursor-pointer transition-colors"
                       >
                         <RadioGroupItem value={option.id} id={option.id} />
                         <Label
                           htmlFor={option.id}
-                          className="text-slate-200 cursor-pointer flex-1"
+                          className="text-foreground cursor-pointer flex-1"
                         >
                           {option.option_text}
                         </Label>
