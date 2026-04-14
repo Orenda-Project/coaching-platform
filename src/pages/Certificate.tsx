@@ -142,7 +142,7 @@ export default function CertificatePage() {
               <p className="text-muted-foreground mt-4 mb-2">
                 has successfully completed the Coach Training & Certification Program
               </p>
-              <div className="flex items-center justify-center gap-4 mt-4 mb-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-4 mb-6">
                 {profile?.persona && <PersonaBadge persona={profile.persona} size="md" showDescription />}
                 <span className="text-sm text-muted-foreground">
                   Score: {profile?.endline_score ? `${Math.round(profile.endline_score)}%` : "N/A"}

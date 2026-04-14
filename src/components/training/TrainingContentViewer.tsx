@@ -155,10 +155,10 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
               >
                 Your browser does not support the video tag.
               </video>
-              <div className="mt-2 flex items-center justify-between text-sm text-slate-400">
+              <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
                 <span>Watch progress: {videoProgress}%</span>
                 {contentCompleted
-                  ? <span className="flex items-center gap-1 text-green-400"><CheckCircle2 className="w-4 h-4" /> Complete</span>
+                  ? <span className="flex items-center gap-1 text-green-600"><CheckCircle2 className="w-4 h-4" /> Complete</span>
                   : <span>Watch to 90% to unlock quiz</span>}
               </div>
             </div>
@@ -168,7 +168,7 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
               <div className="bg-accent/20 rounded-lg p-4">
                 <iframe
                   src={selectedContent.content_url}
-                  className="w-full h-[400px] rounded-lg border border-border"
+                  className="w-full h-[280px] sm:h-[400px] md:h-[500px] rounded-lg border border-border"
                   allowFullScreen
                   title="Slide presentation"
                   onLoad={handleSlideLoad}

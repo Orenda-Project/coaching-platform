@@ -6,6 +6,17 @@ A coaching certification platform for teachers. Teachers complete baseline asses
 
 ---
 
+## 📖 Documentation
+
+All documentation is organized in the `/docs` directory:
+
+- **[Documentation Index](docs/README.md)** — Start here for navigation by role
+- **[Quick Start](docs/SETUP/QUICK_START.md)** — Local development setup in 5 minutes
+- **[Architecture](docs/ARCHITECTURE/COACHING_PLATFORM_ARCHITECTURE.md)** — System design and decisions
+- **[Testing](docs/TESTING/TESTING_CHECKLIST_PHASE_1.md)** — E2E test cases and verification
+
+---
+
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18+) — install via [nvm](https://github.com/nvm-sh/nvm)

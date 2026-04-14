@@ -158,19 +158,98 @@ const quizU16 = [
   { q: "A 'Pivot' in a lesson occurs when:", options: ["The teacher moves from I Do to We Do at the planned time", "The teacher changes instruction based on student feedback from a CFU", "A student asks an unexpected question that changes the lesson direction", "The coach suggests a change in lesson structure during post-observation dialogue"], correct: 1 },
 ];
 
+// ─── Open-ended questions ──────────────────────────────────────────────────────
+
+const openEndedU10 = [
+  {
+    q: "In your own words, explain why coaching is described as a 'Catalyst' for teacher growth rather than a corrective intervention. What specific behaviors make a coach a Catalyst?",
+    rubric: "Score 2: Mentions teacher agency/choice, growth focus vs correction, partnership principles (equality, voice), and contrast with inspection. Score 1: Mentions 1-2 elements (e.g. supportive, not fixing). Score 0: Describes coaching as giving feedback or telling teachers what to do.",
+  },
+  {
+    q: "A new school head tells you: 'I want you to observe Mr. Kamran and give me a written report on his weaknesses.' Describe exactly what you would say and do to protect the coaching relationship while maintaining a productive relationship with the head teacher.",
+    rubric: "Score 2: Declines individual report, explains coaching vs evaluation boundary, offers school-wide aggregate instead, uses respectful tone. Score 1: Refuses but does not offer an alternative or explain the principle. Score 0: Agrees to write the report or avoids the conversation.",
+  },
+];
+
+const openEndedU11 = [
+  {
+    q: "Describe the shift from a 'Judge' to a 'Co-Pilot' mindset in your own words. Give one concrete example of how this shift would change what you say in a post-observation conversation.",
+    rubric: "Score 2: Contrasts prescribing/judging with co-exploring, gives specific language example ('I noticed X — what was your intention?' vs 'You should have done Y'). Score 1: Describes the mindset difference without a concrete language example. Score 0: Focuses only on tone rather than the structural shift in who speaks first and who chooses.",
+  },
+  {
+    q: "Why is 'Voice' one of the 7 Partnership Principles, and what practical risk does a coach run if they skip it and go straight to sharing their own observations?",
+    rubric: "Score 2: Voice = teacher speaks first, explains that skipping voice removes ownership and triggers compliance mindset, links to Choice and Praxis. Score 1: Mentions teacher speaking first but does not explain the risk of skipping. Score 0: Defines voice as 'the coach's tone of voice' or does not distinguish teacher vs coach voice.",
+  },
+];
+
+const openEndedU12 = [
+  {
+    q: "Why is it essential for the coach to share observation data 'side-by-side' with the teacher rather than presenting it from the front of the room or across a desk? What does the physical arrangement signal?",
+    rubric: "Score 2: Side-by-side signals equality (not hierarchy), shared inquiry (not judgment), mirrors the data being 'ours' not 'yours', links to Equality Partnership Principle. Score 1: Mentions informality or comfort without connecting to the principle. Score 0: Focuses on logistics rather than the relational/symbolic meaning.",
+  },
+  {
+    q: "Write one 'Low-Inference' and one 'High-Inference' version of the same classroom observation. Then explain why the low-inference version is more useful in a coaching conversation.",
+    rubric: "Score 2: Low-inference uses specific, time-stamped, factual language; high-inference uses labels or judgments; explains that low-inference invites curiosity while high-inference triggers defensiveness. Score 1: Gives examples but does not explain the impact difference. Score 0: Both versions contain judgment language, or the distinction is incorrect.",
+  },
+];
+
+const openEndedU13 = [
+  {
+    q: "A teacher says: 'You suggested the strategy and it did not work. What should I try next?' What does this situation reveal about the coaching cycle, and what is your response?",
+    rubric: "Score 2: Identifies that teacher did not own the strategy (coach suggested = coach's idea), explains that teacher choice drives ownership, returns to co-analysis before choosing next step. Score 1: Focuses on gathering more evidence but does not address the ownership issue. Score 0: Apologizes and gives another strategy, repeating the same mistake.",
+  },
+  {
+    q: "Describe what the 'Identify' phase of the Growth Engine looks like in practice. What specific actions does the coach take, and what role does the teacher play?",
+    rubric: "Score 2: Co-select focus area with teacher, teacher names the challenge (not coach), observe with timestamps, set SMART goal together, teacher chooses the focus. Score 1: Describes observation and goal-setting but coach-directed rather than co-created. Score 0: Describes Identify as the coach deciding what the teacher needs to work on.",
+  },
+];
+
+const openEndedU14 = [
+  {
+    q: "Explain where the boundary of confidentiality lies when a principal has a genuine interest in improving a struggling teacher's performance. What can you share, and what must you protect?",
+    rubric: "Score 2: Can share anonymous school-level trends/themes; cannot share individual coaching notes, progress, or performance data; explains why (trust collapse); clear on the boundary even under pressure. Score 1: Knows individual data should not be shared but is vague about what CAN be shared. Score 0: Believes principal interest justifies sharing individual data, or that teacher consent makes it acceptable.",
+  },
+  {
+    q: "Why does 'predictability' build trust in a coaching relationship? Give two concrete examples of predictable coaching behaviors that would strengthen teacher trust over time.",
+    rubric: "Score 2: Predictability = teacher knows what to expect (no surprises, no evaluation, consistent confidentiality), examples: always asking before telling, never sharing notes, always following through on agreed actions. Score 1: Mentions consistency without explaining why it builds trust. Score 0: Defines predictability as following a fixed coaching schedule or template.",
+  },
+];
+
+const openEndedU15 = [
+  {
+    q: "Give an example of when you would ask the 'Context' question from the 3-Question AI Validation Framework. What specific classroom factor might the AI have missed, and how would you add that context in your coaching conversation?",
+    rubric: "Score 2: Context question = 'Does this account for the classroom reality I observed?', example includes Pakistan-specific factor (class size, no TA, resource constraints, exam pressure), explains how to contextualize rather than discard the data. Score 1: Gives an override example without applying the Context question framing. Score 0: Describes context as explaining the AI results to the teacher without adding human knowledge.",
+  },
+  {
+    q: "What does the phrase 'Human Filter' mean, and how does applying it protect the coaching partnership when AI-generated data is used in a coaching conversation?",
+    rubric: "Score 2: Human Filter = coach applies 3-question framework before sharing AI output; protects partnership by ensuring data reflects teacher's reality; prevents AI from becoming Audit Culture 2.0; teacher's agency is preserved. Score 1: Describes the concept but does not explain how it protects the coaching partnership specifically. Score 0: Defines Human Filter as removing negative AI feedback before sharing.",
+  },
+];
+
+const openEndedU16 = [
+  {
+    q: "Why is the 'We Do' phase described as a critical bridge in the I Do/We Do/You Do model? What is the risk of moving directly from 'I Do' to 'You Do' without a 'We Do' phase?",
+    rubric: "Score 2: We Do = guided practice with teacher support — bridges modeling and independence; risk of skipping: students attempt without sufficient scaffolding, leading to errors, confusion, or disengagement; links to schema dialogue about lesson pacing. Score 1: Describes We Do correctly but does not explain the risk of skipping it. Score 0: Confuses We Do with group work, or says skipping is fine if students are advanced.",
+  },
+  {
+    q: "A teacher shares their schema data with you showing 30 min I Do, 3 min We Do, 2 min You Do. How do you use this data as a partnership mirror rather than a compliance checklist?",
+    rubric: "Score 2: Share data neutrally with timestamps; ask 'What was driving this structure today?'; teacher interprets intent; co-explore whether structure matched goals; teacher chooses any adjustment; no prescription of a 'correct' ratio. Score 1: Shares data and asks a question but steers toward a prescribed restructuring. Score 0: Tells the teacher the schema is wrong and prescribes a different ratio.",
+  },
+];
+
 // ─── Main seed function ────────────────────────────────────────────────────────
 
 export async function seedModule1(): Promise<{ success: boolean; log: string[] }> {
   const log: string[] = [];
 
   const units = [
-    { order: 1, title: "Unit 1.0: The Coaching Catalyst", description: "Understanding coaching as a partnership-driven growth engine that honors teacher agency", concepts: "Coaching vs inspection, Impact Cycle, 7 Partnership Principles, confidentiality, identity shift", slides: slidesU10, scenario: scenarioU10, quiz: quizU10 },
-    { order: 2, title: "Unit 1.1: The Partnership Posture", description: "Shifting from a judging stance to equality-based, side-by-side partnership", concepts: "Judge vs Co-Pilot, 3 competency pillars, 4-step observation-to-conversation flow, partnership language toolkit", slides: slidesU11, scenario: scenarioU11, quiz: quizU11 },
-    { order: 3, title: "Unit 1.2: The Shared Mirror", description: "Presenting classroom data as a neutral starting point for collaborative discovery", concepts: "Shared Mirror protocol, low-inference vs high-inference language, audit culture, 4-step process", slides: slidesU12, scenario: scenarioU12, quiz: quizU12 },
-    { order: 4, title: "Unit 1.3: The Growth Engine", description: "Operationalizing the Impact Cycle through a 4-step evidence-based partnership process", concepts: "4-step coaching cycle, evidence vs interpretation, co-analysis, bite-sized action plans, loop closure", slides: slidesU13, scenario: scenarioU13, quiz: quizU13 },
-    { order: 5, title: "Unit 1.4: The Trust Bridge", description: "Building ethical partnership coaching through confidentiality and trust-building practices", concepts: "4-pillar ethical framework, 5 confidentiality breach types, trust-building behaviors, principal pressure handling", slides: slidesU14, scenario: scenarioU14, quiz: quizU14 },
-    { order: 6, title: "Unit 1.5: The Human Filter", description: "Using AI as a partnership tool, not a replacement for human professional judgment", concepts: "AI opportunity vs risk, 3-question validation framework, Pakistan-specific overrides, AI limitations", slides: slidesU15, scenario: scenarioU15, quiz: quizU15 },
-    { order: 7, title: "Unit 1.6: Coding the Classroom", description: "Mastering the I Do/We Do/You Do/CFU schema as a partnership coaching tool", concepts: "Observation schema, schema + Impact Cycle, sharing schema data in partnership way, audit culture risk", slides: slidesU16, scenario: scenarioU16, quiz: quizU16 },
+    { order: 1, title: "Unit 1.0: The Coaching Catalyst", description: "Understanding coaching as a partnership-driven growth engine that honors teacher agency", concepts: "Coaching vs inspection, Impact Cycle, 7 Partnership Principles, confidentiality, identity shift", slides: slidesU10, scenario: scenarioU10, quiz: quizU10, openEnded: openEndedU10 },
+    { order: 2, title: "Unit 1.1: The Partnership Posture", description: "Shifting from a judging stance to equality-based, side-by-side partnership", concepts: "Judge vs Co-Pilot, 3 competency pillars, 4-step observation-to-conversation flow, partnership language toolkit", slides: slidesU11, scenario: scenarioU11, quiz: quizU11, openEnded: openEndedU11 },
+    { order: 3, title: "Unit 1.2: The Shared Mirror", description: "Presenting classroom data as a neutral starting point for collaborative discovery", concepts: "Shared Mirror protocol, low-inference vs high-inference language, audit culture, 4-step process", slides: slidesU12, scenario: scenarioU12, quiz: quizU12, openEnded: openEndedU12 },
+    { order: 4, title: "Unit 1.3: The Growth Engine", description: "Operationalizing the Impact Cycle through a 4-step evidence-based partnership process", concepts: "4-step coaching cycle, evidence vs interpretation, co-analysis, bite-sized action plans, loop closure", slides: slidesU13, scenario: scenarioU13, quiz: quizU13, openEnded: openEndedU13 },
+    { order: 5, title: "Unit 1.4: The Trust Bridge", description: "Building ethical partnership coaching through confidentiality and trust-building practices", concepts: "4-pillar ethical framework, 5 confidentiality breach types, trust-building behaviors, principal pressure handling", slides: slidesU14, scenario: scenarioU14, quiz: quizU14, openEnded: openEndedU14 },
+    { order: 6, title: "Unit 1.5: The Human Filter", description: "Using AI as a partnership tool, not a replacement for human professional judgment", concepts: "AI opportunity vs risk, 3-question validation framework, Pakistan-specific overrides, AI limitations", slides: slidesU15, scenario: scenarioU15, quiz: quizU15, openEnded: openEndedU15 },
+    { order: 7, title: "Unit 1.6: Coding the Classroom", description: "Mastering the I Do/We Do/You Do/CFU schema as a partnership coaching tool", concepts: "Observation schema, schema + Impact Cycle, sharing schema data in partnership way, audit culture risk", slides: slidesU16, scenario: scenarioU16, quiz: quizU16, openEnded: openEndedU16 },
   ];
 
   try {
@@ -293,7 +372,7 @@ export async function seedModule1(): Promise<{ success: boolean; log: string[] }
         await supabase.from("questions").delete().eq("assessment_id", assessment.id);
       }
 
-      // Insert quiz questions
+      // Insert MCQ questions
       for (let i = 0; i < unit.quiz.length; i++) {
         const q = unit.quiz[i];
         const { data: question, error: qErr } = await supabase
@@ -312,7 +391,22 @@ export async function seedModule1(): Promise<{ success: boolean; log: string[] }
         await supabase.from("options").insert(optionRows);
       }
 
-      log.push(`  ❓ Quiz: ${unit.quiz.length} questions`);
+      // Insert open-ended questions
+      for (let i = 0; i < unit.openEnded.length; i++) {
+        const q = unit.openEnded[i];
+        await supabase
+          .from("questions")
+          .insert({
+            assessment_id: assessment.id,
+            question_text: q.q,
+            question_type: "open",
+            order_number: unit.quiz.length + i + 1,
+            max_score: 2,
+            correct_answer: q.rubric,
+          });
+      }
+
+      log.push(`  ❓ Quiz: ${unit.quiz.length} MCQ + ${unit.openEnded.length} open-ended questions`);
     }
 
     log.push("✅ Module 1 seed complete!");

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -79,15 +80,15 @@ export default function ModuleQuiz() {
       return;
     }
 
-    // Load all questions for this module's module_quiz assessments
+    // Load all assessments for this module's trainings
+    const { data: trainings } = await supabase.from("trainings").select("id").eq("module_id", moduleId).order("order_number");
+    const trainingIds = trainings?.map((t) => t.id) ?? [];
+
     const { data: assessments } = await supabase
       .from("assessments")
-      .select("id")
+      .select("id, training_id")
       .eq("type", "module_quiz")
-      .in(
-        "training_id",
-        (await supabase.from("trainings").select("id").eq("module_id", moduleId)).data?.map((t) => t.id) ?? []
-      );
+      .in("training_id", trainingIds);
 
     if (!assessments?.length) {
       toast.info("No quiz questions found for this module.");
@@ -95,29 +96,79 @@ export default function ModuleQuiz() {
       return;
     }
 
+    // Load all questions grouped by assessment (unit)
     const assessmentIds = assessments.map((a) => a.id);
-    const { data: questionsData } = await supabase
+    const { data: allQuestions } = await supabase
       .from("questions")
       .select("*")
       .in("assessment_id", assessmentIds)
       .order("order_number");
 
-    if (!questionsData?.length) {
+    if (!allQuestions?.length) {
       toast.info("No questions found.");
       navigate("/dashboard");
       return;
     }
 
-    const questionIds = questionsData.map((q) => q.id);
-    const { data: optionsData } = await supabase.from("options").select("*").in("question_id", questionIds);
+    // Load options for MCQ questions
+    const mcqIds = allQuestions.filter((q) => q.question_type === "mcq").map((q) => q.id);
+    const { data: optionsData } = mcqIds.length
+      ? await supabase.from("options").select("*").in("question_id", mcqIds)
+      : { data: [] };
 
-    setQuestions(
-      questionsData.map((q) => ({
-        ...q,
-        options: (optionsData || []).filter((o) => o.question_id === q.id),
-      }))
-    );
+    const questionsWithOptions = allQuestions.map((q) => ({
+      ...q,
+      options: (optionsData || []).filter((o) => o.question_id === q.id),
+    }));
 
+    // Group by assessment (unit)
+    const byUnit: Record<string, QuestionWithOptions[]> = {};
+    for (const q of questionsWithOptions) {
+      if (!byUnit[q.assessment_id]) byUnit[q.assessment_id] = [];
+      byUnit[q.assessment_id].push(q);
+    }
+
+    // Shuffle helper
+    const shuffle = <T,>(arr: T[]): T[] => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+
+    const unitKeys = shuffle(Object.keys(byUnit));
+    const numUnits = unitKeys.length;
+
+    // Pick 16 MCQs equally across units: base = floor(16/numUnits), distribute remainder
+    const TOTAL_MCQ = 16;
+    const TOTAL_OPEN = 4;
+    const base = Math.floor(TOTAL_MCQ / numUnits);
+    let remainder = TOTAL_MCQ % numUnits;
+
+    const selectedMCQ: QuestionWithOptions[] = [];
+    const selectedOpen: QuestionWithOptions[] = [];
+
+    for (const key of unitKeys) {
+      const unitQs = byUnit[key];
+      const mcqs = shuffle(unitQs.filter((q) => q.question_type === "mcq"));
+      const openEnded = shuffle(unitQs.filter((q) => q.question_type === "open"));
+
+      const pick = base + (remainder > 0 ? 1 : 0);
+      if (remainder > 0) remainder--;
+      selectedMCQ.push(...mcqs.slice(0, pick));
+
+      if (openEnded.length > 0) selectedOpen.push(openEnded[0]);
+    }
+
+    // Pick 4 open-ended from the pool (already 1 per unit, shuffle and take 4)
+    const finalOpen = shuffle(selectedOpen).slice(0, TOTAL_OPEN);
+
+    // Combine and shuffle
+    const finalQuestions = shuffle([...selectedMCQ, ...finalOpen]);
+
+    setQuestions(finalQuestions);
     setLoading(false);
   };
 
@@ -165,57 +216,69 @@ export default function ModuleQuiz() {
     }
 
     setSubmitting(true);
+
+    const mcqQuestions = questions.filter((q) => q.question_type === "mcq");
     let correctCount = 0;
-    for (const q of questions) {
+    for (const q of mcqQuestions) {
       const correct = q.options.find((o) => o.is_correct);
       if (correct && correct.id === answers[q.id]) correctCount++;
     }
 
-    const scorePct = Math.round((correctCount / questions.length) * 100);
+    // Open-ended questions: full credit for answered (manual grading not implemented)
+    const openCount = questions.filter((q) => q.question_type === "open").length;
+
+    // Score based on MCQs only for pass/fail (open-ended graded separately)
+    const scorePct = mcqQuestions.length > 0
+      ? Math.round((correctCount / mcqQuestions.length) * 100)
+      : 100;
     const passed = scorePct >= QUIZ_PASS_THRESHOLD;
 
     await saveAttempt(scorePct, passed);
-    setResult({ score: scorePct, passed, correct: correctCount, total: questions.length });
+    setResult({ score: scorePct, passed, correct: correctCount, total: mcqQuestions.length });
     setSubmitting(false);
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-900">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-400" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
   const currentQuestion = questions[currentIndex];
-  const totalAnswered = Object.keys(answers).length;
+  const totalAnswered = questions.filter((q) => {
+    const ans = answers[q.id];
+    return ans && ans.trim().length > 0;
+  }).length;
   const attemptsRemaining = MAX_ATTEMPTS - attemptCount;
 
   // Result screen
   if (result) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <Card className="bg-slate-800/80 border-slate-700 w-full max-w-md">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center space-y-4">
-            <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center ${result.passed ? "bg-green-500/20" : "bg-red-500/20"}`}>
+            <div className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center ${result.passed ? "bg-green-500/10" : "bg-red-500/10"}`}>
               {result.passed
-                ? <CheckCircle2 className="w-8 h-8 text-green-400" />
-                : <XCircle className="w-8 h-8 text-red-400" />}
+                ? <CheckCircle2 className="w-8 h-8 text-green-600" />
+                : <XCircle className="w-8 h-8 text-red-600" />}
             </div>
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-2xl font-bold text-foreground">
               {result.passed ? "Quiz Passed!" : "Not Quite"}
             </h2>
-            <p className="text-slate-300">
-              You got <span className="font-bold text-white">{result.correct} of {result.total}</span> correct ({result.score}%)
+            <p className="text-muted-foreground">
+              MCQs: <span className="font-bold text-foreground">{result.correct} of {result.total}</span> correct ({result.score}%)
             </p>
+            <p className="text-xs text-muted-foreground">Open-ended responses submitted for review.</p>
             {!result.passed && attemptsRemaining > 0 && (
-              <p className="text-slate-400 text-sm">{attemptsRemaining} attempt{attemptsRemaining === 1 ? "" : "s"} remaining</p>
+              <p className="text-muted-foreground text-sm">{attemptsRemaining} attempt{attemptsRemaining === 1 ? "" : "s"} remaining</p>
             )}
             <div className="flex gap-3 pt-2">
               {!result.passed && attemptsRemaining > 0 ? (
                 <Button
                   onClick={() => { setResult(null); setAnswers({}); setCurrentIndex(0); }}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  className="flex-1"
                 >
                   Try Again
                 </Button>
@@ -223,7 +286,7 @@ export default function ModuleQuiz() {
               <Button
                 variant={result.passed || attemptsRemaining === 0 ? "default" : "outline"}
                 onClick={() => navigate("/dashboard")}
-                className={result.passed ? "flex-1 bg-teal-600 hover:bg-teal-700" : "flex-1"}
+                className="flex-1"
               >
                 Back to Dashboard
               </Button>
@@ -235,18 +298,19 @@ export default function ModuleQuiz() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <header className="border-b border-slate-700 bg-slate-900/80 sticky top-0 z-10">
-        <div className="container flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-teal-400" />
-            <span className="font-bold text-white">{moduleTitle} — Quiz</span>
-            <Badge variant="outline" className="ml-2 text-orange-400 border-orange-400">
-              Attempt {attemptCount + 1}/{MAX_ATTEMPTS}
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-background/80 sticky top-0 z-10 backdrop-blur-sm">
+        <div className="container flex items-center justify-between h-14 px-4 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <GraduationCap className="w-5 h-5 text-primary shrink-0" />
+            <span className="font-bold text-foreground truncate text-sm sm:text-base">{moduleTitle} — Quiz</span>
+            <Badge variant="outline" className="shrink-0 text-xs">
+              {attemptCount + 1}/{MAX_ATTEMPTS}
             </Badge>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="text-slate-300 hover:text-white">
-            <ArrowLeft className="w-4 h-4 mr-1" /> Dashboard
+          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="shrink-0">
+            <ArrowLeft className="w-4 h-4 sm:mr-1" />
+            <span className="hidden sm:inline">Dashboard</span>
           </Button>
         </div>
       </header>
@@ -254,41 +318,59 @@ export default function ModuleQuiz() {
       <main className="container px-4 py-8 max-w-2xl" ref={quizContainerRef}>
         <div className="flex items-center gap-3 mb-6">
           <Progress value={((currentIndex + 1) / questions.length) * 100} className="flex-1 h-2" />
-          <span className="text-sm text-slate-400 whitespace-nowrap">{currentIndex + 1} / {questions.length}</span>
+          <span className="text-sm text-muted-foreground whitespace-nowrap">{currentIndex + 1} / {questions.length}</span>
         </div>
 
         {tabSwitchCount > 0 && (
-          <div className="flex items-center gap-1 text-orange-400 text-sm mb-4">
+          <div className="flex items-center gap-1 text-orange-500 text-sm mb-4">
             <AlertTriangle className="w-4 h-4" />
             {tabSwitchCount} tab switch{tabSwitchCount > 1 ? "es" : ""} detected
           </div>
         )}
 
         {currentQuestion && (
-          <Card className="bg-slate-800/60 border-slate-700">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-white text-base leading-relaxed">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="outline" className="text-xs shrink-0">
+                  {currentQuestion.question_type === "open" ? "Open-ended" : "MCQ"}
+                </Badge>
+              </div>
+              <CardTitle className="text-foreground text-base leading-relaxed">
                 Q{currentIndex + 1}. {currentQuestion.question_text}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <RadioGroup
-                value={answers[currentQuestion.id] || ""}
-                onValueChange={(val) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))}
-                className="space-y-3"
-              >
-                {currentQuestion.options.map((option) => (
-                  <div
-                    key={option.id}
-                    className="flex items-center space-x-3 p-3 rounded-lg border border-slate-700 hover:border-teal-500 cursor-pointer transition-colors"
-                  >
-                    <RadioGroupItem value={option.id} id={option.id} />
-                    <Label htmlFor={option.id} className="text-slate-200 cursor-pointer flex-1">
-                      {option.option_text}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+              {currentQuestion.question_type === "open" ? (
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Write your answer here…"
+                    value={answers[currentQuestion.id] || ""}
+                    onChange={(e) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: e.target.value }))}
+                    rows={6}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">Open-ended response — write in your own words.</p>
+                </div>
+              ) : (
+                <RadioGroup
+                  value={answers[currentQuestion.id] || ""}
+                  onValueChange={(val) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))}
+                  className="space-y-3"
+                >
+                  {currentQuestion.options.map((option) => (
+                    <div
+                      key={option.id}
+                      className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:border-primary cursor-pointer transition-colors"
+                    >
+                      <RadioGroupItem value={option.id} id={option.id} />
+                      <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
+                        {option.option_text}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              )}
             </CardContent>
           </Card>
         )}
@@ -304,21 +386,21 @@ export default function ModuleQuiz() {
           </Button>
 
           {currentIndex < questions.length - 1 ? (
-            <Button onClick={() => setCurrentIndex((i) => i + 1)} className="flex-1 bg-teal-600 hover:bg-teal-700">
+            <Button onClick={() => setCurrentIndex((i) => i + 1)} className="flex-1">
               Next <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
             <Button
               onClick={handleSubmit}
               disabled={submitting || totalAnswered < questions.length}
-              className="flex-1 bg-teal-600 hover:bg-teal-700"
+              className="flex-1"
             >
               {submitting ? "Submitting…" : <><Send className="w-4 h-4 mr-1" /> Submit</>}
             </Button>
           )}
         </div>
 
-        <div className="mt-3 flex justify-between text-sm text-slate-400">
+        <div className="mt-3 flex justify-between text-sm text-muted-foreground">
           <span>{totalAnswered} of {questions.length} answered</span>
           <span>{attemptsRemaining} attempt{attemptsRemaining === 1 ? "" : "s"} remaining after this</span>
         </div>

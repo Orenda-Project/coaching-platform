@@ -123,7 +123,7 @@ export default function TrainingModule() {
     const { data: assessments } = await supabase
       .from("assessments")
       .select("id")
-      .eq("type", "training")
+      .eq("type", "module_quiz")
       .eq("training_id", id);
 
     if (!assessments?.length) {
@@ -242,8 +242,8 @@ export default function TrainingModule() {
 
   if (loading || !training) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-900">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-400" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -253,26 +253,22 @@ export default function TrainingModule() {
   const totalAnswered = Object.keys(answers).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-900/80 sticky top-0 z-10">
-        <div className="container flex items-center justify-between h-14 px-4">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-teal-400" />
-            <span className="font-bold text-white">{training.title}</span>
+      <header className="border-b border-border bg-background sticky top-0 z-10">
+        <div className="container flex items-center justify-between h-14 px-4 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <GraduationCap className="w-5 h-5 text-primary shrink-0" />
+            <span className="font-bold text-foreground truncate text-sm sm:text-base">{training.title}</span>
             {phase === "quiz" && (
-              <Badge variant="outline" className="ml-2 text-orange-400 border-orange-400">
-                Quiz — Attempt {attemptCount + 1}/{MAX_ATTEMPTS}
+              <Badge variant="outline" className="shrink-0 text-xs text-warning border-warning">
+                {attemptCount + 1}/{MAX_ATTEMPTS}
               </Badge>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/dashboard")}
-            className="text-slate-300 hover:text-white"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" /> Dashboard
+          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="shrink-0">
+            <ArrowLeft className="w-4 h-4 sm:mr-1" />
+            <span className="hidden sm:inline">Dashboard</span>
           </Button>
         </div>
       </header>
@@ -280,8 +276,8 @@ export default function TrainingModule() {
       <main className="container px-4 py-8 max-w-2xl" ref={quizContainerRef}>
         {phase === "content" ? (
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">{training.title}</h1>
-            <p className="text-slate-400 mb-6">{training.description}</p>
+            <h1 className="text-2xl font-bold text-foreground mb-1">{training.title}</h1>
+            <p className="text-muted-foreground mb-6">{training.description}</p>
 
             <TrainingContentViewer
               trainingId={id!}
@@ -291,13 +287,12 @@ export default function TrainingModule() {
 
             {contentCompleted && (
               <div className="mt-6 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-green-400 text-sm">
+                <div className="flex items-center gap-2 text-success text-sm">
                   <CheckCircle2 className="w-4 h-4" />
                   Unit completed
                 </div>
                 <Button
                   onClick={() => navigate("/dashboard")}
-                  className="bg-teal-600 hover:bg-teal-700"
                 >
                   Back to Dashboard <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -306,10 +301,10 @@ export default function TrainingModule() {
           </div>
         ) : (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-xl font-bold text-white">{training.title} — Quiz</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <h1 className="text-lg sm:text-xl font-bold text-foreground">{training.title} — Quiz</h1>
               {tabSwitchCount > 0 && (
-                <div className="flex items-center gap-1 text-orange-400 text-sm">
+                <div className="flex items-center gap-1 text-warning text-sm shrink-0">
                   <AlertTriangle className="w-4 h-4" />
                   {tabSwitchCount} tab switch{tabSwitchCount > 1 ? "es" : ""} detected
                 </div>
@@ -321,41 +316,56 @@ export default function TrainingModule() {
                 value={((currentIndex + 1) / questions.length) * 100}
                 className="flex-1 h-2"
               />
-              <span className="text-sm text-slate-400 whitespace-nowrap">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
                 {currentIndex + 1} / {questions.length}
               </span>
             </div>
 
             {currentQuestion && (
-              <Card className="bg-slate-800/60 border-slate-700">
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="text-white text-base leading-relaxed">
+                  <CardTitle className="text-foreground text-base leading-relaxed">
                     Q{currentIndex + 1}. {currentQuestion.question_text}
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <RadioGroup
-                    value={answers[currentQuestion.id] || ""}
-                    onValueChange={(val) =>
-                      setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))
-                    }
+                <CardContent className="space-y-3">
+                  {currentQuestion.question_type === 'open' && (
+                    <div className="space-y-2">
+                      <textarea
+                        value={answers[currentQuestion.id] || ""}
+                        onChange={(e) =>
+                          setAnswers((prev) => ({ ...prev, [currentQuestion.id]: e.target.value }))
+                        }
+                        placeholder="Enter your response here..."
+                        className="w-full min-h-[120px] p-3 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground"
+                      />
+                      <p className="text-xs text-muted-foreground italic">(does not count toward your score)</p>
+                    </div>
+                  )}
+                  {currentQuestion.question_type === 'mcq' && (
+                    <RadioGroup
+                      value={answers[currentQuestion.id] || ""}
+                      onValueChange={(val) =>
+                        setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))
+                      }
                     className="space-y-3"
                   >
-                    {currentQuestion.options.map((option) => (
-                      <div
-                        key={option.id}
-                        className="flex items-center space-x-3 p-3 rounded-lg border border-slate-700 hover:border-teal-500 cursor-pointer transition-colors"
-                      >
-                        <RadioGroupItem value={option.id} id={option.id} />
-                        <Label
-                          htmlFor={option.id}
-                          className="text-slate-200 cursor-pointer flex-1"
+                      {currentQuestion.options.map((option) => (
+                        <div
+                          key={option.id}
+                          className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:border-primary cursor-pointer transition-colors"
                         >
-                          {option.option_text}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
+                          <RadioGroupItem value={option.id} id={option.id} />
+                          <Label
+                            htmlFor={option.id}
+                            className="text-foreground cursor-pointer flex-1"
+                          >
+                            {option.option_text}
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -373,7 +383,7 @@ export default function TrainingModule() {
               {currentIndex < questions.length - 1 ? (
                 <Button
                   onClick={() => setCurrentIndex((i) => i + 1)}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   Next <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -381,14 +391,14 @@ export default function TrainingModule() {
                 <Button
                   onClick={handleQuizSubmit}
                   disabled={submitting || totalAnswered < questions.length}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   {submitting ? "Submitting…" : <><Send className="w-4 h-4 mr-1" /> Submit</>}
                 </Button>
               )}
             </div>
 
-            <div className="mt-3 flex justify-between text-sm text-slate-400">
+            <div className="mt-3 flex justify-between text-sm text-muted-foreground">
               <span>{totalAnswered} of {questions.length} answered</span>
               <span>{attemptsRemaining} attempt{attemptsRemaining === 1 ? "" : "s"} remaining after this</span>
             </div>
