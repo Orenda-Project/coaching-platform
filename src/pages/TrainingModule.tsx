@@ -294,7 +294,7 @@ export default function TrainingModule() {
                 <Button
                   onClick={() => navigate("/dashboard")}
                 >
-                  Back to Dashboard <ArrowRight className="w-4 h-4 ml-1" />
+                  Finish Training <ArrowRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
             )}
@@ -382,7 +382,15 @@ export default function TrainingModule() {
 
               {currentIndex < questions.length - 1 ? (
                 <Button
-                  onClick={() => setCurrentIndex((i) => i + 1)}
+                  onClick={() => {
+                    const current = questions[currentIndex];
+                    const ans = answers[current.id];
+                    if (!ans || ans.trim().length === 0) {
+                      toast.error("Please answer this question before moving on.");
+                      return;
+                    }
+                    setCurrentIndex((i) => i + 1);
+                  }}
                   className="flex-1 bg-primary hover:bg-primary/90"
                 >
                   Next <ArrowRight className="w-4 h-4 ml-1" />

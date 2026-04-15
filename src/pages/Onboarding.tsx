@@ -161,7 +161,7 @@ export default function Onboarding() {
               <div className="space-y-2">
                 <Label htmlFor="region" className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-blue-600" />
-                  Region / Cluster *
+                  Region *
                 </Label>
                 <select
                   id="region"

@@ -196,19 +196,21 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-          <Card className="glass-card animate-fade-in" style={{ animationDelay: "0.15s" }}>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-                <ClipboardCheck className="w-5 h-5 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Endline</p>
-                <p className="font-semibold text-foreground">
-                  {profile?.endline_completed ? `${Math.round(profile.endline_score || 0)}%` : "Pending"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {(allModulesCompleted || profile?.endline_completed) && (
+            <Card className="glass-card animate-fade-in" style={{ animationDelay: "0.15s" }}>
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+                  <ClipboardCheck className="w-5 h-5 text-accent-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Endline</p>
+                  <p className="font-semibold text-foreground">
+                    {profile?.endline_completed ? `${Math.round(profile.endline_score || 0)}%` : "Pending"}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card className="glass-card animate-fade-in" style={{ animationDelay: "0.2s" }}>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
