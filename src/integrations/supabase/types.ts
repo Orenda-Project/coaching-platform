@@ -205,6 +205,8 @@ export type Database = {
           region: string | null
           school_id: string | null
           teacher_ids: string[] | null
+          qualifications: Json | null
+          experiences: Json | null
           updated_at: string
           weak_modules: string[]
         }
@@ -223,6 +225,8 @@ export type Database = {
           region?: string | null
           school_id?: string | null
           teacher_ids?: string[] | null
+          qualifications?: Json | null
+          experiences?: Json | null
           updated_at?: string
           weak_modules?: string[]
         }
@@ -241,6 +245,8 @@ export type Database = {
           region?: string | null
           school_id?: string | null
           teacher_ids?: string[] | null
+          qualifications?: Json | null
+          experiences?: Json | null
           updated_at?: string
           weak_modules?: string[]
         }

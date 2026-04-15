@@ -8,8 +8,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PersonaBadge } from "@/components/PersonaBadge";
-import { ArrowLeft, User, Mail, Phone, School, BookOpen, Trophy, Edit2, Save, X } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, School, BookOpen, Trophy, Edit2, Save, X, GraduationCap, Building2 } from "lucide-react";
 import { toast } from "sonner";
+
+interface Qualification {
+  degree_type: string;
+  degree: string;
+  passing_year: string;
+}
+
+interface Experience {
+  org: string;
+  designation: string;
+  joining: string;
+  leaving: string;
+  current: boolean;
+}
+
+const DEGREE_TYPES = ["Bachelors", "Masters", "MPhil", "PhD", "Diploma", "Other"] as const;
+const emptyQualification = (): Qualification => ({ degree_type: "", degree: "", passing_year: "" });
+const emptyExperience = (): Experience => ({ org: "", designation: "", joining: "", leaving: "", current: false });
+
+function formatMonthYear(yyyymm: string): string {
+  if (!yyyymm) return "";
+  const [year, month] = yyyymm.split("-");
+  if (!month) return year;
+  const date = new Date(Number(year), Number(month) - 1);
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
 
 export default function Profile() {
   const { user, profile, refreshProfile } = useAuth();
@@ -18,11 +44,9 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
 
   // Form state
-  const [form, setForm] = useState({
-    full_name: "",
-    phone: "",
-    school_id: "",
-  });
+  const [form, setForm] = useState({ full_name: "", phone: "", school_id: "" });
+  const [qualifications, setQualifications] = useState<Qualification[]>([]);
+  const [experiences, setExperiences] = useState<Experience[]>([]);
 
   // Load profile data
   useEffect(() => {
@@ -32,8 +56,20 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
       });
+      setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
+      setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
     }
   }, [profile]);
+
+  const addQualification = () => setQualifications((p) => [...p, emptyQualification()]);
+  const removeQualification = (idx: number) => setQualifications((p) => p.filter((_, i) => i !== idx));
+  const updateQualification = (idx: number, field: keyof Qualification, value: string) =>
+    setQualifications((p) => p.map((q, i) => (i === idx ? { ...q, [field]: value } : q)));
+
+  const addExperience = () => setExperiences((p) => [...p, emptyExperience()]);
+  const removeExperience = (idx: number) => setExperiences((p) => p.filter((_, i) => i !== idx));
+  const updateExperience = (idx: number, field: keyof Experience, value: string | boolean) =>
+    setExperiences((p) => p.map((e, i) => (i === idx ? { ...e, [field]: value } : e)));
 
   const handleSave = async () => {
     if (!user) return;
@@ -46,6 +82,8 @@ export default function Profile() {
           full_name: form.full_name,
           phone: form.phone,
           school_id: form.school_id,
+          qualifications,
+          experiences,
         })
         .eq("id", user.id);
 
@@ -69,6 +107,8 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
       });
+      setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
+      setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
     }
     setEditing(false);
   };
@@ -210,6 +250,149 @@ export default function Profile() {
                     {form.school_id || "Not set"}
                   </p>
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Qualifications Card */}
+        <Card className="border-0 shadow-md">
+          <CardHeader className="border-b">
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-indigo-600" />
+              Qualifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            {editing ? (
+              <div className="space-y-3">
+                {qualifications.map((q, idx) => (
+                  <div key={idx} className="border border-border rounded-md p-3 space-y-2 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">Qualification {idx + 1}</span>
+                      <button type="button" onClick={() => removeQualification(idx)} className="text-muted-foreground hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Degree Type</Label>
+                        <select
+                          value={q.degree_type}
+                          onChange={(e) => updateQualification(idx, "degree_type", e.target.value)}
+                          className="mt-1 w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          <option value="">Select type...</option>
+                          {DEGREE_TYPES.map((dt) => <option key={dt} value={dt}>{dt}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Degree / Field</Label>
+                        <Input className="mt-1" value={q.degree} onChange={(e) => updateQualification(idx, "degree", e.target.value)} placeholder="e.g. Education" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Passing Year</Label>
+                        <Input className="mt-1" maxLength={4} value={q.passing_year} onChange={(e) => updateQualification(idx, "passing_year", e.target.value)} placeholder="e.g. 2018" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={addQualification}>+ Add Qualification</Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {qualifications.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No qualifications added.</p>
+                ) : (
+                  [...qualifications]
+                    .sort((a, b) => Number(b.passing_year || 0) - Number(a.passing_year || 0))
+                    .map((q, idx) => (
+                      <div key={idx} className="flex items-center gap-3 py-2 border-b last:border-0">
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 shrink-0">{q.degree_type || "—"}</span>
+                        <span className="text-sm font-medium text-foreground flex-1 min-w-0 truncate">{q.degree || "—"}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">{q.passing_year || "—"}</span>
+                      </div>
+                    ))
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Experiences Card */}
+        <Card className="border-0 shadow-md">
+          <CardHeader className="border-b">
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-orange-600" />
+              Work Experience
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-4">
+            {editing ? (
+              <div className="space-y-3">
+                {experiences.map((exp, idx) => (
+                  <div key={idx} className="border border-border rounded-md p-3 space-y-2 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground">Experience {idx + 1}</span>
+                      <button type="button" onClick={() => removeExperience(idx)} className="text-muted-foreground hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Organisation</Label>
+                        <Input className="mt-1" value={exp.org} onChange={(e) => updateExperience(idx, "org", e.target.value)} placeholder="e.g. Taleemabad" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Designation</Label>
+                        <Input className="mt-1" value={exp.designation} onChange={(e) => updateExperience(idx, "designation", e.target.value)} placeholder="e.g. Head Teacher" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Joining (YYYY-MM)</Label>
+                        <Input className="mt-1" value={exp.joining} onChange={(e) => updateExperience(idx, "joining", e.target.value)} placeholder="e.g. 2020-06" />
+                      </div>
+                      {!exp.current && (
+                        <div>
+                          <Label className="text-xs">Leaving (YYYY-MM)</Label>
+                          <Input className="mt-1" value={exp.leaving} onChange={(e) => updateExperience(idx, "leaving", e.target.value)} placeholder="e.g. 2023-12" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`current-${idx}`}
+                        checked={exp.current}
+                        onChange={(e) => updateExperience(idx, "current", e.target.checked)}
+                        className="h-4 w-4 rounded border-input"
+                      />
+                      <label htmlFor={`current-${idx}`} className="text-xs text-foreground">Currently Employed Here</label>
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={addExperience}>+ Add Experience</Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {experiences.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No work experience added.</p>
+                ) : (
+                  [...experiences]
+                    .sort((a, b) => (b.joining > a.joining ? 1 : -1))
+                    .map((exp, idx) => (
+                      <div key={idx} className="flex items-start gap-3 py-2 border-b last:border-0">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{exp.designation || "—"}</p>
+                          <p className="text-xs text-muted-foreground truncate">{exp.org || "—"}</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground text-right shrink-0">
+                          <span>{formatMonthYear(exp.joining)}</span>
+                          <span className="mx-1">–</span>
+                          <span>{exp.current ? "Present" : formatMonthYear(exp.leaving)}</span>
+                        </div>
+                      </div>
+                    ))
+                )}
               </div>
             )}
           </CardContent>
