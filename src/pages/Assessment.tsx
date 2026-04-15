@@ -8,7 +8,16 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Send, GraduationCap, AlertTriangle, Clock, FileQuestion, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Send,
+  GraduationCap,
+  AlertTriangle,
+  Clock,
+  FileQuestion,
+  CheckCircle2,
+} from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 
 type Question = Tables<"questions">;
@@ -45,7 +54,9 @@ export default function Assessment() {
 
   const isBaseline = type === "baseline";
   const isEndline = type === "endline";
-  const passThreshold = isBaseline ? BASELINE_PASS_THRESHOLD : ENDLINE_PASS_THRESHOLD;
+  const passThreshold = isBaseline
+    ? BASELINE_PASS_THRESHOLD
+    : ENDLINE_PASS_THRESHOLD;
 
   // Auto-save progress every 5 seconds
   useEffect(() => {
@@ -57,8 +68,8 @@ export default function Assessment() {
         JSON.stringify({
           answers,
           currentIndex,
-          timestamp: new Date().toISOString()
-        })
+          timestamp: new Date().toISOString(),
+        }),
       );
     }, 5000);
 
@@ -86,17 +97,24 @@ export default function Assessment() {
     if (!user || !profile) return;
 
     // Fetch all modules to find assigned ones (Option A: mandatory + weak_modules)
-    const { data: allModules } = await supabase.from("modules").select("id, title, is_mandatory");
+    const { data: allModules } = await supabase
+      .from("modules")
+      .select("id, title, is_mandatory");
     const weakModules = profile.weak_modules || [];
     const assignedModuleIds = new Set(
       (allModules || [])
-        .filter((m) => m.is_mandatory || weakModules.some(wm => m.title.startsWith(wm)))
-        .map((m) => m.id)
+        .filter(
+          (m) =>
+            m.is_mandatory || weakModules.some((wm) => m.title.startsWith(wm)),
+        )
+        .map((m) => m.id),
     );
 
-    const { data: allTrainings } = await supabase.from("trainings").select("id, module_id");
+    const { data: allTrainings } = await supabase
+      .from("trainings")
+      .select("id, module_id");
     const assignedTrainings = (allTrainings || []).filter(
-      (t) => t.module_id && assignedModuleIds.has(t.module_id)
+      (t) => t.module_id && assignedModuleIds.has(t.module_id),
     );
     const trainingIds = (assignedTrainings || []).map((t) => t.id);
 
@@ -112,7 +130,7 @@ export default function Assessment() {
       .in("training_id", trainingIds);
 
     const passedIds = new Set(
-      (progressData || []).filter((p) => p.passed).map((p) => p.training_id)
+      (progressData || []).filter((p) => p.passed).map((p) => p.training_id),
     );
     const allPassed = trainingIds.every((id) => passedIds.has(id));
 
@@ -157,10 +175,12 @@ export default function Assessment() {
       .select("*")
       .in("question_id", questionIds);
 
-    const questionsWithOptions: QuestionWithOptions[] = questionsData.map((q) => ({
-      ...q,
-      options: (optionsData || []).filter((o) => o.question_id === q.id),
-    }));
+    const questionsWithOptions: QuestionWithOptions[] = questionsData.map(
+      (q) => ({
+        ...q,
+        options: (optionsData || []).filter((o) => o.question_id === q.id),
+      }),
+    );
 
     setQuestions(questionsWithOptions);
 
@@ -168,7 +188,8 @@ export default function Assessment() {
     const saved = localStorage.getItem(`assessment_${type}_${user?.id}`);
     if (saved) {
       try {
-        const { answers: savedAnswers, currentIndex: savedIndex } = JSON.parse(saved);
+        const { answers: savedAnswers, currentIndex: savedIndex } =
+          JSON.parse(saved);
         setAnswers(savedAnswers);
         setCurrentIndex(savedIndex);
         setHasStarted(true);
@@ -186,7 +207,7 @@ export default function Assessment() {
 
     // For endline: only MCQ questions count toward pass threshold
     const mcqQuestions = isEndline
-      ? questions.filter((q) => q.question_type === 'mcq')
+      ? questions.filter((q) => q.question_type === "mcq")
       : questions;
 
     const totalQuestions = mcqQuestions.length;
@@ -212,12 +233,15 @@ export default function Assessment() {
     };
     const weakModules: string[] = [];
     for (const [mod, { start, end }] of Object.entries(moduleBands)) {
-      const modQuestions = questions.filter((q) => q.order_number >= start && q.order_number <= end);
+      const modQuestions = questions.filter(
+        (q) => q.order_number >= start && q.order_number <= end,
+      );
       const modCorrect = modQuestions.filter((q) => {
         const sel = q.options.find((o) => o.id === answers[q.id]);
         return sel?.is_correct;
       }).length;
-      const modPct = modQuestions.length > 0 ? (modCorrect / modQuestions.length) * 100 : 0;
+      const modPct =
+        modQuestions.length > 0 ? (modCorrect / modQuestions.length) * 100 : 0;
       if (modPct < 70) weakModules.push(mod);
     }
     setSubmitting(true);
@@ -234,7 +258,7 @@ export default function Assessment() {
           localStorage.removeItem(`assessment_${type}_${user?.id}`);
           await refreshProfile();
           toast.error(
-            `You scored ${pct}%. You need at least ${BASELINE_PASS_THRESHOLD}% to proceed. Please try again.`
+            `You scored ${pct}%. You need at least ${BASELINE_PASS_THRESHOLD}% to proceed. Please try again.`,
           );
           setAnswers({});
           setCurrentIndex(0);
@@ -277,7 +301,7 @@ export default function Assessment() {
           localStorage.removeItem(`assessment_${type}_${user?.id}`);
           await refreshProfile();
           toast.error(
-            `You scored ${pct}% on the 16 multiple choice questions. You need at least ${ENDLINE_PASS_THRESHOLD}% to earn your certificate. Please try again.`
+            `You scored ${pct}% on the 16 multiple choice questions. You need at least ${ENDLINE_PASS_THRESHOLD}% to earn your certificate. Please try again.`,
           );
           setAnswers({});
           setCurrentIndex(0);
@@ -289,17 +313,15 @@ export default function Assessment() {
         const certificateId = `CC-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         const now = new Date().toISOString();
 
-        const { error: certError } = await supabase
-          .from("certificates")
-          .upsert(
-            {
-              user_id: user.id,
-              certificate_id: certificateId,
-              persona: profile.persona,
-              issued_at: now,
-            },
-            { onConflict: "user_id" }
-          );
+        const { error: certError } = await supabase.from("certificates").upsert(
+          {
+            user_id: user.id,
+            certificate_id: certificateId,
+            persona: profile.persona,
+            issued_at: now,
+          },
+          { onConflict: "user_id" },
+        );
 
         if (certError) {
           toast.error("Failed to issue certificate. Please try again.");
@@ -318,7 +340,9 @@ export default function Assessment() {
 
         localStorage.removeItem(`assessment_${type}_${user?.id}`);
         await refreshProfile();
-        toast.success(`Congratulations! You scored ${pct}% on the 16 multiple choice questions and earned your certificate!`);
+        toast.success(
+          `Congratulations! You scored ${pct}% on the 16 multiple choice questions and earned your certificate!`,
+        );
         navigate("/certificate");
       }
     } catch {
@@ -338,7 +362,8 @@ export default function Assessment() {
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              The Endline Assessment will be available after all Modules are completed.
+              The Endline Assessment will be available after all Modules are
+              completed.
             </p>
             <Button onClick={() => navigate("/dashboard")} className="w-full">
               Back to Dashboard
@@ -356,11 +381,14 @@ export default function Assessment() {
         <Card className="max-w-md w-full border-warning/20 bg-warning/10">
           <CardHeader className="text-center">
             <AlertTriangle className="w-12 h-12 text-warning mx-auto mb-2" />
-            <CardTitle className="text-foreground">Complete All Modules First</CardTitle>
+            <CardTitle className="text-foreground">
+              Complete All Modules First
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-muted-foreground">
-              You must pass all assigned training modules before attempting the endline assessment.
+              You must pass all assigned training modules before attempting the
+              endline assessment.
             </p>
             <p className="text-muted-foreground text-sm">
               Return to your dashboard to complete any remaining modules.
@@ -377,14 +405,17 @@ export default function Assessment() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-foreground text-lg animate-pulse">Loading assessment…</div>
+        <div className="text-foreground text-lg animate-pulse">
+          Loading assessment…
+        </div>
       </div>
     );
   }
 
   const currentQuestion = questions[currentIndex];
   const totalAnswered = Object.keys(answers).length;
-  const progressPct = questions.length > 0 ? (totalAnswered / questions.length) * 100 : 0;
+  const progressPct =
+    questions.length > 0 ? (totalAnswered / questions.length) * 100 : 0;
   const canSubmit = totalAnswered === questions.length;
 
   // Show intro screen if not started
@@ -398,7 +429,9 @@ export default function Assessment() {
                 <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
                   <GraduationCap className="w-6 h-6 text-primary-foreground" />
                 </div>
-                <h1 className="text-2xl font-display font-bold text-foreground">CoachCert</h1>
+                <h1 className="text-2xl font-display font-bold text-foreground">
+                  CoachCert
+                </h1>
               </div>
               <CardTitle className="font-display text-xl">
                 {isBaseline ? "Baseline Assessment" : "Endline Assessment"}
@@ -407,12 +440,15 @@ export default function Assessment() {
 
             <CardContent className="space-y-6">
               <div>
-                <h2 className="font-semibold text-foreground mb-4">Welcome to Your Assessment</h2>
+                <h2 className="font-semibold text-foreground mb-4">
+                  Welcome to Your Assessment
+                </h2>
 
                 <div className="space-y-4 mb-6">
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">
-                      What {isBaseline ? "is" : "is"} {isBaseline ? "the baseline" : "the endline"}?
+                      What {isBaseline ? "is" : "is"}{" "}
+                      {isBaseline ? "the baseline" : "the endline"}?
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       {isBaseline
@@ -422,7 +458,9 @@ export default function Assessment() {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-foreground mb-1">Why does it matter?</h3>
+                    <h3 className="font-semibold text-foreground mb-1">
+                      Why does it matter?
+                    </h3>
                     <p className="text-sm text-muted-foreground">
                       {isBaseline
                         ? "Your results personalize your training path and focus on your development areas."
@@ -434,19 +472,27 @@ export default function Assessment() {
                 <div className="bg-primary/5 p-4 rounded-lg border border-primary/20 space-y-2">
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4 text-primary" />
-                    <span className="text-foreground font-medium">Time needed: ~10 minutes</span>
+                    <span className="text-foreground font-medium">
+                      Time needed: ~10 minutes
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <FileQuestion className="w-4 h-4 text-primary" />
-                    <span className="text-foreground font-medium">Questions: {questions.length}</span>
+                    <span className="text-foreground font-medium">
+                      Questions: {questions.length}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="w-4 h-4 text-success" />
-                    <span className="text-foreground font-medium">Can resume if interrupted</span>
+                    <span className="text-foreground font-medium">
+                      Can resume if interrupted
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <AlertTriangle className="w-4 h-4 text-warning" />
-                    <span className="text-foreground font-medium">Pass threshold: {passThreshold}%</span>
+                    <span className="text-foreground font-medium">
+                      Pass threshold: {passThreshold}%
+                    </span>
                   </div>
                 </div>
               </div>
@@ -481,7 +527,8 @@ export default function Assessment() {
               {isBaseline ? "Baseline Assessment" : "Endline Assessment"}
             </h1>
             <p className="text-muted-foreground text-sm">
-              Question {currentIndex + 1} of {questions.length} &nbsp;|&nbsp; Pass threshold: {passThreshold}%
+              Question {currentIndex + 1} of {questions.length} &nbsp;|&nbsp;
+              Pass threshold: {passThreshold}%
             </p>
           </div>
         </div>
@@ -496,19 +543,24 @@ export default function Assessment() {
               <CardTitle className="text-foreground text-base leading-relaxed">
                 {currentIndex + 1}. {currentQuestion.question_text}
               </CardTitle>
-              {currentQuestion.question_type === 'open' && (
+              {currentQuestion.question_type === "open" && (
                 <p className="text-muted-foreground text-sm mt-2">
-                  {isEndline ? '(Open-ended response for review - does not count toward your score)' : '(Open-ended response)'}
+                  {isEndline
+                    ? "(Open-ended response for review - does not count toward your score)"
+                    : "(Open-ended response)"}
                 </p>
               )}
             </CardHeader>
             <CardContent>
               {/* MCQ: Radio button options */}
-              {currentQuestion.question_type === 'mcq' && (
+              {currentQuestion.question_type === "mcq" && (
                 <RadioGroup
                   value={answers[currentQuestion.id] || ""}
                   onValueChange={(val) => {
-                    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }));
+                    setAnswers((prev) => ({
+                      ...prev,
+                      [currentQuestion.id]: val,
+                    }));
                     setHasStarted(true); // Mark as started when first answer is selected
                   }}
                   className="space-y-3"
@@ -519,7 +571,10 @@ export default function Assessment() {
                       className="flex items-center space-x-3 p-3 rounded-lg border border-input hover:border-primary cursor-pointer transition-colors"
                     >
                       <RadioGroupItem value={option.id} id={option.id} />
-                      <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
+                      <Label
+                        htmlFor={option.id}
+                        className="text-foreground cursor-pointer flex-1"
+                      >
                         {option.option_text}
                       </Label>
                     </div>
@@ -528,11 +583,14 @@ export default function Assessment() {
               )}
 
               {/* Open-ended: Textarea */}
-              {currentQuestion.question_type === 'open' && (
+              {currentQuestion.question_type === "open" && (
                 <textarea
                   value={answers[currentQuestion.id] || ""}
                   onChange={(e) => {
-                    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: e.target.value }));
+                    setAnswers((prev) => ({
+                      ...prev,
+                      [currentQuestion.id]: e.target.value,
+                    }));
                     setHasStarted(true);
                   }}
                   placeholder="Type your response here..."
@@ -560,15 +618,24 @@ export default function Assessment() {
               disabled={submitting}
               className="flex-1"
             >
-              {submitting ? "Submitting…" : <><Send className="w-4 h-4 mr-1" /> Submit</>}
+              {submitting ? (
+                "Submitting…"
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-1" /> Submit
+                </>
+              )}
             </Button>
           ) : (
             <Button
               onClick={() => {
                 // Jump to first unanswered question
-                const firstUnanswered = questions.findIndex((q) => !answers[q.id]);
+                const firstUnanswered = questions.findIndex(
+                  (q) => !answers[q.id],
+                );
                 if (firstUnanswered !== -1) setCurrentIndex(firstUnanswered);
-                else setCurrentIndex((i) => Math.min(questions.length - 1, i + 1));
+                else
+                  setCurrentIndex((i) => Math.min(questions.length - 1, i + 1));
               }}
               className="flex-1"
             >
@@ -581,7 +648,8 @@ export default function Assessment() {
           {totalAnswered} of {questions.length} answered
           {!canSubmit && (
             <span className="text-warning font-medium ml-2">
-              — {questions.length - totalAnswered} question{questions.length - totalAnswered !== 1 ? "s" : ""} remaining
+              — {questions.length - totalAnswered} question
+              {questions.length - totalAnswered !== 1 ? "s" : ""} remaining
             </span>
           )}
         </p>
