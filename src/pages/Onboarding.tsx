@@ -25,11 +25,10 @@ export default function Onboarding() {
   }, [profile, navigate]);
 
   const regions = [
-    { value: "north", label: "North" },
-    { value: "central", label: "Central" },
-    { value: "south", label: "South" },
-    { value: "east", label: "East" },
-    { value: "west", label: "West" }
+    { value: "islamabad", label: "Islamabad (ICT)" },
+    { value: "balochistan", label: "Balochistan" },
+    { value: "punjab", label: "Punjab" },
+    { value: "rawalpindi", label: "Rawalpindi (Rwp)" },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
