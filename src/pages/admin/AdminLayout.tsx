@@ -1,9 +1,10 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { GraduationCap, ClipboardList, HelpCircle, ArrowLeft, Shield, Layers, Database, GitBranch, MapPin } from "lucide-react";
+import { GraduationCap, ClipboardList, HelpCircle, ArrowLeft, Shield, Layers, Database, MapPin, BarChart2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminRole } from "@/hooks/useAdminRole";
 
 const navItems = [
+  { label: "Analytics", icon: BarChart2, path: "/admin/analytics" },
   { label: "Baseline Questions", icon: ClipboardList, path: "/admin/baseline-questions" },
   { label: "Modules", icon: Layers, path: "/admin/modules" },
   { label: "Quiz Questions", icon: HelpCircle, path: "/admin/quiz-questions" },

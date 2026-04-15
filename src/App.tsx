@@ -27,6 +27,7 @@ import ScenarioFlow from "./pages/ScenarioFlow";
 import AdminScenarios from "./pages/admin/AdminScenarios";
 import AdminScenarioOptions from "./pages/admin/AdminScenarioOptions";
 import AdminRegions from "./pages/admin/AdminRegions";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="scenarios/:scenarioId/options" element={<AdminScenarioOptions />} />
               <Route path="quiz-questions" element={<AdminQuizQuestions />} />
               <Route path="regions" element={<AdminRegions />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
               <Route path="seed" element={<AdminSeed />} />
             </Route>
             <Route path="*" element={<NotFound />} />

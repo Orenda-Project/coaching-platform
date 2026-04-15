@@ -26,6 +26,13 @@ interface Experience {
 }
 
 const DEGREE_TYPES = ["Bachelors", "Masters", "MPhil", "PhD", "Diploma", "Other"] as const;
+
+const REGIONS = [
+  { value: "islamabad", label: "Islamabad (ICT)" },
+  { value: "balochistan", label: "Balochistan" },
+  { value: "punjab", label: "Punjab" },
+  { value: "rawalpindi", label: "Rawalpindi (Rwp)" },
+] as const;
 const emptyQualification = (): Qualification => ({ degree_type: "", degree: "", passing_year: "" });
 const emptyExperience = (): Experience => ({ org: "", designation: "", joining: "", leaving: "", current: false });
 
@@ -44,7 +51,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
 
   // Form state
-  const [form, setForm] = useState({ full_name: "", phone: "", school_id: "" });
+  const [form, setForm] = useState({ full_name: "", phone: "", school_id: "", region: "" });
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
 
@@ -55,6 +62,7 @@ export default function Profile() {
         full_name: profile.full_name || "",
         phone: profile.phone || "",
         school_id: profile.school_id || "",
+        region: profile.region || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
@@ -82,6 +90,7 @@ export default function Profile() {
           full_name: form.full_name,
           phone: form.phone,
           school_id: form.school_id,
+          region: form.region,
           qualifications,
           experiences,
         })
@@ -106,6 +115,7 @@ export default function Profile() {
         full_name: profile.full_name || "",
         phone: profile.phone || "",
         school_id: profile.school_id || "",
+        region: profile.region || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
@@ -203,6 +213,21 @@ export default function Profile() {
                   />
                 </div>
 
+                <div>
+                  <Label htmlFor="region">Region</Label>
+                  <select
+                    id="region"
+                    value={form.region}
+                    onChange={(e) => setForm({ ...form, region: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    <option value="">Select region</option>
+                    {REGIONS.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="flex gap-2 pt-4 border-t">
                   <Button
                     onClick={handleSave}
@@ -248,6 +273,15 @@ export default function Profile() {
                   </p>
                   <p className="text-sm font-medium text-foreground">
                     {form.school_id || "Not set"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                    Region
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    {REGIONS.find((r) => r.value === form.region)?.label || "Not set"}
                   </p>
                 </div>
               </div>
