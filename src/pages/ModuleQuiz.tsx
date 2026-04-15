@@ -288,7 +288,7 @@ export default function ModuleQuiz() {
                 onClick={() => navigate("/dashboard")}
                 className="flex-1"
               >
-                Back to Dashboard
+                Back to Training
               </Button>
             </div>
           </CardContent>
@@ -386,7 +386,18 @@ export default function ModuleQuiz() {
           </Button>
 
           {currentIndex < questions.length - 1 ? (
-            <Button onClick={() => setCurrentIndex((i) => i + 1)} className="flex-1">
+            <Button
+              onClick={() => {
+                const current = questions[currentIndex];
+                const ans = answers[current.id];
+                if (!ans || ans.trim().length === 0) {
+                  toast.error("Please answer this question before moving on.");
+                  return;
+                }
+                setCurrentIndex((i) => i + 1);
+              }}
+              className="flex-1"
+            >
               Next <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
