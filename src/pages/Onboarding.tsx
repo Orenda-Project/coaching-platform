@@ -49,7 +49,7 @@ export default function Onboarding() {
 
   // If already onboarded, redirect to dashboard
   useEffect(() => {
-    if (profile?.school_id) {
+    if (profile?.region) {
       navigate("/dashboard");
     }
   }, [profile, navigate]);
@@ -63,8 +63,8 @@ export default function Onboarding() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!region.trim() || !school.trim()) {
-      toast.error("Region and school are required");
+    if (!region.trim()) {
+      toast.error("Region is required");
       return;
     }
 
@@ -183,14 +183,13 @@ export default function Onboarding() {
               <div className="space-y-2">
                 <Label htmlFor="school" className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-green-600" />
-                  School Name *
+                  School Name <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
                 </Label>
                 <Input
                   id="school"
                   placeholder="Enter your school name"
                   value={school}
                   onChange={(e) => setSchool(e.target.value)}
-                  required
                 />
                 <p className="text-xs text-muted-foreground">
                   This helps us understand your school context and provide relevant training
