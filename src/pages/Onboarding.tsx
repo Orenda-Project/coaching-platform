@@ -37,6 +37,7 @@ export default function Onboarding() {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(false);
   const submitting = useRef(false);
+  const navigated = useRef(false);
 
   const addQualification = () => setQualifications((prev) => [...prev, emptyQualification()]);
   const removeQualification = (idx: number) => setQualifications((prev) => prev.filter((_, i) => i !== idx));
@@ -48,9 +49,10 @@ export default function Onboarding() {
   const updateExperience = (idx: number, field: keyof Experience, value: string | boolean) =>
     setExperiences((prev) => prev.map((e, i) => (i === idx ? { ...e, [field]: value } : e)));
 
-  // If already onboarded (and not mid-submit), redirect to dashboard
+  // If already onboarded (and not mid-submit), redirect to dashboard — only once
   useEffect(() => {
-    if (profile?.region && !submitting.current) {
+    if (profile?.region && !submitting.current && !navigated.current) {
+      navigated.current = true;
       navigate("/dashboard");
     }
   }, [profile, navigate]);
@@ -99,6 +101,7 @@ export default function Onboarding() {
       }
 
       toast.success("Onboarding complete! Welcome to CoachCert");
+      navigated.current = true;
       await refreshProfile();
       navigate("/dashboard");
     } catch (error: unknown) {
