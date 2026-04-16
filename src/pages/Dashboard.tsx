@@ -52,8 +52,8 @@ export default function Dashboard() {
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // Redirect to onboarding if not completed
-    if (profile && !profile.school_id) {
+    // Redirect to onboarding if not completed — region is the required onboarding field
+    if (profile && !profile.region) {
       navigate("/onboarding");
       return;
     }
