@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,7 @@ export default function Onboarding() {
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
 
   const addQualification = () => setQualifications((prev) => [...prev, emptyQualification()]);
   const removeQualification = (idx: number) => setQualifications((prev) => prev.filter((_, i) => i !== idx));
@@ -47,9 +48,9 @@ export default function Onboarding() {
   const updateExperience = (idx: number, field: keyof Experience, value: string | boolean) =>
     setExperiences((prev) => prev.map((e, i) => (i === idx ? { ...e, [field]: value } : e)));
 
-  // If already onboarded, redirect to dashboard
+  // If already onboarded (and not mid-submit), redirect to dashboard
   useEffect(() => {
-    if (profile?.region) {
+    if (profile?.region && !submitting.current) {
       navigate("/dashboard");
     }
   }, [profile, navigate]);
@@ -74,6 +75,7 @@ export default function Onboarding() {
     }
 
     setLoading(true);
+    submitting.current = true;
     try {
       const { error } = await supabase
         .from("profiles")
@@ -100,6 +102,7 @@ export default function Onboarding() {
       await refreshProfile();
       navigate("/dashboard");
     } catch (error: unknown) {
+      submitting.current = false;
       console.error("Onboarding error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to complete onboarding");
     } finally {
