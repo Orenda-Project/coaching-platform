@@ -6,7 +6,9 @@ export type AnalyticsEventType =
   | "scenario_viewed"
   | "decision_submitted"
   | "feedback_viewed"
-  | "read_more_clicked";
+  | "read_more_clicked"
+  | "tab_visible"
+  | "tab_hidden";
 
 export interface TrackEventParams {
   event_type: AnalyticsEventType;
