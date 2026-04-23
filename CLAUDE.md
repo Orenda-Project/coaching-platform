@@ -1,6 +1,42 @@
 # Coaching Platform — Taleemabad MVP Prototype
 # Built: 2026-04-08 | Stack: React + TypeScript + Supabase + Tailwind
 
+## Autonomous Workflow System (Auto-runs every session)
+
+This project uses a deterministic workflow routing system. See `AUTONOMOUS_WORKFLOW_SYSTEM.md` for full details.
+
+**SESSION START (automatic):**
+1. Read this file (CLAUDE.md)
+2. Read `WORKFLOW_QUICK_REFERENCE.md` for trigger words
+3. Read `docs/memory/` files (patterns, bugs, qa-risks, review-findings)
+4. Greet with status snapshot
+5. Ask what to focus on
+
+**ROUTING TABLE (deterministic dispatch):**
+
+| Trigger | Workflow | What to read |
+|---------|----------|-------------|
+| `/coaching-dev` OR "implement/build/add feature" | Feature Dev | `docs/memory/patterns.md` |
+| `/coaching-bugfix` OR "fix bug/broken/not working" | Bug Fix | `docs/memory/bugs.md` |
+| `/coaching-qa` OR "test this/QA/verify" | QA | `docs/memory/qa-risks.md` |
+| `/coaching-review` OR "review this/code review" | Code Review | `docs/memory/review-findings.md` |
+
+**WORKFLOW CHAINING:**
+- Dev completes → "Run QA?" → if yes, QA runs → "Code review?" → if yes, review runs
+- Bugfix completes → "Run QA to verify?" → if yes, QA runs → "Code review?" → if yes, review runs
+- QA and Review: no chaining, end with memory update only
+
+**MEMORY UPDATE PROTOCOL:**
+After each workflow, check if anything NEW was learned. If yes, append ≤5 bullets to:
+- Dev: `docs/memory/patterns.md`
+- Bugfix: `docs/memory/bugs.md`
+- QA: `docs/memory/qa-risks.md`
+- Review: `docs/memory/review-findings.md`
+
+Never write: code, transcripts, stacks. Save: pattern/rule only.
+
+---
+
 ## 🚨 Team Development Standards (READ FIRST!)
 
 **ALL work must follow these rules:**
@@ -10,12 +46,6 @@
 4. ✅ Use staging environment first (staging → main, never skip)
 
 **See:** `DEVELOPMENT_STANDARDS.md` (complete standards)
-
-## Slash Commands for This Project
-- `/coaching-dev` — implementing features (use feature branch + PR)
-- `/coaching-review` — code review (reviewer role)
-- `/coaching-bugfix` — bug fixing (feature branch + PR + E2E tests)
-- `/coaching-qa` — QA testing (test E2E flow on staging before production merge)
 
 ## Key Business Rules (Never Break)
 - Baseline: 60% to pass. <60% = fail, retry. Persona: A(≥75%) B(70%) C(65%) D(60%)
@@ -35,6 +65,14 @@
 - `ENVIRONMENT_SUMMARY.md` — Quick reference: GitHub branches, Railway projects, Supabase DBs
 - `SETUP_CHECKLIST.md` — Step-by-step staging/production infrastructure setup
 
+## Autonomous Workflow System Files (NEW)
+- `AUTONOMOUS_WORKFLOW_SYSTEM.md` — Full architecture & design decisions
+- `WORKFLOW_QUICK_REFERENCE.md` — Daily quick reference (trigger words, what each workflow does)
+- `docs/memory/patterns.md` — Dev patterns from prior sessions
+- `docs/memory/bugs.md` — Bug learnings from prior sessions
+- `docs/memory/qa-risks.md` — QA failure scenarios from prior sessions
+- `docs/memory/review-findings.md` — Code review anti-patterns from prior sessions
+
 ## What Was Fixed in v2 (2026-04-08) vs coach-cert base
 - Module locking uses order_number (not array index)
 - Endline gate is server-verified (not just client CTA check)
@@ -47,7 +85,6 @@
 - New migration: 20260408000001_coaching_platform_v2.sql
 
 ---
-
 
 ## Commands
 
@@ -78,66 +115,22 @@ VITE_SUPABASE_URL=http://127.0.0.1:54321
 VITE_SUPABASE_PUBLISHABLE_KEY=<key from supabase start output>
 ```
 
-Local services: Studio at http://127.0.0.1:54323 · Mailpit at http://127.0.0.1:54324
+## Environment-Specific URLs
 
-**To make a user admin locally** — run in Studio SQL Editor:
-```sql
-INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin' FROM auth.users WHERE email = 'your@email.com'
-ON CONFLICT DO NOTHING;
-```
+**Local development:**
+- App: `http://localhost:5173`
+- Supabase: `http://127.0.0.1:54321`
 
-## Environments
+**Staging (Railway):**
+- App: see ENVIRONMENT_SUMMARY.md
+- DB: `agziuwqpkfmxtospfxns` (Supabase staging project)
 
-| Env | Supabase URL | Config file |
-|---|---|---|
-| Local | `http://127.0.0.1:54321` | `.env.local` |
-| Production | `https://rdvylrymblwcwnfpjkyw.supabase.co` | `.env` |
+**Production (Railway):**
+- App: see ENVIRONMENT_SUMMARY.md
+- DB: `agziuwqpkfmxtospfxns` (Supabase production project)
 
-## Architecture
+## Session End
 
-**Stack:** React 18 + TypeScript, Vite/SWC, Supabase (PostgreSQL + Auth), Tailwind CSS, shadcn-ui (Radix), React Router v6, React Query, React Hook Form + Zod, Sonner toasts.
-
-**Purpose:** A coaching certification platform where teachers take baseline assessments, complete persona-targeted training modules with quizzes, then take endline assessments to earn certificates.
-
-### Routing (`src/App.tsx`)
-
-```
-/                    → Landing
-/login, /signup, /reset-password
-/dashboard           → Module list + progress (protected)
-/assessment/:type    → "baseline" or "endline" assessment (protected)
-/training/:id        → Training module viewer + quiz (protected)
-/certificate         → Certificate display (protected)
-/admin               → Admin panel (protected + admin role required)
-  /admin/modules
-  /admin/modules/:moduleId/units
-  /admin/units/:unitId/content
-  /admin/baseline-questions
-  /admin/quiz-questions
-```
-
-Protected routes use `<ProtectedRoute>` (checks `AuthContext`). Admin routes additionally call `useAdminRole()` which queries the `user_roles` table.
-
-### State Management
-
-- **AuthContext** (`src/contexts/AuthContext.tsx`) — holds `session`, `user`, `profile`, and auth methods. Syncs via Supabase `onAuthStateChange`.
-- **React Query** — configured in `App.tsx`, used for async data fetching.
-- Local `useState` for UI state (forms, loading, question index, answers).
-
-### Supabase Integration (`src/integrations/supabase/`)
-
-- `client.ts` — Supabase client using `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `types.ts` — Auto-generated database types (do not edit manually)
-
-**Key tables:** `profiles`, `trainings`, `modules`, `training_content`, `training_progress`, `assessments`, `questions`, `options`, `certificates`, `user_roles`
-
-**Pattern:** Queries are chained Supabase calls (`.from().select().eq()`). Options/relationships are loaded in separate queries, not via joins. Errors surface as Sonner toasts.
-
-### Persona System
-
-Users are assigned a persona (A/B/C/D) stored on `profiles.persona`. Trainings are targeted to specific personas — the dashboard filters visible modules accordingly.
-
-### Admin Flow
-
-Admin users (identified by `user_roles` table) can manage modules, units, unit content, and quiz/baseline questions via the `/admin` routes. All admin mutations use Supabase CRUD with confirmation dialogs before deletions.
+1. Append summary to session log (created automatically in `docs/` if needed)
+2. Update carry-overs in relevant domain
+3. Memory files auto-update when workflows complete
