@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, CheckCircle2, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 
 export interface Slide {
   title: string;
@@ -23,35 +23,35 @@ const SLIDE_LOCK_DURATION = 15; // seconds
 
 export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesPlayerProps) {
   const [current, setCurrent] = useState(0);
-  const [timeOnSlide, setTimeOnSlide] = useState(0);
-  const [slideUnlocked, setSlideUnlocked] = useState(false);
+  const [countdown, setCountdown] = useState(SLIDE_LOCK_DURATION);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const slide = slides[current];
   const progress = ((current + 1) / slides.length) * 100;
   const isLast = current === slides.length - 1;
-  const canProceed = slideUnlocked;
-  const secondsRemaining = Math.max(0, SLIDE_LOCK_DURATION - timeOnSlide);
+  const isNextDisabled = countdown > 0;
 
-  // Track time on slide
   useEffect(() => {
-    setTimeOnSlide(0);
-    setSlideUnlocked(false);
+    setCountdown(SLIDE_LOCK_DURATION);
+    if (intervalRef.current) clearInterval(intervalRef.current);
 
-    const interval = setInterval(() => {
-      setTimeOnSlide((prev) => {
-        const next = prev + 1;
-        if (next >= SLIDE_LOCK_DURATION) {
-          setSlideUnlocked(true);
+    intervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          return 0;
         }
-        return next;
+        return prev - 1;
       });
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [current]);
 
   const next = () => {
-    if (!canProceed) return;
+    if (isNextDisabled) return;
     if (isLast) {
       onCompleted();
     } else {
@@ -139,21 +139,22 @@ export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesP
       </Card>
 
       {/* Navigation */}
-      <div className="flex flex-col gap-3">
-        <div className="flex justify-between gap-3">
-          <Button variant="outline" onClick={prev} disabled={current === 0}>
-            <ChevronLeft className="w-4 h-4 mr-1" /> Previous
-          </Button>
-          <Button onClick={next} disabled={!canProceed} className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed">
-            {isLast ? (completed ? "Completed ✓" : "Finish Slides") : <>Next <ChevronRight className="w-4 h-4 ml-1" /></>}
-          </Button>
-        </div>
-        {!canProceed && (
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-md border border-border">
-            <Clock className="w-4 h-4" />
-            <span>Please read the slide first — {secondsRemaining} second{secondsRemaining !== 1 ? 's' : ''} remaining</span>
-          </div>
-        )}
+      <div className="flex justify-between gap-3">
+        <Button variant="outline" onClick={prev} disabled={current === 0}>
+          <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+        </Button>
+        <Button
+          onClick={next}
+          disabled={isNextDisabled}
+          className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isNextDisabled
+            ? `Read slide first (${countdown}s)`
+            : isLast
+              ? (completed ? "Completed ✓" : "Finish Slides")
+              : <>Next <ChevronRight className="w-4 h-4 ml-1" /></>
+          }
+        </Button>
       </div>
 
       {/* Slide dots */}
