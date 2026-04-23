@@ -21,6 +21,7 @@ import {
   User,
 } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { Tables } from "@/integrations/supabase/types";
 import {
   Collapsible,
@@ -42,9 +43,10 @@ interface Module {
 }
 
 export default function Dashboard() {
-  const { user, profile, signOut, refreshProfile } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { isAdmin } = useAdminRole();
+  const { track } = useAnalytics();
   const [modules, setModules] = useState<Module[]>([]);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [progress, setProgress] = useState<TrainingProgress[]>([]);
@@ -59,6 +61,21 @@ export default function Dashboard() {
     }
     if (profile) loadData();
   }, [profile, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track tab visibility changes on dashboard
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      track({
+        event_type: document.hidden ? "tab_hidden" : "tab_visible",
+        metadata: { page: "dashboard" },
+      });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [track]);
 
   const loadData = async () => {
     if (!user || !profile) return;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,12 +21,35 @@ interface SlidesPlayerProps {
 
 export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesPlayerProps) {
   const [current, setCurrent] = useState(0);
+  const [countdown, setCountdown] = useState(30);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const slide = slides[current];
   const progress = ((current + 1) / slides.length) * 100;
   const isLast = current === slides.length - 1;
+  const isNextDisabled = countdown > 0;
+
+  useEffect(() => {
+    setCountdown(30);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    intervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [current]);
 
   const next = () => {
+    if (isNextDisabled) return;
     if (isLast) {
       onCompleted();
     } else {
@@ -118,8 +141,17 @@ export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesP
         <Button variant="outline" onClick={prev} disabled={current === 0}>
           <ChevronLeft className="w-4 h-4 mr-1" /> Previous
         </Button>
-        <Button onClick={next} className="bg-primary hover:bg-primary/90">
-          {isLast ? (completed ? "Completed ✓" : "Finish Slides") : <>Next <ChevronRight className="w-4 h-4 ml-1" /></>}
+        <Button
+          onClick={next}
+          disabled={isNextDisabled}
+          className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isNextDisabled
+            ? `Read slide first (${countdown}s)`
+            : isLast
+              ? (completed ? "Completed ✓" : "Finish Slides")
+              : <>Next <ChevronRight className="w-4 h-4 ml-1" /></>
+          }
         </Button>
       </div>
 
