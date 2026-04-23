@@ -33,6 +33,7 @@ export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesP
 
   useEffect(() => {
     setCountdown(SLIDE_LOCK_DURATION);
+
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     intervalRef.current = setInterval(() => {
