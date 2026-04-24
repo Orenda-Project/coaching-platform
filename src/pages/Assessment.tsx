@@ -50,6 +50,7 @@ export default function Assessment() {
   const [submitting, setSubmitting] = useState(false);
   const [endlineBlocked, setEndlineBlocked] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const submittedRef = useRef(false);
 
   const isBaseline = type === "baseline";
@@ -75,6 +76,35 @@ export default function Assessment() {
 
     return () => clearInterval(interval);
   }, [answers, currentIndex, user?.id, type, hasStarted, questions.length]);
+
+  // Track tab switches during assessment
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        const newCount = tabSwitchCount + 1;
+        setTabSwitchCount(newCount);
+        if (newCount === 1) {
+          toast.warning(
+            "Warning: Switching tabs is recorded during assessment.",
+          );
+        } else if (newCount >= 3) {
+          toast.error(
+            "Multiple tab switches detected. Please avoid switch tabs during the assessment.",
+          );
+        } else {
+          toast.warning(
+            `Warning: Tab switching detected (${newCount}). This is recorded.`,
+          );
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [hasStarted, tabSwitchCount]);
 
   useEffect(() => {
     if (!profile) return;
@@ -202,6 +232,65 @@ export default function Assessment() {
     setLoading(false);
   };
 
+  const saveAssessmentProgress = async (passed: boolean, score: number) => {
+    if (!user) return;
+
+    try {
+      // First, ensure baseline/endline trainings exist
+      const trainingTitle = isBaseline
+        ? "Coach Baseline Assessment"
+        : "Coach Endline Assessment";
+      const { data: existingTrainings } = await supabase
+        .from("trainings")
+        .select("id")
+        .eq("title", trainingTitle)
+        .limit(1);
+
+      let trainingId: string;
+      if (existingTrainings && existingTrainings.length > 0) {
+        trainingId = existingTrainings[0].id;
+      } else {
+        // Create training if it doesn't exist
+        const { data: newTraining, error: createError } = await supabase
+          .from("trainings")
+          .insert({
+            title: trainingTitle,
+            description: `${isBaseline ? "Baseline" : "Endline"} assessment for coaching program`,
+            order_number: isBaseline ? 0 : 999,
+            is_common: true,
+          })
+          .select("id")
+          .single();
+
+        if (createError || !newTraining) {
+          console.error("Failed to create training:", createError);
+          return;
+        }
+        trainingId = newTraining.id;
+      }
+
+      // Now save the training progress with tab switches
+      const { error } = await supabase.from("training_progress").upsert(
+        {
+          user_id: user.id,
+          training_id: trainingId,
+          passed,
+          score,
+          tab_switch_count: tabSwitchCount,
+          flagged_for_review: tabSwitchCount >= 3,
+          content_completed: true,
+        },
+        { onConflict: "user_id,training_id" },
+      );
+
+      if (error) {
+        console.error("Failed to save assessment progress:", error);
+      }
+    } catch (err) {
+      console.error("Error in saveAssessmentProgress:", err);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user || !profile) return;
 
@@ -255,6 +344,8 @@ export default function Assessment() {
             .from("profiles")
             .update({ baseline_attempt_count: newAttemptCount })
             .eq("id", user.id);
+          // Save failed attempt with tab switches
+          await saveAssessmentProgress(false, pct);
           localStorage.removeItem(`assessment_${type}_${user?.id}`);
           await refreshProfile();
           toast.error(
@@ -285,6 +376,9 @@ export default function Assessment() {
           return;
         }
 
+        // Save assessment progress with tab switches
+        await saveAssessmentProgress(true, pct);
+
         localStorage.removeItem(`assessment_${type}_${user?.id}`);
         submittedRef.current = true;
         await refreshProfile();
@@ -298,6 +392,8 @@ export default function Assessment() {
             .from("profiles")
             .update({ endline_attempt_count: newAttemptCount })
             .eq("id", user.id);
+          // Save failed endline attempt with tab switches
+          await saveAssessmentProgress(false, pct);
           localStorage.removeItem(`assessment_${type}_${user?.id}`);
           await refreshProfile();
           toast.error(
@@ -337,6 +433,9 @@ export default function Assessment() {
             endline_attempt_count: newAttemptCount,
           })
           .eq("id", user.id);
+
+        // Save passed endline attempt with tab switches
+        await saveAssessmentProgress(true, pct);
 
         localStorage.removeItem(`assessment_${type}_${user?.id}`);
         await refreshProfile();

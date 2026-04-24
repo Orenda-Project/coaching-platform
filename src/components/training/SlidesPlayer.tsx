@@ -19,9 +19,11 @@ interface SlidesPlayerProps {
   completed: boolean;
 }
 
+const SLIDE_LOCK_DURATION = 15; // seconds
+
 export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesPlayerProps) {
   const [current, setCurrent] = useState(0);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(SLIDE_LOCK_DURATION);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const slide = slides[current];
@@ -30,7 +32,8 @@ export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesP
   const isNextDisabled = countdown > 0;
 
   useEffect(() => {
-    setCountdown(30);
+    setCountdown(SLIDE_LOCK_DURATION);
+
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     intervalRef.current = setInterval(() => {
