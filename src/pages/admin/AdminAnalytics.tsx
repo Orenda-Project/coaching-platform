@@ -508,29 +508,35 @@ export default function AdminAnalytics() {
                     <tr className="bg-muted/20 border-b border-border">
                       <td colSpan={11} className="px-6 py-4">
                         <div className="space-y-4">
-                          <div>
-                            <h4 className="font-semibold text-sm text-foreground mb-3">📊 Assessment & Module Details</h4>
-                            {/* Tab switches summary */}
-                            <div className="grid grid-cols-3 gap-3 mb-4">
-                              <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                                <p className="text-xs font-semibold text-blue-700 mb-1">Baseline</p>
-                                <p className="text-lg font-bold text-blue-900">{c.tabSwitchBreakdown.baseline}</p>
-                                <p className="text-xs text-blue-600">tab switches</p>
-                              </div>
-                              <div className="bg-purple-50 border border-purple-200 rounded p-3">
-                                <p className="text-xs font-semibold text-purple-700 mb-1">Module Quiz</p>
-                                <p className="text-lg font-bold text-purple-900">{c.tabSwitchBreakdown.module}</p>
-                                <p className="text-xs text-purple-600">tab switches</p>
-                              </div>
-                              <div className="bg-orange-50 border border-orange-200 rounded p-3">
-                                <p className="text-xs font-semibold text-orange-700 mb-1">Endline</p>
-                                <p className="text-lg font-bold text-orange-900">{c.tabSwitchBreakdown.endline}</p>
-                                <p className="text-xs text-orange-600">tab switches</p>
+                          {/* Baseline/Endline tab switches summary - only show if they have baseline or endline data */}
+                          {(c.tabSwitchBreakdown.baseline > 0 || c.tabSwitchBreakdown.endline > 0) && (
+                            <div>
+                              <h4 className="font-semibold text-sm text-foreground mb-3">📊 Assessment Tab Switches</h4>
+                              <div className="grid grid-cols-2 gap-3 mb-4">
+                                {c.tabSwitchBreakdown.baseline > 0 && (
+                                  <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                                    <p className="text-xs font-semibold text-blue-700 mb-1">Baseline Quiz</p>
+                                    <p className="text-lg font-bold text-blue-900">{c.tabSwitchBreakdown.baseline}</p>
+                                    <p className="text-xs text-blue-600">tab switch{c.tabSwitchBreakdown.baseline !== 1 ? "es" : ""}</p>
+                                  </div>
+                                )}
+                                {c.tabSwitchBreakdown.endline > 0 && (
+                                  <div className="bg-orange-50 border border-orange-200 rounded p-3">
+                                    <p className="text-xs font-semibold text-orange-700 mb-1">Endline Quiz</p>
+                                    <p className="text-lg font-bold text-orange-900">{c.tabSwitchBreakdown.endline}</p>
+                                    <p className="text-xs text-orange-600">tab switch{c.tabSwitchBreakdown.endline !== 1 ? "es" : ""}</p>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          </div>
+                          )}
 
-                          {/* Module breakdown */}
+                          {/* Module breakdown with per-unit tab switches */}
+                          {c.moduleDetails.length > 0 && (
+                            <div>
+                              <h4 className="font-semibold text-sm text-foreground mb-3">📚 Module Details</h4>
+                            </div>
+                          )}
                           {c.moduleDetails.map((mod, idx) => (
                             <div key={mod.moduleId} className="bg-card border border-border rounded-lg p-4">
                               {/* Module header */}
