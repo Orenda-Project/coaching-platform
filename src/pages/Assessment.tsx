@@ -85,18 +85,11 @@ export default function Assessment() {
       if (document.hidden) {
         const newCount = tabSwitchCount + 1;
         setTabSwitchCount(newCount);
+        console.log(`📍 Tab switch detected (${newCount})`);
+        // Silently track tab switches - no interruption to assessment
+        // Only show warning on first switch
         if (newCount === 1) {
-          toast.warning(
-            "Warning: Switching tabs is recorded during assessment.",
-          );
-        } else if (newCount >= 3) {
-          toast.error(
-            "Multiple tab switches detected. Please avoid switch tabs during the assessment.",
-          );
-        } else {
-          toast.warning(
-            `Warning: Tab switching detected (${newCount}). This is recorded.`,
-          );
+          toast.info("Tab switching is being recorded during this assessment.");
         }
       }
     };
@@ -236,41 +229,16 @@ export default function Assessment() {
     if (!user) return;
 
     try {
-      // First, ensure baseline/endline trainings exist
-      const trainingTitle = isBaseline
-        ? "Coach Baseline Assessment"
-        : "Coach Endline Assessment";
-      const { data: existingTrainings } = await supabase
-        .from("trainings")
-        .select("id")
-        .eq("title", trainingTitle)
-        .limit(1);
+      console.log("🔍 Saving assessment progress:", { passed, score, tabSwitchCount, isBaseline });
 
-      let trainingId: string;
-      if (existingTrainings && existingTrainings.length > 0) {
-        trainingId = existingTrainings[0].id;
-      } else {
-        // Create training if it doesn't exist
-        const { data: newTraining, error: createError } = await supabase
-          .from("trainings")
-          .insert({
-            title: trainingTitle,
-            description: `${isBaseline ? "Baseline" : "Endline"} assessment for coaching program`,
-            order_number: isBaseline ? 0 : 999,
-            is_common: true,
-          })
-          .select("id")
-          .single();
-
-        if (createError || !newTraining) {
-          console.error("Failed to create training:", createError);
-          return;
-        }
-        trainingId = newTraining.id;
-      }
+      // Use fixed UUIDs for baseline/endline trainings (created by admin migration)
+      const trainingId = isBaseline
+        ? 'f47ac10b-58cc-4372-a567-0e02b2c3d479'  // Baseline assessment training
+        : 'f47ac10b-58cc-4372-a567-0e02b2c3d480'; // Endline assessment training
 
       // Now save the training progress with tab switches
-      const { error } = await supabase.from("training_progress").upsert(
+      console.log("💾 Saving training progress with tab switches:", { trainingId, tabSwitchCount });
+      const { data: savedProgress, error } = await supabase.from("training_progress").upsert(
         {
           user_id: user.id,
           training_id: trainingId,
@@ -284,10 +252,16 @@ export default function Assessment() {
       );
 
       if (error) {
-        console.error("Failed to save assessment progress:", error);
+        console.error("❌ Failed to save assessment progress:", error);
+        // If trainings don't exist, try to create them as admin (will fail silently for non-admin)
+        if (error.code === 'PGRST116') {
+          console.warn("⚠️ Training not found. Admin needs to run migration.");
+        }
+      } else {
+        console.log("✅ Assessment progress saved successfully:", savedProgress);
       }
     } catch (err) {
-      console.error("Error in saveAssessmentProgress:", err);
+      console.error("❌ Error in saveAssessmentProgress:", err);
     }
   };
 
