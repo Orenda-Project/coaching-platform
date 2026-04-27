@@ -114,3 +114,5 @@ Feature: User Login
     When I click the "Send Reset Link" button
     Then I see an error message "Email address not found"
     And no reset email is sent
+
+test
