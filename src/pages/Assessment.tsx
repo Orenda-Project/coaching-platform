@@ -54,9 +54,7 @@ export default function Assessment() {
 
   const isBaseline = type === "baseline";
   const isEndline = type === "endline";
-  const passThreshold = isBaseline
-    ? BASELINE_PASS_THRESHOLD
-    : ENDLINE_PASS_THRESHOLD;
+  const passThreshold = isEndline ? ENDLINE_PASS_THRESHOLD : 0;
 
   // Auto-save progress every 5 seconds
   useEffect(() => {
