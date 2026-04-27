@@ -5,6 +5,7 @@ const personaConfig = {
   B: { label: "Persona B", className: "persona-badge-b", description: "Proficient" },
   C: { label: "Persona C", className: "persona-badge-c", description: "Intermediate" },
   D: { label: "Persona D", className: "persona-badge-d", description: "Foundational" },
+  E: { label: "Persona E", className: "persona-badge-e", description: "Entry-level" },
 };
 
 interface PersonaBadgeProps {

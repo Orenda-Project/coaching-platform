@@ -50,6 +50,7 @@
     --persona-b: 220 70% 50%;
     --persona-c: 30 90% 55%;
     --persona-d: 0 70% 55%;
+    --persona-e: 200 50% 60%;
 
     /* Success / Warning */
     --success: 142 60% 40%;
@@ -123,6 +124,9 @@
   }
   .persona-badge-d {
     @apply bg-[hsl(var(--persona-d))] text-white;
+  }
+  .persona-badge-e {
+    @apply bg-[hsl(var(--persona-e))] text-white;
   }
 
   .glass-card {

@@ -28,15 +28,14 @@ interface QuestionWithOptions extends Question {
 }
 
 // ─── Persona thresholds ───────────────────────────────────────────────────────
-function assignPersona(pct: number): string | null {
+function assignPersona(pct: number): string {
   if (pct >= 75) return "A";
   if (pct >= 70) return "B";
   if (pct >= 65) return "C";
   if (pct >= 60) return "D";
-  return null; // below 60 — fail
+  return "E"; // below 60 — entry-level, show all modules
 }
 
-const BASELINE_PASS_THRESHOLD = 60;
 const ENDLINE_PASS_THRESHOLD = 70;
 
 export default function Assessment() {
@@ -338,26 +337,8 @@ export default function Assessment() {
     try {
       if (isBaseline) {
         const newAttemptCount = (profile.baseline_attempt_count ?? 0) + 1;
-
-        if (pct < BASELINE_PASS_THRESHOLD) {
-          await supabase
-            .from("profiles")
-            .update({ baseline_attempt_count: newAttemptCount })
-            .eq("id", user.id);
-          // Save failed attempt with tab switches
-          await saveAssessmentProgress(false, pct);
-          localStorage.removeItem(`assessment_${type}_${user?.id}`);
-          await refreshProfile();
-          toast.error(
-            `You scored ${pct}%. You need at least ${BASELINE_PASS_THRESHOLD}% to proceed. Please try again.`,
-          );
-          setAnswers({});
-          setCurrentIndex(0);
-          setSubmitting(false);
-          return;
-        }
-
         const persona = assignPersona(pct);
+
         const { error: updateError } = await supabase
           .from("profiles")
           .update({
