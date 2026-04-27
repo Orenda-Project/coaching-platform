@@ -64,6 +64,19 @@ export function BaselineResultsCard({
         "Observation skills",
         "Data interpretation"
       ]
+    },
+    E: {
+      strengths: [
+        "Openness to learning",
+        "Commitment to growth",
+        "Team readiness"
+      ],
+      growth: [
+        "Coaching fundamentals",
+        "Observation and listening",
+        "Data-driven decisions",
+        "Structured coaching cycles"
+      ]
     }
   };
 
@@ -108,9 +121,15 @@ export function BaselineResultsCard({
 
         <div className="bg-muted p-3 rounded border-l-4 border-primary">
           <p className="text-sm font-semibold text-foreground mb-1">Next Step</p>
-          <p className="text-sm text-muted-foreground">
-            Complete {weakModules.length > 0 ? weakModules.length : "recommended"} personalized modules to develop expertise across all coaching areas.
-          </p>
+          {persona === "E" ? (
+            <p className="text-sm text-muted-foreground">
+              You'll go through all training modules to build strong foundations. Complete each module at your own pace to develop coaching expertise.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Complete {weakModules.length > 0 ? weakModules.length : "recommended"} personalized modules to develop expertise across all coaching areas.
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

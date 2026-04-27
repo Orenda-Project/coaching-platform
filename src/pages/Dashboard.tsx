@@ -93,11 +93,15 @@ export default function Dashboard() {
     const allModules: Module[] = (modulesData as Module[]) || [];
     const allTrainings = trainingsData || [];
 
-    // Option A: Show Module 1 (mandatory) + modules matching weak_modules from baseline
-    const weakModules = profile.weak_modules || [];
-    const assignedModules = allModules.filter(
-      (m) => m.is_mandatory || weakModules.some((wm) => m.title.startsWith(wm)),
-    );
+    // Persona E: Show all modules
+    // Other personas: Show Module 1 (mandatory) + modules matching weak_modules from baseline
+    let assignedModules = allModules;
+    if (profile.persona !== "E") {
+      const weakModules = profile.weak_modules || [];
+      assignedModules = allModules.filter(
+        (m) => m.is_mandatory || weakModules.some((wm) => m.title.startsWith(wm)),
+      );
+    }
     const assignedModuleIds = new Set(assignedModules.map((m) => m.id));
     const assignedTrainings = allTrainings.filter(
       (t) => t.module_id && assignedModuleIds.has(t.module_id),
