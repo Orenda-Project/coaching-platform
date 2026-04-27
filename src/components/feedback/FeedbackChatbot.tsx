@@ -16,6 +16,20 @@ import { FeedbackBubble } from './FeedbackBubble';
 type Phase = 'greet' | 'category' | 'rating' | 'text' | 'submitting' | 'done';
 type Category = 'module' | 'platform' | 'bug' | 'other';
 
+const CATEGORY_OPTIONS: { value: Category; label: string }[] = [
+  { value: 'module',   label: 'This module' },
+  { value: 'platform', label: 'Platform experience' },
+  { value: 'bug',      label: 'Something not working' },
+  { value: 'other',    label: 'Other' },
+];
+
+const CATEGORY_LABEL: Record<Category, string> = {
+  module: 'This module',
+  platform: 'Platform experience',
+  bug: 'Something not working',
+  other: 'Other',
+};
+
 const EXCLUDED_PREFIXES = [
   '/assessment/',
   '/module-quiz/',
@@ -131,7 +145,48 @@ export function FeedbackChatbot() {
                 </div>
               </>
             )}
-            {/* Other phases (category, rating, text, submitting, done) added in later tasks */}
+            {/* Cumulative scrollback once we've left the greet phase */}
+            {phase !== 'greet' && (
+              <>
+                <FeedbackBubble variant="system">
+                  Hi 👋 Want to share feedback about your experience?
+                </FeedbackBubble>
+                <FeedbackBubble variant="user">Yes</FeedbackBubble>
+              </>
+            )}
+
+            {/* Category prompt — visible from category phase onward */}
+            {phase !== 'greet' && (
+              <FeedbackBubble variant="system">
+                What would you like to share feedback about?
+              </FeedbackBubble>
+            )}
+
+            {/* Category options — only on the active category phase */}
+            {phase === 'category' && (
+              <div className="flex flex-col gap-2 mt-2">
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <Button
+                    key={opt.value}
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => {
+                      setCategory(opt.value);
+                      setPhase('rating');
+                    }}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {/* Category echo — once selected, shows as a user bubble */}
+            {category && phase !== 'category' && (
+              <FeedbackBubble variant="user">{CATEGORY_LABEL[category]}</FeedbackBubble>
+            )}
+
+            {/* Rating, text, submitting, done phases added in later tasks */}
           </div>
         </SheetContent>
       </Sheet>
