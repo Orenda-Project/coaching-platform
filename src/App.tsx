@@ -29,6 +29,7 @@ import AdminScenarioOptions from "./pages/admin/AdminScenarioOptions";
 import AdminRegions from "./pages/admin/AdminRegions";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import Profile from "./pages/Profile";
+import { FeedbackChatbot } from '@/components/feedback/FeedbackChatbot';
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <FeedbackChatbot />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
