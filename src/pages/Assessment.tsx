@@ -529,7 +529,7 @@ export default function Assessment() {
                   <GraduationCap className="w-6 h-6 text-primary-foreground" />
                 </div>
                 <h1 className="text-2xl font-display font-bold text-foreground">
-                  CoachCert
+                  RABT
                 </h1>
               </div>
               <CardTitle className="font-display text-xl">

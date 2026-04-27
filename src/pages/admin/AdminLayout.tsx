@@ -42,7 +42,7 @@ export default function AdminLayout() {
             <GraduationCap className="w-4 h-4 text-primary-foreground" />
           </div>
           <div>
-            <p className="font-display font-bold text-sm text-foreground">CoachCert</p>
+            <p className="font-display font-bold text-sm text-foreground">RABT</p>
             <p className="text-xs text-muted-foreground">Admin Panel</p>
           </div>
         </div>
