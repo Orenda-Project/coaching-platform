@@ -44,7 +44,7 @@ export default function CertificatePage() {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Certificate - CoachCert</title>
+        <title>Certificate - RABT</title>
         <style>
           @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=DM+Sans:wght@400;500;600;700&display=swap');
           * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -64,7 +64,7 @@ export default function CertificatePage() {
         <div class="cert">
           <div class="icon">🏆</div>
           <h1>Certificate of Completion</h1>
-          <p class="details">CoachCert Training & Certification Platform</p>
+          <p class="details">RABT Training & Certification Platform</p>
           <h2>This certifies that</h2>
           <div class="name">${profile?.full_name || profile?.phone || "Coach"}</div>
           <p class="details">has successfully completed the Coach Training & Certification Program</p>
@@ -111,7 +111,7 @@ export default function CertificatePage() {
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display font-bold text-lg text-foreground">CoachCert</span>
+            <span className="font-display font-bold text-lg text-foreground">RABT</span>
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="w-4 h-4 mr-1" /> Dashboard
@@ -134,7 +134,7 @@ export default function CertificatePage() {
               <div className="absolute inset-2 border border-secondary pointer-events-none" />
               <Award className="w-16 h-16 text-secondary mx-auto mb-4" />
               <h2 className="text-3xl font-display font-bold text-primary mb-2">Certificate of Completion</h2>
-              <p className="text-sm text-muted-foreground mb-6">CoachCert Training & Certification Platform</p>
+              <p className="text-sm text-muted-foreground mb-6">RABT Training & Certification Platform</p>
               <p className="text-muted-foreground mb-2">This certifies that</p>
               <h3 className="text-2xl font-display font-bold text-foreground mb-1 border-b-2 border-secondary inline-block pb-1 px-4">
                 {profile?.full_name || profile?.phone || "Coach"}

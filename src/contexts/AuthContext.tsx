@@ -73,15 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     if (!error) {
-      // Wait briefly for the DB trigger to create the profile row, then update it
+      // Trigger will create profile with full_name from user_metadata
       await new Promise((r) => setTimeout(r, 500));
-      const { data: { user: newUser } } = await supabase.auth.getUser();
-      if (newUser) {
-        await supabase.from("profiles").update({
-          phone,
-          full_name: fullName || null
-        }).eq("id", newUser.id);
-      }
     }
     return { error };
   };

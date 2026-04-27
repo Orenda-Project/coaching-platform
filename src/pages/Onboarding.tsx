@@ -100,7 +100,7 @@ export default function Onboarding() {
         throw error;
       }
 
-      toast.success("Onboarding complete! Welcome to CoachCert");
+      toast.success("Onboarding complete! Welcome to RABT");
       navigated.current = true;
       await refreshProfile();
       navigate("/dashboard");
@@ -122,7 +122,7 @@ export default function Onboarding() {
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
               <GraduationCap className="w-7 h-7 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-display font-bold text-foreground">CoachCert</h1>
+            <h1 className="text-2xl font-display font-bold text-foreground">RABT</h1>
           </div>
           <h2 className="text-xl font-semibold text-foreground">Complete Your Profile</h2>
           <p className="text-muted-foreground text-sm mt-2">
