@@ -20,7 +20,7 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !phone.trim() || !password.trim()) {
+    if (!fullName.trim() || !email.trim() || !phone.trim() || !password.trim()) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -46,7 +46,7 @@ export default function Signup() {
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
             <GraduationCap className="w-7 h-7 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-display font-bold text-foreground">CoachCert</h1>
+          <h1 className="text-2xl font-display font-bold text-foreground">RABT</h1>
         </div>
         <Card className="glass-card">
           <CardHeader className="text-center">
@@ -56,12 +56,13 @@ export default function Signup() {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName">Full Name *</Label>
                 <Input
                   id="fullName"
                   placeholder="John Doe"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  required
                 />
               </div>
               <div className="space-y-2">
