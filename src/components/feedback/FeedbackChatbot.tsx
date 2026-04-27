@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -186,7 +186,47 @@ export function FeedbackChatbot() {
               <FeedbackBubble variant="user">{CATEGORY_LABEL[category]}</FeedbackBubble>
             )}
 
-            {/* Rating, text, submitting, done phases added in later tasks */}
+            {/* Rating prompt — visible from rating phase onward */}
+            {(phase === 'rating' || phase === 'text' || phase === 'submitting' || phase === 'done') && (
+              <FeedbackBubble variant="system">
+                How would you rate your experience?
+              </FeedbackBubble>
+            )}
+
+            {/* Active 1-5 star picker */}
+            {phase === 'rating' && (
+              <div className="flex gap-1 mt-2 justify-center">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                    onClick={() => {
+                      setRating(n);
+                      setPhase('text');
+                    }}
+                    className="p-1 hover:scale-110 transition-transform"
+                  >
+                    <Star
+                      className={
+                        n <= rating
+                          ? 'h-8 w-8 fill-yellow-400 text-yellow-400'
+                          : 'h-8 w-8 text-muted-foreground'
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Rating echo — once selected, shows as a user bubble */}
+            {rating > 0 && phase !== 'rating' && (
+              <FeedbackBubble variant="user">
+                {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
+              </FeedbackBubble>
+            )}
+
+            {/* Text, submitting, done phases added in later tasks */}
           </div>
         </SheetContent>
       </Sheet>
