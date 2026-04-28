@@ -1,7 +1,8 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { GraduationCap, ClipboardList, HelpCircle, ArrowLeft, Shield, Layers, Database, MapPin, BarChart2, MessageCircle } from "lucide-react";
+import { GraduationCap, ClipboardList, HelpCircle, ArrowLeft, Shield, Layers, Database, MapPin, BarChart2, MessageCircle, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { useState } from "react";
 
 const navItems = [
   { label: "Analytics", icon: BarChart2, path: "/admin/analytics" },
@@ -17,6 +18,7 @@ export default function AdminLayout() {
   const { isAdmin, loading } = useAdminRole();
   const location = useLocation();
   const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -37,9 +39,32 @@ export default function AdminLayout() {
 
   return (
     <div className="h-screen bg-background flex flex-col md:flex-row">
-      {/* Sidebar - Fixed on desktop, hidden on mobile unless scrolled */}
-      <aside className="w-full md:w-64 md:h-screen md:border-r md:border-border md:flex md:flex-col bg-card flex flex-col">
-        <div className="p-4 border-b border-border flex items-center gap-2 flex-shrink-0">
+      {/* Mobile Header */}
+      <div className="md:hidden bg-card border-b border-border p-4 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <GraduationCap className="w-4 h-4 text-primary-foreground" />
+          </div>
+          <div>
+            <p className="font-display font-bold text-sm text-foreground">RABT Admin</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="p-2 hover:bg-accent rounded-lg transition-colors"
+        >
+          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Sidebar - Collapsible on mobile, fixed on desktop */}
+      <aside
+        className={cn(
+          "absolute md:static top-16 left-0 right-0 md:top-0 w-full md:w-64 md:h-screen bg-card border-b md:border-b-0 md:border-r border-border flex flex-col transition-all duration-300",
+          sidebarOpen ? "flex" : "hidden md:flex"
+        )}
+      >
+        <div className="hidden md:flex p-4 border-b border-border items-center gap-2 flex-shrink-0">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <GraduationCap className="w-4 h-4 text-primary-foreground" />
           </div>
@@ -49,20 +74,21 @@ export default function AdminLayout() {
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto md:overflow-y-visible">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
+              onClick={() => setSidebarOpen(false)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap",
+                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors",
                 isActive(item.path)
                   ? "bg-primary text-primary-foreground font-medium"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
-              <item.icon className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline">{item.label}</span>
+              <item.icon className="w-5 h-5 shrink-0" />
+              <span>{item.label}</span>
             </Link>
           ))}
         </nav>
@@ -70,11 +96,11 @@ export default function AdminLayout() {
         <div className="p-3 border-t border-border flex-shrink-0">
           <Link
             to="/dashboard"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors whitespace-nowrap"
+            onClick={() => setSidebarOpen(false)}
+            className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-            <span className="sm:hidden">Back</span>
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Dashboard</span>
           </Link>
         </div>
       </aside>
