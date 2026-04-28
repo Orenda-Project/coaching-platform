@@ -28,7 +28,9 @@ import AdminScenarios from "./pages/admin/AdminScenarios";
 import AdminScenarioOptions from "./pages/admin/AdminScenarioOptions";
 import AdminRegions from "./pages/admin/AdminRegions";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminFeedback from "./pages/admin/AdminFeedback";
 import Profile from "./pages/Profile";
+import { FeedbackChatbot } from '@/components/feedback/FeedbackChatbot';
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,7 @@ const App = () => (
             <Route path="/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
               <Route path="baseline-questions" element={<AdminBaselineQuestions />} />
+              <Route path="feedback" element={<AdminFeedback />} />
               <Route path="modules" element={<AdminModules />} />
               <Route path="modules/:moduleId/units" element={<AdminModuleUnits />} />
               <Route path="units/:unitId/content" element={<AdminUnitContent />} />
@@ -66,6 +69,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <FeedbackChatbot />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
