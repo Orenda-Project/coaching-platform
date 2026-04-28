@@ -5,8 +5,8 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 
 const navItems = [
   { label: "Analytics", icon: BarChart2, path: "/admin/analytics" },
-  { label: "Baseline Questions", icon: ClipboardList, path: "/admin/baseline-questions" },
   { label: "Feedback", icon: MessageCircle, path: "/admin/feedback" },
+  { label: "Baseline Questions", icon: ClipboardList, path: "/admin/baseline-questions" },
   { label: "Modules", icon: Layers, path: "/admin/modules" },
   { label: "Quiz Questions", icon: HelpCircle, path: "/admin/quiz-questions" },
   { label: "Regions", icon: MapPin, path: "/admin/regions" },
