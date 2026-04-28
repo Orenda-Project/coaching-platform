@@ -110,10 +110,12 @@ export default function ModuleQuiz() {
       return;
     }
 
-    // Load options for MCQ questions
-    const mcqIds = allQuestions.filter((q) => q.question_type === "mcq").map((q) => q.id);
-    const { data: optionsData } = mcqIds.length
-      ? await supabase.from("options").select("*").in("question_id", mcqIds)
+    // Load options for MCQ and scenario questions
+    const answerableIds = allQuestions
+      .filter((q) => q.question_type === "mcq" || q.question_type === "scenario")
+      .map((q) => q.id);
+    const { data: optionsData } = answerableIds.length
+      ? await supabase.from("options").select("*").in("question_id", answerableIds)
       : { data: [] };
 
     const questionsWithOptions = allQuestions.map((q) => ({
@@ -143,30 +145,27 @@ export default function ModuleQuiz() {
 
     // Pick 16 MCQs equally across units: base = floor(16/numUnits), distribute remainder
     const TOTAL_MCQ = 16;
-    const TOTAL_OPEN = 4;
+    const TOTAL_SCENARIO = 4;
     const base = Math.floor(TOTAL_MCQ / numUnits);
     let remainder = TOTAL_MCQ % numUnits;
 
     const selectedMCQ: QuestionWithOptions[] = [];
-    const selectedOpen: QuestionWithOptions[] = [];
 
     for (const key of unitKeys) {
       const unitQs = byUnit[key];
       const mcqs = shuffle(unitQs.filter((q) => q.question_type === "mcq"));
-      const openEnded = shuffle(unitQs.filter((q) => q.question_type === "open"));
 
       const pick = base + (remainder > 0 ? 1 : 0);
       if (remainder > 0) remainder--;
       selectedMCQ.push(...mcqs.slice(0, pick));
-
-      if (openEnded.length > 0) selectedOpen.push(openEnded[0]);
     }
 
-    // Pick 4 open-ended from the pool (already 1 per unit, shuffle and take 4)
-    const finalOpen = shuffle(selectedOpen).slice(0, TOTAL_OPEN);
+    // Pick 4 scenario questions randomly from all available scenarios
+    const allScenarios = questionsWithOptions.filter((q) => q.question_type === "scenario");
+    const selectedScenarios = shuffle(allScenarios).slice(0, TOTAL_SCENARIO);
 
     // Combine and shuffle
-    const finalQuestions = shuffle([...selectedMCQ, ...finalOpen]);
+    const finalQuestions = shuffle([...selectedMCQ, ...selectedScenarios]);
 
     setQuestions(finalQuestions);
     setLoading(false);
@@ -217,24 +216,21 @@ export default function ModuleQuiz() {
 
     setSubmitting(true);
 
-    const mcqQuestions = questions.filter((q) => q.question_type === "mcq");
+    const scorableQuestions = questions.filter((q) => q.question_type === "mcq" || q.question_type === "scenario");
     let correctCount = 0;
-    for (const q of mcqQuestions) {
+    for (const q of scorableQuestions) {
       const correct = q.options.find((o) => o.is_correct);
       if (correct && correct.id === answers[q.id]) correctCount++;
     }
 
-    // Open-ended questions: full credit for answered (manual grading not implemented)
-    const openCount = questions.filter((q) => q.question_type === "open").length;
-
-    // Score based on MCQs only for pass/fail (open-ended graded separately)
-    const scorePct = mcqQuestions.length > 0
-      ? Math.round((correctCount / mcqQuestions.length) * 100)
+    // Score based on MCQ and scenario questions only
+    const scorePct = scorableQuestions.length > 0
+      ? Math.round((correctCount / scorableQuestions.length) * 100)
       : 100;
     const passed = scorePct >= QUIZ_PASS_THRESHOLD;
 
     await saveAttempt(scorePct, passed);
-    setResult({ score: scorePct, passed, correct: correctCount, total: mcqQuestions.length });
+    setResult({ score: scorePct, passed, correct: correctCount, total: scorableQuestions.length });
     setSubmitting(false);
   };
 
@@ -333,14 +329,19 @@ export default function ModuleQuiz() {
             <CardHeader>
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant="outline" className="text-xs shrink-0">
-                  {currentQuestion.question_type === "open" ? "Open-ended" : "MCQ"}
+                  {currentQuestion.question_type === "scenario" ? "Scenario" : currentQuestion.question_type === "open" ? "Open-ended" : "MCQ"}
                 </Badge>
               </div>
               <CardTitle className="text-foreground text-base leading-relaxed">
-                Q{currentIndex + 1}. {currentQuestion.question_text}
+                Q{currentIndex + 1}. {currentQuestion.question_type === "scenario" ? "" : currentQuestion.question_text}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {currentQuestion.question_type === "scenario" && (
+                <div className="bg-muted/50 border border-border rounded-lg p-4 text-sm text-foreground italic whitespace-pre-wrap">
+                  {currentQuestion.question_text}
+                </div>
+              )}
               {currentQuestion.question_type === "open" ? (
                 <div className="space-y-2">
                   <Textarea
@@ -353,23 +354,28 @@ export default function ModuleQuiz() {
                   <p className="text-xs text-muted-foreground">Open-ended response — write in your own words.</p>
                 </div>
               ) : (
-                <RadioGroup
-                  value={answers[currentQuestion.id] || ""}
-                  onValueChange={(val) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))}
-                  className="space-y-3"
-                >
-                  {currentQuestion.options.map((option) => (
-                    <div
-                      key={option.id}
-                      className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:border-primary cursor-pointer transition-colors"
-                    >
-                      <RadioGroupItem value={option.id} id={option.id} />
-                      <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
-                        {option.option_text}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
+                <div>
+                  {currentQuestion.question_type !== "scenario" && (
+                    <p className="text-sm font-medium text-foreground mb-3">{currentQuestion.question_text}</p>
+                  )}
+                  <RadioGroup
+                    value={answers[currentQuestion.id] || ""}
+                    onValueChange={(val) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: val }))}
+                    className="space-y-3"
+                  >
+                    {currentQuestion.options.map((option) => (
+                      <div
+                        key={option.id}
+                        className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:border-primary cursor-pointer transition-colors"
+                      >
+                        <RadioGroupItem value={option.id} id={option.id} />
+                        <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
+                          {option.option_text}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
               )}
             </CardContent>
           </Card>
