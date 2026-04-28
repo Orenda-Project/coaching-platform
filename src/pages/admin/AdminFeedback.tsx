@@ -22,6 +22,12 @@ interface FeedbackRecord {
   context_page: string;
   persona?: string;
   created_at: string;
+  profiles: {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
 }
 
 interface KPIData {
@@ -31,6 +37,11 @@ interface KPIData {
 }
 
 const ITEMS_PER_PAGE = 20;
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || '',
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''
+);
 
 export default function AdminFeedback() {
   const [kpis, setKpis] = useState<KPIData | null>(null);
@@ -45,11 +56,7 @@ export default function AdminFeedback() {
     startDate: '',
     endDate: '',
   });
-
-  const supabase = createClient(
-    import.meta.env.VITE_SUPABASE_URL || '',
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''
-  );
+  const [selectedFeedback, setSelectedFeedback] = useState<FeedbackRecord | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -108,7 +115,38 @@ export default function AdminFeedback() {
 
       if (error) throw error;
 
-      setFeedback(paginatedFeedback || []);
+      // Fetch profiles for each feedback entry
+      if (paginatedFeedback && paginatedFeedback.length > 0) {
+        const userIds = paginatedFeedback.map((f) => f.user_id);
+        const { data: profiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone')
+          .in('id', userIds);
+
+        if (profileError) throw profileError;
+
+        const profileMap = new Map(
+          (profiles || []).map((p) => [
+            p.id,
+            {
+              id: p.id,
+              full_name: p.full_name,
+              phone: p.phone,
+              email: null,
+            },
+          ])
+        );
+
+        const feedbackWithProfiles = paginatedFeedback.map((f) => ({
+          ...f,
+          profiles: profileMap.get(f.user_id) || null,
+        }));
+
+        setFeedback(feedbackWithProfiles);
+      } else {
+        setFeedback([]);
+      }
+
       setTotalCount(count || 0);
     } catch (err) {
       console.error('Error fetching feedback:', err);
@@ -293,50 +331,69 @@ export default function AdminFeedback() {
                     </tr>
                   </thead>
                   <tbody>
-                    {feedback.map((item) => (
-                      <tr key={item.id} className="border-b border-border hover:bg-accent/50">
-                        <td className="py-3 px-4">
-                          <div className="text-sm font-medium text-muted-foreground">
-                            Coach
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {item.user_id.slice(0, 8)}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="inline-block px-2 py-1 rounded bg-accent text-accent-foreground text-xs font-medium capitalize">
-                            {item.category}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="font-medium">{'★'.repeat(item.rating)}{'☆'.repeat(5 - item.rating)}</span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="text-xs space-y-1">
-                            {item.positive_feedback && (
-                              <div>
-                                <span className="font-medium text-green-600">Positive:</span>{' '}
-                                {item.positive_feedback.slice(0, 50)}
-                                {item.positive_feedback.length > 50 ? '...' : ''}
+                    {feedback.map((item) => {
+                      const displayName = item.profiles?.full_name || item.profiles?.phone || 'Unknown';
+                      const displaySecondary = item.profiles?.full_name && item.profiles?.phone
+                        ? item.profiles.phone
+                        : null;
+
+                      return (
+                        <tr key={item.id} className="border-b border-border hover:bg-accent/50">
+                          <td className="py-3 px-4">
+                            <div className="text-sm font-medium text-foreground">
+                              {displayName}
+                            </div>
+                            {displaySecondary && (
+                              <div className="text-xs text-muted-foreground">
+                                {displaySecondary}
                               </div>
                             )}
-                            {item.improvement_feedback && (
-                              <div>
-                                <span className="font-medium text-amber-600">Improvement:</span>{' '}
-                                {item.improvement_feedback.slice(0, 50)}
-                                {item.improvement_feedback.length > 50 ? '...' : ''}
-                              </div>
-                            )}
-                            {!item.positive_feedback && !item.improvement_feedback && (
-                              <span className="text-muted-foreground">(No text feedback)</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-xs text-muted-foreground">
-                          {new Date(item.created_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="inline-block px-2 py-1 rounded bg-accent text-accent-foreground text-xs font-medium capitalize">
+                              {item.category}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-medium">{'★'.repeat(item.rating)}{'☆'.repeat(5 - item.rating)}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="text-xs space-y-1">
+                              {item.positive_feedback && (
+                                <div>
+                                  <span className="font-medium text-green-600">Positive:</span>{' '}
+                                  {item.positive_feedback.slice(0, 50)}
+                                  {item.positive_feedback.length > 50 ? '...' : ''}
+                                </div>
+                              )}
+                              {item.improvement_feedback && (
+                                <div>
+                                  <span className="font-medium text-amber-600">Improvement:</span>{' '}
+                                  {item.improvement_feedback.slice(0, 50)}
+                                  {item.improvement_feedback.length > 50 ? '...' : ''}
+                                </div>
+                              )}
+                              {!item.positive_feedback && !item.improvement_feedback && (
+                                <span className="text-muted-foreground">(No text feedback)</span>
+                              )}
+                              {(item.positive_feedback || item.improvement_feedback) && (
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="text-xs h-auto p-0 mt-1"
+                                  onClick={() => setSelectedFeedback(item)}
+                                >
+                                  View more
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-xs text-muted-foreground">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -372,6 +429,60 @@ export default function AdminFeedback() {
           )}
         </CardContent>
       </Card>
+
+      {/* Feedback Detail Modal */}
+      {selectedFeedback && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle>Feedback Details</CardTitle>
+                  <CardDescription>
+                    {selectedFeedback.profiles?.full_name || 'Unknown'} • {new Date(selectedFeedback.created_at).toLocaleDateString()}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedFeedback(null)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <span className="inline-block px-2 py-1 rounded bg-accent text-accent-foreground text-xs font-medium capitalize mb-2">
+                  {selectedFeedback.category}
+                </span>
+                <div className="text-sm font-medium">
+                  Rating: {'★'.repeat(selectedFeedback.rating)}{'☆'.repeat(5 - selectedFeedback.rating)}
+                </div>
+              </div>
+
+              {selectedFeedback.positive_feedback && (
+                <div>
+                  <h4 className="font-medium text-green-600 text-sm mb-1">What worked well:</h4>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{selectedFeedback.positive_feedback}</p>
+                </div>
+              )}
+
+              {selectedFeedback.improvement_feedback && (
+                <div>
+                  <h4 className="font-medium text-amber-600 text-sm mb-1">What could be improved:</h4>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{selectedFeedback.improvement_feedback}</p>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-border text-xs text-muted-foreground space-y-1">
+                <div><strong>Page:</strong> {selectedFeedback.context_page}</div>
+                <div><strong>Persona:</strong> {selectedFeedback.persona || 'N/A'}</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
