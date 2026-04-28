@@ -22,10 +22,6 @@ interface FeedbackRecord {
   context_page: string;
   persona?: string;
   created_at: string;
-  profiles?: {
-    full_name?: string;
-    email?: string;
-  };
 }
 
 interface KPIData {
@@ -84,11 +80,11 @@ export default function AdminFeedback() {
         lowRatingCount,
       });
 
-      // Fetch paginated feedback with user profiles and filters
+      // Fetch paginated feedback and filters
       const offset = (page - 1) * ITEMS_PER_PAGE;
       let query = supabase
         .from('feedback')
-        .select('*, profiles(full_name, email)', { count: 'exact' });
+        .select('*', { count: 'exact' });
 
       if (filters.category) {
         query = query.eq('category', filters.category);
@@ -185,12 +181,12 @@ export default function AdminFeedback() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <Select value={filters.category} onValueChange={(val) => setFilters({ ...filters, category: val })}>
+            <Select value={filters.category || 'all'} onValueChange={(val) => setFilters({ ...filters, category: val === 'all' ? '' : val })}>
               <SelectTrigger>
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All categories</SelectItem>
+                <SelectItem value="all">All categories</SelectItem>
                 <SelectItem value="module">Module</SelectItem>
                 <SelectItem value="platform">Platform</SelectItem>
                 <SelectItem value="bug">Bug</SelectItem>
@@ -198,12 +194,12 @@ export default function AdminFeedback() {
               </SelectContent>
             </Select>
 
-            <Select value={filters.rating} onValueChange={(val) => setFilters({ ...filters, rating: val })}>
+            <Select value={filters.rating || 'all'} onValueChange={(val) => setFilters({ ...filters, rating: val === 'all' ? '' : val })}>
               <SelectTrigger>
                 <SelectValue placeholder="Rating" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All ratings</SelectItem>
+                <SelectItem value="all">All ratings</SelectItem>
                 <SelectItem value="1">1 star</SelectItem>
                 <SelectItem value="2">2 stars</SelectItem>
                 <SelectItem value="3">3 stars</SelectItem>
@@ -212,12 +208,12 @@ export default function AdminFeedback() {
               </SelectContent>
             </Select>
 
-            <Select value={filters.persona} onValueChange={(val) => setFilters({ ...filters, persona: val })}>
+            <Select value={filters.persona || 'all'} onValueChange={(val) => setFilters({ ...filters, persona: val === 'all' ? '' : val })}>
               <SelectTrigger>
                 <SelectValue placeholder="Persona" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All personas</SelectItem>
+                <SelectItem value="all">All personas</SelectItem>
                 <SelectItem value="A">A</SelectItem>
                 <SelectItem value="B">B</SelectItem>
                 <SelectItem value="C">C</SelectItem>
@@ -300,11 +296,11 @@ export default function AdminFeedback() {
                     {feedback.map((item) => (
                       <tr key={item.id} className="border-b border-border hover:bg-accent/50">
                         <td className="py-3 px-4">
-                          <div className="text-sm font-medium">
-                            {item.profiles?.full_name || 'Unknown'}
+                          <div className="text-sm font-medium text-muted-foreground">
+                            Coach
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {item.profiles?.email || item.user_id.slice(0, 8)}
+                            {item.user_id.slice(0, 8)}
                           </div>
                         </td>
                         <td className="py-3 px-4">
