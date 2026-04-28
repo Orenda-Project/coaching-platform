@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { createClient } from '@supabase/supabase-js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface FeedbackRecord {
   id: string;
@@ -35,6 +42,13 @@ export default function AdminFeedback() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [filters, setFilters] = useState({
+    category: '',
+    rating: '',
+    persona: '',
+    startDate: '',
+    endDate: '',
+  });
 
   const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL || '',
@@ -42,8 +56,12 @@ export default function AdminFeedback() {
   );
 
   useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
+  useEffect(() => {
     fetchData();
-  }, [page]);
+  }, [page, filters]);
 
   const fetchData = async () => {
     try {
@@ -53,10 +71,12 @@ export default function AdminFeedback() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: allFeedback, error: allError } = await supabase
+      let kpiQuery = supabase
         .from('feedback')
         .select('rating', { count: 'exact' })
         .gte('created_at', thirtyDaysAgo.toISOString());
+
+      const { data: allFeedback, error: allError } = await kpiQuery;
 
       if (allError) throw allError;
 
@@ -74,11 +94,29 @@ export default function AdminFeedback() {
         lowRatingCount,
       });
 
-      // Fetch paginated feedback with user profiles
+      // Fetch paginated feedback with user profiles and filters
       const offset = (page - 1) * ITEMS_PER_PAGE;
-      const { data: paginatedFeedback, count, error } = await supabase
+      let query = supabase
         .from('feedback')
-        .select('*, profiles(full_name, email)', { count: 'exact' })
+        .select('*, profiles(full_name, email)', { count: 'exact' });
+
+      if (filters.category) {
+        query = query.eq('category', filters.category);
+      }
+      if (filters.rating) {
+        query = query.eq('rating', parseInt(filters.rating));
+      }
+      if (filters.persona) {
+        query = query.eq('persona', filters.persona);
+      }
+      if (filters.startDate) {
+        query = query.gte('created_at', new Date(filters.startDate).toISOString());
+      }
+      if (filters.endDate) {
+        query = query.lte('created_at', new Date(filters.endDate).toISOString());
+      }
+
+      const { data: paginatedFeedback, count, error } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + ITEMS_PER_PAGE - 1);
 
@@ -141,6 +179,86 @@ export default function AdminFeedback() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Filters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <Select value={filters.category} onValueChange={(val) => setFilters({ ...filters, category: val })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All categories</SelectItem>
+                <SelectItem value="module">Module</SelectItem>
+                <SelectItem value="platform">Platform</SelectItem>
+                <SelectItem value="bug">Bug</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filters.rating} onValueChange={(val) => setFilters({ ...filters, rating: val })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Rating" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All ratings</SelectItem>
+                <SelectItem value="1">1 star</SelectItem>
+                <SelectItem value="2">2 stars</SelectItem>
+                <SelectItem value="3">3 stars</SelectItem>
+                <SelectItem value="4">4 stars</SelectItem>
+                <SelectItem value="5">5 stars</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filters.persona} onValueChange={(val) => setFilters({ ...filters, persona: val })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Persona" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All personas</SelectItem>
+                <SelectItem value="A">A</SelectItem>
+                <SelectItem value="B">B</SelectItem>
+                <SelectItem value="C">C</SelectItem>
+                <SelectItem value="D">D</SelectItem>
+                <SelectItem value="E">E</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+              className="px-3 py-2 border border-input rounded-md text-sm bg-background"
+              placeholder="Start date"
+            />
+
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+              className="px-3 py-2 border border-input rounded-md text-sm bg-background"
+              placeholder="End date"
+            />
+          </div>
+
+          {(filters.category || filters.rating || filters.persona || filters.startDate || filters.endDate) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setFilters({ category: '', rating: '', persona: '', startDate: '', endDate: '' })
+              }
+              className="mt-4"
+            >
+              <X className="w-4 h-4 mr-2" /> Clear filters
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Feedback Table */}
       <Card>
