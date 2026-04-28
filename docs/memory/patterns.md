@@ -1,6 +1,6 @@
 # Dev Patterns & Gotchas
 
-Last updated: 2026-04-23
+Last updated: 2026-04-28
 
 ## Supabase
 - Always destructure `{ data, error }` — never assume success without checking error
@@ -26,3 +26,11 @@ Last updated: 2026-04-23
 - Baseline assessment scored 0–100, persona thresholds: A≥75%, B 70–74%, C 65–69%, D 60–64%, <60% = fail
 - Content gates: video must reach 90%, slides must wait 30s, both must complete before quiz unlocks
 - Quiz anti-cheat: fullscreen + tab-switch detection required
+
+## Feedback Chatbot Patterns (2026-04-28)
+- **Native buttons for icon/interactive toggles:** Use native `<button>` (not `<Button>` component) for star ratings and simple toggles. Icon-only buttons with custom styling prefer vanilla HTML. `<Button>` adds extra spacing/padding that breaks compact UI.
+- **A11y: Star rating keyboard nav gap:** Native button Star ratings lack keyboard focus indicator (FIX: add focus:outline-2 focus:outline-offset). Tab navigation works but visual feedback minimal.
+- **Phase-machine string unions:** Use `phase: 'greet' | 'category' | 'rating' | 'text' | 'submitting' | 'done'` over enums for tight state control in UI conditionals (auto-narrowing reduces explicit guards).
+- **Cooldown self-cleanup via useEffect:** Timer inside useEffect must check expiry on every tick AND clear interval before nulling state (prevents 1Hz re-render stalls). Sync `setNow` together with `setCooldownUntil` to avoid first-tick flicker.
+- **Cumulative scrollback pattern:** Hide greet phase actions once user advances, but re-render greet greeting + "Yes" echo on later phases to preserve conversation thread (role="log" aria-live="polite" for a11y).
+- **Fire-and-forget analytics vs. awaited submission:** Analytics (useAnalytics) ignores errors; user submissions (useFeedback) await and handle toast errors. Different contract, same pattern signature.
