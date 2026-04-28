@@ -99,7 +99,8 @@ export default function Dashboard() {
     if (profile.persona !== "E") {
       const weakModules = profile.weak_modules || [];
       assignedModules = allModules.filter(
-        (m) => m.is_mandatory || weakModules.some((wm) => m.title.startsWith(wm)),
+        (m) =>
+          m.is_mandatory || weakModules.some((wm) => m.title.startsWith(wm)),
       );
     }
     const assignedModuleIds = new Set(assignedModules.map((m) => m.id));
@@ -219,7 +220,7 @@ export default function Dashboard() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate("/admin/modules")}
+                onClick={() => navigate("/admin/analytics")}
               >
                 <Shield className="w-4 h-4 sm:mr-1" />
                 <span className="hidden sm:inline">Admin</span>
