@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { MessageCircle, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,8 +9,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useFeedback } from '@/hooks/useFeedback';
 import { FeedbackBubble } from './FeedbackBubble';
 
 type Phase = 'greet' | 'category' | 'rating' | 'text' | 'submitting' | 'done';
@@ -47,6 +50,11 @@ export function FeedbackChatbot() {
   const { user } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const { submit } = useFeedback();
+  const params = useParams();
+
+  const trainingIdFromRoute =
+    /^\/training\/[^/]+(\/.*)?$/.test(location.pathname) ? params.id ?? null : null;
 
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>('greet');
@@ -58,6 +66,29 @@ export function FeedbackChatbot() {
   const [rating, setRating] = useState(0);
   const [positive, setPositive] = useState('');
   const [improvement, setImprovement] = useState('');
+
+  const handleSubmit = async () => {
+    if (phase === 'submitting') return;
+    if (!category || rating === 0) {
+      toast.error('Please pick a category and rating');
+      return;
+    }
+    setPhase('submitting');
+    const result = await submit({
+      category,
+      rating,
+      positive_feedback: positive,
+      improvement_feedback: improvement,
+      context_page: location.pathname,
+      training_id: trainingIdFromRoute,
+    });
+    if (result.ok) {
+      setPhase('done');
+    } else {
+      toast.error("Couldn't send feedback. Try again.");
+      setPhase('text');
+    }
+  };
 
   // Tick the cooldown countdown once per second when active; self-cleans on expiry
   useEffect(() => {
@@ -226,8 +257,81 @@ export function FeedbackChatbot() {
               </FeedbackBubble>
             )}
 
-            {/* Text, submitting, done phases added in later tasks */}
+            {/* Text phase prompts + cumulative echoes */}
+            {(phase === 'text' || phase === 'submitting' || phase === 'done') && (
+              <>
+                <FeedbackBubble variant="system">
+                  What worked well? <span className="opacity-60">(optional)</span>
+                </FeedbackBubble>
+                {phase === 'done' && positive.trim() && (
+                  <FeedbackBubble variant="user">{positive}</FeedbackBubble>
+                )}
+                {(phase === 'text' || phase === 'submitting') && (
+                  <Textarea
+                    value={positive}
+                    onChange={(e) => setPositive(e.target.value)}
+                    maxLength={500}
+                    placeholder="Share what helped..."
+                    className="mt-2"
+                    disabled={phase === 'submitting'}
+                  />
+                )}
+
+                <FeedbackBubble variant="system">
+                  What could we improve? <span className="opacity-60">(optional)</span>
+                </FeedbackBubble>
+                {phase === 'done' && improvement.trim() && (
+                  <FeedbackBubble variant="user">{improvement}</FeedbackBubble>
+                )}
+                {(phase === 'text' || phase === 'submitting') && (
+                  <Textarea
+                    value={improvement}
+                    onChange={(e) => setImprovement(e.target.value)}
+                    maxLength={500}
+                    placeholder="Share what could be better..."
+                    className="mt-2"
+                    disabled={phase === 'submitting'}
+                  />
+                )}
+              </>
+            )}
+
+            {/* Done confirmation */}
+            {phase === 'done' && (
+              <FeedbackBubble variant="system">
+                Thanks! Your feedback helps us improve 🙌
+              </FeedbackBubble>
+            )}
           </div>
+
+          {(phase === 'rating' || phase === 'text' || phase === 'submitting') && (
+            <div className="border-t pt-3">
+              <Button
+                onClick={handleSubmit}
+                disabled={rating === 0 || phase === 'submitting'}
+                aria-busy={phase === 'submitting'}
+                className="w-full"
+              >
+                {phase === 'submitting' ? 'Sending...' : 'Submit feedback'}
+              </Button>
+            </div>
+          )}
+
+          {phase === 'done' && (
+            <div className="border-t pt-3">
+              <Button
+                onClick={() => {
+                  setOpen(false);
+                  const until = Date.now() + 60_000;
+                  setCooldownUntil(until);
+                  setNow(Date.now());
+                }}
+                className="w-full"
+              >
+                Close
+              </Button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </>
