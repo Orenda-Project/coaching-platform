@@ -55,8 +55,10 @@ const App = () => (
             <Route path="/module-quiz/:moduleId" element={<ProtectedRoute><ModuleQuiz /></ProtectedRoute>} />
             <Route path="/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-              <Route path="baseline-questions" element={<AdminBaselineQuestions />} />
+              <Route index element={<AdminAnalytics />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
               <Route path="feedback" element={<AdminFeedback />} />
+              <Route path="baseline-questions" element={<AdminBaselineQuestions />} />
               <Route path="modules" element={<AdminModules />} />
               <Route path="modules/:moduleId/units" element={<AdminModuleUnits />} />
               <Route path="units/:unitId/content" element={<AdminUnitContent />} />
@@ -64,7 +66,6 @@ const App = () => (
               <Route path="scenarios/:scenarioId/options" element={<AdminScenarioOptions />} />
               <Route path="quiz-questions" element={<AdminQuizQuestions />} />
               <Route path="regions" element={<AdminRegions />} />
-              <Route path="analytics" element={<AdminAnalytics />} />
               <Route path="seed" element={<AdminSeed />} />
             </Route>
             <Route path="*" element={<NotFound />} />
