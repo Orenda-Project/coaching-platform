@@ -236,7 +236,7 @@ export function FeedbackChatbot() {
                       setRating(n);
                       setPhase('text');
                     }}
-                    className="p-1 hover:scale-110 transition-transform"
+                    className="p-1 hover:scale-110 transition-transform focus:outline-2 focus:outline-offset-1 focus:outline-primary rounded"
                   >
                     <Star
                       className={

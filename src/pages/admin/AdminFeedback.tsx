@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -55,15 +55,7 @@ export default function AdminFeedback() {
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''
   );
 
-  useEffect(() => {
-    setPage(1);
-  }, [filters]);
-
-  useEffect(() => {
-    fetchData();
-  }, [page, filters]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -71,12 +63,10 @@ export default function AdminFeedback() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      let kpiQuery = supabase
+      const { data: allFeedback, error: allError } = await supabase
         .from('feedback')
         .select('rating', { count: 'exact' })
         .gte('created_at', thirtyDaysAgo.toISOString());
-
-      const { data: allFeedback, error: allError } = await kpiQuery;
 
       if (allError) throw allError;
 
@@ -130,7 +120,15 @@ export default function AdminFeedback() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase, page, filters]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
+  useEffect(() => {
+    fetchData();
+  }, [page, filters, fetchData]);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
