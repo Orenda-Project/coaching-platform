@@ -69,6 +69,15 @@ SELECT id, question_id, option_text, is_correct, created_at
 FROM public.backup_module1_options_20260428;
 
 -- -----------------------------------------------------------------------------
+-- Step 3.5: Constraint is intentionally left as ('mcq','open','scenario').
+--   The forward migration widened it; we don't narrow it back, because:
+--     1) The backup may itself contain scenario rows that need to fit.
+--     2) Other parts of the schema (admin pages, types) already expect 'scenario'.
+--   If you truly need to restore the original narrower constraint, do it manually
+--   AFTER confirming there are no scenario rows in public.questions.
+-- -----------------------------------------------------------------------------
+
+-- -----------------------------------------------------------------------------
 -- Step 4: Verify restoration matches backup row counts
 -- -----------------------------------------------------------------------------
 DO $$

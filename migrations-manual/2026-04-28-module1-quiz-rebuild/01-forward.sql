@@ -54,6 +54,18 @@ BEGIN
 END $$;
 
 -- -----------------------------------------------------------------------------
+-- Step 0.5: Ensure questions.question_type CHECK allows 'scenario'.
+--   Older environments (e.g. staging) may have only ('mcq','open').
+--   Drop and recreate the constraint to include 'scenario'.
+-- -----------------------------------------------------------------------------
+ALTER TABLE public.questions
+  DROP CONSTRAINT IF EXISTS questions_question_type_check;
+
+ALTER TABLE public.questions
+  ADD CONSTRAINT questions_question_type_check
+  CHECK (question_type IN ('mcq', 'open', 'scenario'));
+
+-- -----------------------------------------------------------------------------
 -- Step 1: Create backup tables (snapshot existing state)
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS public.backup_module1_questions_20260428;
@@ -73,6 +85,11 @@ FROM public.options o
 WHERE o.question_id IN (
   SELECT id FROM public.backup_module1_questions_20260428
 );
+
+-- Hide backup tables from the PostgREST API so they aren't exposed to clients.
+-- Postgres-owner / service_role can still SELECT for rollback.
+REVOKE ALL ON public.backup_module1_questions_20260428 FROM anon, authenticated;
+REVOKE ALL ON public.backup_module1_options_20260428   FROM anon, authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Step 2: Delete all existing Module 1 quiz questions
