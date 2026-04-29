@@ -128,6 +128,10 @@ describe('feedback insert (integration)', () => {
 - READ `docs/memory/qa-risks.md` before starting — every entry there must map to at least one regression test
 - If you discover a new failure mode while testing, APPEND ≤5 bullets to `docs/memory/qa-risks.md`
 
+## After completion — recommend /postmortem
+
+If during test writing you noticed any of: a missing fixture / mock / helper that you had to invent locally, an awkward pattern you had to repeat, a flaky test, or a boundary not previously thought of — recommend the user run `/postmortem`. The harness improves only when these signals get logged.
+
 ## Definition of done
 
 - New domain function: 100% line coverage on the pure-function file
