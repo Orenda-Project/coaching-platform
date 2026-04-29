@@ -1,0 +1,47 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+      - staging
+  push:
+    branches:
+      - staging
+
+# This workflow is the PR quality gate. It runs lint + typecheck + unit tests
+# on every PR. It is intentionally separate from `deploy.yml` so that CI changes
+# can be made without affecting the deploy path.
+#
+# Integration tests (`npm run test:integration`) are NOT run here yet —
+# they require local Supabase. Once the supabase CLI is wired into CI, add a
+# second job that runs them.
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck (non-blocking — pre-existing errors in legacy files; ratchet to blocking once cleaned)
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: Unit + hook tests
+        run: npm run test
+
+      - name: Coverage report
+        run: npm run test:coverage -- --reporter=text-summary || true
+        # `|| true` while coverage thresholds are not yet enforced.
+        # Once the floor is set in vitest.config.ts, drop the `|| true`.

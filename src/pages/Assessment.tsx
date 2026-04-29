@@ -19,6 +19,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
+import { assignPersona, ENDLINE_PASS_PCT as ENDLINE_PASS_THRESHOLD } from "@/domain";
 
 type Question = Tables<"questions">;
 type Option = Tables<"options">;
@@ -26,17 +27,6 @@ type Option = Tables<"options">;
 interface QuestionWithOptions extends Question {
   options: Option[];
 }
-
-// ─── Persona thresholds ───────────────────────────────────────────────────────
-function assignPersona(pct: number): string {
-  if (pct >= 75) return "A";
-  if (pct >= 70) return "B";
-  if (pct >= 65) return "C";
-  if (pct >= 60) return "D";
-  return "E"; // below 60 — entry-level, show all modules
-}
-
-const ENDLINE_PASS_THRESHOLD = 70;
 
 export default function Assessment() {
   const { type } = useParams<{ type: string }>();
