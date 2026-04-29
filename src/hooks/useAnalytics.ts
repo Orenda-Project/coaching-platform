@@ -29,7 +29,9 @@ export function useAnalytics() {
     ({ event_type, scenario_id, unit_id, metadata }: TrackEventParams) => {
       if (!user) return;
 
-      // Fire-and-forget: do not await or surface errors to caller
+      // Fire-and-forget: do not await or surface errors to caller.
+      // `as never` bypasses the typed Insert overload until types.ts is
+      // regenerated to include the analytics_events row shape.
       supabase
         .from("analytics_events")
         .insert({
@@ -38,7 +40,7 @@ export function useAnalytics() {
           scenario_id: scenario_id ?? null,
           unit_id: unit_id ?? null,
           metadata: metadata ?? {},
-        } as Record<string, unknown>) // Use type assertion for new table until full sync
+        } as never)
         .then(({ error }) => {
           if (error) {
             console.warn("[analytics]", error.message);

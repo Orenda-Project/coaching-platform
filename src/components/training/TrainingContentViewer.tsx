@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, CheckCircle2, Layers, GitBranch } from "lucide-react";
+import { BookOpen, CheckCircle2, FileText, Layers, GitBranch } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import SlidesPlayer, { Slide } from "./SlidesPlayer";
 import ScenarioPlayer, { ScenarioStep } from "./ScenarioPlayer";
