@@ -38,7 +38,11 @@ export function useFeedback() {
       user_agent: (typeof navigator !== 'undefined' ? navigator.userAgent : '').slice(0, 500),
     };
 
-    const { error } = await supabase.from('feedback').insert(payload as Record<string, unknown>);
+    // The `feedback` table isn't yet in the generated types.ts, so the
+    // typed `from` overload rejects the literal. Runtime is correct —
+    // matches migration `20260506000000_feedback_chatbot.sql`.
+    // @ts-expect-error feedback table not yet present in generated types
+    const { error } = await supabase.from('feedback').insert(payload);
 
     if (error) {
       console.error('[feedback] insert failed', error);

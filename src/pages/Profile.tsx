@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PersonaBadge } from "@/components/PersonaBadge";
 import { ArrowLeft, User, Mail, Phone, School, BookOpen, Trophy, Edit2, Save, X, GraduationCap, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 interface Qualification {
   degree_type: string;
@@ -91,8 +92,9 @@ export default function Profile() {
           phone: form.phone,
           school_id: form.school_id,
           region: form.region,
-          qualifications,
-          experiences,
+          // See Onboarding.tsx — local interfaces lack a Json index signature.
+          qualifications: qualifications as unknown as Json,
+          experiences: experiences as unknown as Json,
         })
         .eq("id", user.id);
 

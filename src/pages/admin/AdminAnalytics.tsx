@@ -496,7 +496,9 @@ export default function AdminAnalytics() {
                     {/* Flag */}
                     <td className="px-3 py-2 text-center">
                       {c.flagged || c.total_tab_switches >= 3 ? (
-                        <AlertTriangle className="w-4 h-4 text-red-500 mx-auto" title="Flagged: Tab switches ≥ 3" />
+                        <span title="Flagged: Tab switches ≥ 3" className="inline-flex">
+                          <AlertTriangle className="w-4 h-4 text-red-500 mx-auto" aria-label="Flagged: Tab switches ≥ 3" />
+                        </span>
                       ) : (
                         <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto" />
                       )}

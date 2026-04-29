@@ -104,7 +104,7 @@ export default function ScenarioFlow() {
           ) || [],
         }));
 
-        setScenarios(scenariosWithOptions as Scenario[]);
+        setScenarios(scenariosWithOptions as unknown as Scenario[]);
         startTimeRef.current = Date.now();
         setPhase("scenario");
 
@@ -169,7 +169,8 @@ export default function ScenarioFlow() {
     try {
       const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
 
-      // Save response
+      // Save response. `as never` bypasses the typed Insert overload — see
+      // .claude/agents/pr-reviewer.md Rule 10 (cast permitted with comment).
       const { error } = await supabase.from("scenario_responses").insert({
         user_id: user.id,
         scenario_id: currentScenario.id,
@@ -177,7 +178,7 @@ export default function ScenarioFlow() {
         is_correct: isCorrect,
         time_spent_seconds: timeSpent,
         attempt_number: 1,
-      } as Record<string, unknown>);
+      } as never);
 
       if (error) throw error;
 
