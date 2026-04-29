@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { GraduationCap, MapPin, Building2, Users, ArrowRight, CheckCircle2 } from "lucide-react";
+import type { Json } from "@/integrations/supabase/types";
 
 interface Qualification {
   degree_type: string;
@@ -88,8 +89,11 @@ export default function Onboarding() {
             .split(",")
             .map((t) => t.trim())
             .filter((t) => t.length > 0),
-          qualifications: qualifications.filter((q) => q.degree_type || q.degree || q.passing_year),
-          experiences: experiences.filter((e) => e.org || e.designation || e.joining),
+          // Local Qualification/Experience shapes are stored as JSON columns;
+          // cast through `unknown` because TS lacks an index signature on the
+          // local interfaces, but the runtime payload is JSON-serialisable.
+          qualifications: qualifications.filter((q) => q.degree_type || q.degree || q.passing_year) as unknown as Json,
+          experiences: experiences.filter((e) => e.org || e.designation || e.joining) as unknown as Json,
           updated_at: new Date().toISOString()
         })
         .eq("id", user.id)

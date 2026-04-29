@@ -119,7 +119,7 @@ export default function AdminScenarioOptions() {
     value: unknown
   ) => {
     const updated = [...options];
-    (updated[index] as Record<string, unknown>)[field] = value;
+    (updated[index] as unknown as Record<string, unknown>)[field] = value;
 
     // If marking as correct, unmark others
     if (field === "is_correct" && value) {
@@ -155,7 +155,7 @@ export default function AdminScenarioOptions() {
             is_correct: opt.is_correct,
             rationale: opt.rationale,
             principle_tag: opt.principle_tag || null,
-          })) as Array<Record<string, unknown>>,
+          })) as never,
           { onConflict: "scenario_id,option_letter" }
         );
 

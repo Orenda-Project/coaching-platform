@@ -80,12 +80,14 @@ export default function AdminRegions() {
         }
       }
 
+      // `as never` bypasses the typed Insert overload until types.ts is
+      // regenerated to include the regions row shape.
       const { error } = await supabase.from("regions").insert({
         name: form.name,
         code: form.code,
         parent_id: form.parent_id || null,
         coordinates: coordinates,
-      } as Record<string, unknown>);
+      } as never);
 
       if (error) throw error;
 

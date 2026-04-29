@@ -41,7 +41,5 @@ jobs:
       - name: Unit + hook tests
         run: npm run test
 
-      - name: Coverage report
-        run: npm run test:coverage -- --reporter=text-summary || true
-        # `|| true` while coverage thresholds are not yet enforced.
-        # Once the floor is set in vitest.config.ts, drop the `|| true`.
+      - name: Coverage (enforces thresholds in vitest.config.ts)
+        run: npm run test:coverage

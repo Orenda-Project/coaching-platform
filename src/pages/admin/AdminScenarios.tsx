@@ -106,6 +106,8 @@ export default function AdminScenarios() {
         }
       }
 
+      // `as never` bypasses the typed Insert overload until types.ts is
+      // regenerated to include the scenarios row shape.
       const { error } = await supabase.from("scenarios").insert({
         unit_id: unitId,
         order_number: scenarios.length + 1,
@@ -116,7 +118,7 @@ export default function AdminScenarios() {
         reveal_content: form.reveal_content || null,
         deep_content: form.deep_content || null,
         is_active: form.is_active,
-      } as Record<string, unknown>);
+      } as never);
 
       if (error) throw error;
 

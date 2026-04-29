@@ -20,6 +20,23 @@ interface QuestionWithOptions extends Question {
   options: Option[];
 }
 
+// Local row type for module_quiz_attempts. Mirrors migration
+// supabase/migrations/20260428000010_create_module_quiz_attempts.sql.
+// Used with `.returns<...>()` to short-circuit Supabase's deep type
+// inference until types.ts is regenerated to include this table.
+interface ModuleQuizAttemptRow {
+  id: string;
+  user_id: string;
+  module_id: string;
+  score: number;
+  best_score: number;
+  passed: boolean;
+  attempt_count: number;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const QUIZ_PASS_THRESHOLD = 80;
 const MAX_ATTEMPTS = 3;
 
@@ -63,15 +80,20 @@ export default function ModuleQuiz() {
     const { data: mod } = await supabase.from("modules").select("title").eq("id", moduleId).single();
     setModuleTitle(mod?.title ?? "Module Quiz");
 
-    // Load existing attempt record
-    const { data: existing } = await supabase
+    // Load existing attempt record. module_quiz_attempts is not yet in
+    // generated types.ts; ModuleQuizAttemptRow above mirrors the migration.
+    // Cast the client to `any` at the boundary to bypass the deep-type
+    // inference triggered by an unknown table name; runtime is unaffected.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const attemptsClient = supabase as any;
+    const { data: existing } = (await attemptsClient
       .from("module_quiz_attempts")
       .select("*")
       .eq("user_id", user.id)
       .eq("module_id", moduleId)
-      .maybeSingle();
+      .maybeSingle()) as { data: ModuleQuizAttemptRow | null };
 
-    const currentAttempts = (existing as { attempt_count?: number } | null)?.attempt_count ?? 0;
+    const currentAttempts = existing?.attempt_count ?? 0;
     setAttemptCount(currentAttempts);
 
     if (currentAttempts >= MAX_ATTEMPTS) {
@@ -174,26 +196,30 @@ export default function ModuleQuiz() {
     if (!user || !moduleId) return;
     const newAttempt = attemptCount + 1;
 
-    const { data: existing } = await supabase
+    type AttemptSummary = Pick<ModuleQuizAttemptRow, "id" | "best_score" | "passed">;
+    // See `load()` above for rationale on the `any` cast.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const attemptsClient = supabase as any;
+    const { data: existing } = (await attemptsClient
       .from("module_quiz_attempts")
       .select("id, best_score, passed")
       .eq("user_id", user.id)
       .eq("module_id", moduleId)
-      .maybeSingle();
+      .maybeSingle()) as { data: AttemptSummary | null };
 
     if (existing) {
-      await supabase
+      await attemptsClient
         .from("module_quiz_attempts")
         .update({
           score,
-          best_score: Math.max(score, (existing as { best_score?: number } | null)?.best_score ?? 0),
-          passed: passed || (existing as { passed?: boolean } | null)?.passed,
+          best_score: Math.max(score, existing.best_score ?? 0),
+          passed: passed || existing.passed,
           attempt_count: newAttempt,
           completed_at: passed ? new Date().toISOString() : null,
         })
-        .eq("id", (existing as { id: string }).id);
+        .eq("id", existing.id);
     } else {
-      await supabase.from("module_quiz_attempts").insert({
+      await attemptsClient.from("module_quiz_attempts").insert({
         user_id: user.id,
         module_id: moduleId,
         score,
