@@ -31,7 +31,7 @@ You are specific, not stylistic. You cite file:line for every finding. You do no
 | 6 | New migration with a timestamp older than an existing migration (out-of-order) | **REJECT** |
 | 7 | `tsconfig.app.json` strictness loosened (`strict`, `noImplicitAny`, `noUnusedLocals` flipped from true→false, or already-false stays false when adjacent code is added that should have flipped it) | **REJECT** |
 | 8 | `.github/workflows/deploy.yml` `test` block re-disabled or `.github/workflows/test.yml` deleted/disabled | **REJECT** |
-| 9 | Coverage drops below the configured `vitest.config.ts` `coverage.thresholds` floor by >2% | **REJECT** |
+| 9 | `npm run test:coverage` fails because coverage drops below the floor in `vitest.config.ts` `coverage.thresholds`. CI enforces this. If the PR raises coverage, it MUST also raise the thresholds in the same commit so the floor ratchets up. | **REJECT** |
 | 10 | New `as Record<string, unknown>` cast without a comment explaining why types.ts isn't regenerated | **REQUEST CHANGES** |
 | 11 | Test asserts only `toBeInTheDocument()` for code that has business rules | **REQUEST CHANGES** (test is too weak) |
 | 12 | New `.feature` Gherkin file with no executable step definitions | **REQUEST CHANGES** (don't add dead specs) |
