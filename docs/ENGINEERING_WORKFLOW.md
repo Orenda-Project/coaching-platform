@@ -63,10 +63,12 @@ Reuse these. Do NOT invent local mocks per file. If something is missing, invoke
 
 ## Coverage ratchet
 
-1. **Today (adoption day):** Coverage thresholds in `vitest.config.ts` are commented out. `test:coverage` reports a number but doesn't fail.
-2. **First measurement:** ~1.1% line coverage (mostly `src/domain/` + `useFeedback`). Recorded for posterity.
-3. **First ratchet:** Once a real first feature lands via `/feature`, set the threshold to (current measured) − 1%. Now CI fails if a future PR drops coverage.
-4. **Every subsequent PR that raises coverage tightens the floor.** Coverage only goes up.
+1. **Live thresholds (in `vitest.config.ts`):**
+   - `lines: 0.12` / `statements: 0.12` / `functions: 4.17` / `branches: 27.75`
+   - Floor = first measured baseline (2026-04-29) minus 1% slack.
+2. **CI enforces:** `npm run test:coverage` fails the build if any threshold is breached. See `.github/workflows/test.yml`.
+3. **Every PR that raises coverage tightens the floor in the same commit.** Coverage only goes up — see `.claude/agents/pr-reviewer.md` Rule 9.
+4. **Why so low?** The codebase had ~0% coverage at adoption. Real ratchet velocity comes from `/feature` and `/fix` enforcing test discipline on new code; the floor rises quickly as features get touched.
 
 ## CI gate
 
