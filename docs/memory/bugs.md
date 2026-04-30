@@ -39,3 +39,9 @@ Last updated: 2026-04-23
 - Root cause: Insert instead of upsert on certificates table
 - Fix: Use unique constraint on (user_id, assignment_id), upsert on insert conflict
 - Prevention: Always upsert for user progress-tracking tables
+
+**Persona E constraint violation on baseline <60% — RESOLVED**
+- Symptom: PATCH /profiles fails with error 23514 "violates check constraint 'profiles_persona_check'" when baseline score < 60%
+- Root cause: Code sends persona='E' but production Supabase had old constraint (A-D only); migration 20260427000002 existed in code but was not auto-applied to production DB initially
+- Fix applied: Migration 20260427000002_add_persona_e.sql was manually applied to production; constraint now allows 'E'
+- Prevention: Database migrations should be auto-applied by CI/CD on deploy; if not, manually apply via Supabase SQL console immediately after code deploy that requires new schema
