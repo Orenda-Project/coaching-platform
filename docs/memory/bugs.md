@@ -45,3 +45,10 @@ Last updated: 2026-04-23
 - Root cause: Code sends persona='E' but production Supabase had old constraint (A-D only); migration 20260427000002 existed in code but was not auto-applied to production DB initially
 - Fix applied: Migration 20260427000002_add_persona_e.sql was manually applied to production; constraint now allows 'E'
 - Prevention: Database migrations should be auto-applied by CI/CD on deploy; if not, manually apply via Supabase SQL console immediately after code deploy that requires new schema
+
+**Baseline training RLS violation (coach can't insert training) — NEEDS FIX**
+- Symptom: POST /trainings fails with error 42501 "violates row-level security policy" after coach submits baseline
+- Root cause: Code queries for "Coach Baseline Assessment" training (should be seeded by migration 20260505000001); if not found, tries to INSERT as fallback; INSERT fails because coach lacks admin role and RLS policy requires admin to insert trainings
+- Root cause detail: Migration 20260505000001_add_baseline_endline_trainings.sql exists in code but was not applied to production Supabase
+- Fix: Apply migration 20260505000001 to production via Supabase SQL console (see FIX_BASELINE_TRAINING_RLS.md)
+- Prevention: Same as persona E — auto-apply migrations in CI/CD, or manually apply via Supabase before code deploy that depends on the schema

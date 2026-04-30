@@ -24,6 +24,13 @@ Last updated: 2026-04-23
 - Fix requires: `ALTER TABLE profiles DROP CONSTRAINT profiles_persona_check; ALTER TABLE profiles ADD CONSTRAINT profiles_persona_check CHECK (persona IN ('A','B','C','D','E'));`
 - Regression test: `src/domain/persona-e-constraint.test.ts` — intentionally fails until migration applied; test title: "succeeds when persona is E (fails on old DB with missing E in constraint)"
 
+## Regression: Baseline Training RLS Violation (2026-04-30)
+- **Root cause:** Assessment.tsx::saveAssessmentProgress() does SELECT then INSERT on `trainings` when the seeded row is missing; coach role is blocked by RLS (error 42501) on INSERT
+- **Trigger:** migration 20260505000001 not applied to target environment — "Coach Baseline Assessment" row absent
+- **Silent failure:** INSERT denied, function returns early, baseline progress is never written; no toast/error shown to coach
+- **Regression test:** `src/data/baseline-training-rls.test.ts` — all 4 tests pass; the test named "fails with RLS 42501 when migration not applied" models the exact production failure path
+- **Fix:** apply migration 20260505000001 to production; the seeded row means the INSERT branch is never reached
+
 ## Edge Cases Rarely Tested
 - User with no modules assigned (dashboard shows "no modules")
 - Persona score exactly at threshold (75.0 = A, 74.9 = B)
