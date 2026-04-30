@@ -19,6 +19,11 @@ Last updated: 2026-04-23
 - Network failure during quiz submit (toast shown, retry available)
 - Module unlock cascade (passing Module N unlocks Module N+1 correctly)
 
+## Regression: Persona E Constraint Violation (2026-04-30)
+- **profiles_persona_check** — production DB constraint only allowed ('A','B','C','D'); writing 'E' for score < 60% crashes baseline submission with a check-constraint violation
+- Fix requires: `ALTER TABLE profiles DROP CONSTRAINT profiles_persona_check; ALTER TABLE profiles ADD CONSTRAINT profiles_persona_check CHECK (persona IN ('A','B','C','D','E'));`
+- Regression test: `src/domain/persona-e-constraint.test.ts` — intentionally fails until migration applied; test title: "succeeds when persona is E (fails on old DB with missing E in constraint)"
+
 ## Edge Cases Rarely Tested
 - User with no modules assigned (dashboard shows "no modules")
 - Persona score exactly at threshold (75.0 = A, 74.9 = B)

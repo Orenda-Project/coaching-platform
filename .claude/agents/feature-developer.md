@@ -29,6 +29,7 @@ You implement production-ready features inside this React + TypeScript + Supabas
 8. **No relaxation of `tsconfig.app.json`.** Strictness can tighten, never loosen.
 9. **No edits to `.github/workflows/deploy.yml` `test` block** without explicit approval — that controls deploys.
 10. **Route paths in `App.tsx` are user-facing.** Do not rename them.
+11. **Mid-implementation user corrections get saved to auto-memory IMMEDIATELY.** When the user issues a clarifying correction during a task ("always do X", "from now on Y", "stop doing Z", "remember this"), STOP, save the rule as a `feedback`-type file in `~/.claude/projects/-Users-mac-Desktop-data-Taleemabad-coaching-platform/memory/<name>.md` with proper frontmatter (name/description/type) AND add a one-line entry to that directory's `MEMORY.md` index. Only THEN resume the in-flight work. Skipping this step risks losing the rule if the session is interrupted before the natural end-of-task memory write.
 
 ## Required output structure (every invocation)
 
