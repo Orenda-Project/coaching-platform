@@ -30,6 +30,7 @@ import AdminRegions from "./pages/admin/AdminRegions";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminFeedback from "./pages/admin/AdminFeedback";
 import Profile from "./pages/Profile";
+import ObservationScheduler from "./pages/ObservationScheduler";
 import { FeedbackChatbot } from '@/components/feedback/FeedbackChatbot';
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/training/:trainingId/scenario" element={<ProtectedRoute><ScenarioFlow /></ProtectedRoute>} />
             <Route path="/module-quiz/:moduleId" element={<ProtectedRoute><ModuleQuiz /></ProtectedRoute>} />
             <Route path="/certificate" element={<ProtectedRoute><Certificate /></ProtectedRoute>} />
+            <Route path="/observation-scheduler" element={<ProtectedRoute><ObservationScheduler /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
               <Route index element={<AdminAnalytics />} />
               <Route path="analytics" element={<AdminAnalytics />} />
