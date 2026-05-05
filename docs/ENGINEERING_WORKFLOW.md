@@ -111,6 +111,23 @@ You: /pr "feat(admin): module retry tokens"
    → branch pushed, PR opened against staging, reviewers tagged
 ```
 
+## Day-by-day improvement (the postmortem loop)
+
+Every non-trivial task ends with `/postmortem`. The agent:
+
+1. Reads the conversation transcript and identifies which **signals** fired (typecheck loop? repeated edits? user correction? missing fixture?).
+2. Appends ONE structured JSON line to `docs/memory/patterns-log.jsonl`.
+3. **Proposes** harness improvements when a signal recurs across sessions:
+   - 2+ occurrences → propose a `docs/memory/<area>.md` bullet
+   - 3+ occurrences AND already a memory bullet → propose an agent rule in `.claude/agents/<agent>.md`
+   - Has deterministic detection AND already an agent rule → propose a `pr-reviewer.md` decision-matrix row
+   - Mechanically preventable → propose a harness code change
+4. Waits for the user to `apply P1`, `apply all`, `dismiss`, or `defer`.
+
+**The postmortem agent is proposal-only.** It writes only to `patterns-log.jsonl`. Every other change requires explicit approval — agent files and memory files compound across every future session, so auto-edits would compound mistakes silently.
+
+Operator doc: [`docs/memory/HARNESS_IMPROVEMENT.md`](memory/HARNESS_IMPROVEMENT.md).
+
 ## What didn't change
 
 - React + TS + Vite + Supabase + Railway stack — untouched

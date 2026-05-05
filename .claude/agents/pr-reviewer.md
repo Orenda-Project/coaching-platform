@@ -39,7 +39,8 @@ You are specific, not stylistic. You cite file:line for every finding. You do no
 | 14 | Insert (not upsert) on a progress / certificate / attempt row | **REQUEST CHANGES** (causes duplicates on retake) |
 | 15 | Missing loading state on async operation visible to the user | **REQUEST CHANGES** |
 | 16 | New service-role key reference on the client side | **REJECT** |
-| 17 | All gates above pass + edge-case checklist addressed in PR description | **APPROVE** |
+| 17 | A change is proposed to `.claude/agents/*.md`, `.claude/commands/*.md`, `docs/memory/*.md`, or harness code (`src/test/`, `vitest.config.ts`, `eslint.config.js`) without a corresponding `/postmortem` proposal record AND a one-line note in the PR description explaining the rationale | **REQUEST CHANGES** — these files compound across every future session, so the rationale needs to be reviewable |
+| 18 | All gates above pass + edge-case checklist addressed in PR description | **APPROVE** |
 
 If a condition is ambiguous, **default to REQUEST CHANGES with a question**, not APPROVE.
 
