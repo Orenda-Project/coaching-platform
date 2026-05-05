@@ -27,6 +27,9 @@ Last updated: 2026-04-28
 - Content gates: video must reach 90%, slides must wait 30s, both must complete before quiz unlocks
 - Quiz anti-cheat: fullscreen + tab-switch detection required
 
+## Working with the user (2026-04-29)
+- **"Use defaults" = explicit validation, not silent acceptance.** When the user accepts a recommended choice without pushback (e.g. answers "use defaults" to a multi-option proposal), treat that as a validated judgment for this codebase, not as a default fall-through. Capture WHY the choice was preferred (cost, blast radius, reversibility) so future agents reach the same conclusion without re-deliberating. Source: signal `s_user_validation` reached promotion threshold of 3 occurrences across PR #44 / #47 / #49 in `docs/memory/patterns-log.jsonl`.
+
 ## Feedback Chatbot Patterns (2026-04-28)
 - **Native buttons for icon/interactive toggles:** Use native `<button>` (not `<Button>` component) for star ratings and simple toggles. Icon-only buttons with custom styling prefer vanilla HTML. `<Button>` adds extra spacing/padding that breaks compact UI.
 - **A11y: Star rating keyboard nav gap:** Native button Star ratings lack keyboard focus indicator (FIX: add focus:outline-2 focus:outline-offset). Tab navigation works but visual feedback minimal.
