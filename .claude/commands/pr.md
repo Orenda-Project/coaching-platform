@@ -42,6 +42,18 @@ Convert the current branch's work into a production-ready PR.
      - Run instructions (`npm install && npm run test && npm run dev`)
    - Reviewers: `@jalal.khan @hammad.sarfraz` (per existing template)
 
+6. **Detect stacked PRs (post-create)**
+   After the PR is opened, check whether any other open PRs use this branch as their base:
+   ```bash
+   gh pr list --base <current-branch> --state open --json number,title,headRefName
+   ```
+   If the result is non-empty, surface those PRs to the user with a note:
+   > **Stacked PRs detected:** PR #N (`<title>`) has this branch as its base. When this PR merges to staging, that PR's base will need retargeting:
+   > ```
+   > gh pr edit N --base staging
+   > ```
+   This catches the `s_stacked_pr_base_drift` pattern (logged in `patterns-log.jsonl`) — would have prevented the PR #44 → PR #47 retargeting work after #44 merged.
+
 ## Hard rules
 
 - Base branch is `staging`, NOT `main`. Per `DEVELOPMENT_STANDARDS.md`.
