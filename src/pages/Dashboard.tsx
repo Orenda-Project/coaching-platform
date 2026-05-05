@@ -201,7 +201,7 @@ export default function Dashboard() {
               <GraduationCap className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-display font-bold text-lg text-foreground">
-              RABT
+              RABT(Reflective Action for Better Teaching)
             </span>
           </div>
           <div className="flex items-center gap-1 sm:gap-3">
