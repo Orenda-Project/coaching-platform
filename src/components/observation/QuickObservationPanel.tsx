@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DCAnalysis } from './DCAnalysis';
+import { NeoAnalysis } from './NeoAnalysis';
 import { getFicoProficiency } from '@/lib/fico-utils';
 import { getProficiencyLevel } from '@/lib/observation-utils';
 import type { CotObservation } from '@/types/observation';
@@ -56,6 +57,33 @@ export function QuickObservationPanel({
     }
   };
 
+  const submitObservation = async () => {
+    setSaving(true);
+    try {
+      const { error } = await (supabase as any)
+        .from('cot_observations')
+        .update({
+          status: 'Submitted',
+          submitted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', current.id);
+
+      if (error) {
+        toast.error('Failed to submit observation');
+        setSaving(false);
+        return;
+      }
+
+      toast.success('Observation submitted!');
+      setSaving(false);
+      onSaveToDraft(); // Closes panel and refreshes
+    } catch (err) {
+      toast.error('Failed to submit');
+      setSaving(false);
+    }
+  };
+
   const isFico = current.framework === 'FICO';
   const proficiency = isFico
     ? current.total_score > 0
@@ -98,16 +126,22 @@ export function QuickObservationPanel({
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="space-y-6">
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Record Classroom Session</h3>
-            <DCAnalysis observation={current} onSaved={handleUpdate} />
+            <h3 className="font-semibold text-foreground mb-4">
+              {current.dc_status === 'completed' ? 'Debrief Conversation' : 'Record Classroom Session'}
+            </h3>
+            {current.dc_status !== 'completed' ? (
+              <DCAnalysis observation={current} onSaved={handleUpdate} />
+            ) : (
+              <NeoAnalysis observation={current} onSaved={handleUpdate} />
+            )}
           </div>
 
-          {/* Score display (if DC completed) */}
+          {/* DC Score display */}
           {current.dc_status === 'completed' && proficiency && (
             <div className="rounded-lg border border-border p-4 bg-muted/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Score</p>
+                  <p className="text-sm font-medium text-foreground">DC Score</p>
                   <p className="text-xs text-muted-foreground">
                     {isFico ? 'FICO auto-scored' : 'HOTS auto-scored'}
                   </p>
@@ -123,6 +157,31 @@ export function QuickObservationPanel({
               </div>
             </div>
           )}
+
+          {/* Neo Status */}
+          {current.dc_status === 'completed' && (
+            <div className="rounded-lg border border-border p-4 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Debrief Analysis</p>
+                  {current.neo_status === 'processing' && (
+                    <p className="text-xs text-blue-600">Processing debrief...</p>
+                  )}
+                  {current.neo_status === 'completed' && (
+                    <p className="text-xs text-green-600">Debrief analysed</p>
+                  )}
+                  {current.neo_status === null && (
+                    <p className="text-xs text-muted-foreground">Ready to record</p>
+                  )}
+                </div>
+                {current.neo_status === 'completed' && (
+                  <Badge className="text-xs text-green-700 bg-green-50 border-green-200">
+                    Done
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -135,16 +194,29 @@ export function QuickObservationPanel({
             disabled={saving}
             className="text-muted-foreground hover:text-foreground"
           >
-            Close — come back later
+            Close — save to draft
           </Button>
-          <Button
-            onClick={saveToDraft}
-            disabled={saving || current.dc_status !== 'completed'}
-            className="gap-2"
-          >
-            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-            Save to Draft
-          </Button>
+          <div className="flex gap-2">
+            {current.neo_status !== 'completed' && (
+              <Button
+                variant="outline"
+                onClick={saveToDraft}
+                disabled={saving || current.dc_status !== 'completed'}
+                className="gap-2"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Save to Draft
+              </Button>
+            )}
+            <Button
+              onClick={submitObservation}
+              disabled={saving || current.neo_status !== 'completed'}
+              className="gap-2"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              Submit Observation
+            </Button>
+          </div>
         </div>
       </div>
     </div>
