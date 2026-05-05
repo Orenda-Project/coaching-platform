@@ -56,6 +56,8 @@ interface UnitDetail {
   passed: boolean;
   tabSwitches: number;
   quizType: "baseline" | "module" | "endline";
+  score: number | null;
+  attemptCount: number;
 }
 
 interface ModuleDetail {
@@ -64,6 +66,7 @@ interface ModuleDetail {
   unitsCompleted: number;
   unitsTotal: number;
   units: UnitDetail[];
+  avgScore: number | null;
 }
 
 interface TabSwitchBreakdown {
@@ -183,6 +186,8 @@ export default function AdminAnalytics() {
               passed: ut.passed,
               tabSwitches: ut.tab_switch_count,
               quizType,
+              score: ut.score,
+              attemptCount: ut.attempt_count,
             });
 
             const progress = moduleProgress.get(moduleId)!;
@@ -190,13 +195,22 @@ export default function AdminAnalytics() {
             if (ut.passed) progress.completed += 1;
           }
 
-          return Array.from(moduleMap.entries()).map(([moduleId, info]) => ({
-            moduleId,
-            moduleTitle: info.title,
-            unitsCompleted: moduleProgress.get(moduleId)?.completed || 0,
-            unitsTotal: moduleProgress.get(moduleId)?.total || 0,
-            units: info.unitsList,
-          }));
+          return Array.from(moduleMap.entries()).map(([moduleId, info]) => {
+            const moduleUnitScores = info.unitsList
+              .filter((u) => u.quizType === "module" && u.score !== null)
+              .map((u) => u.score as number);
+            const avgScore = moduleUnitScores.length
+              ? Math.round(moduleUnitScores.reduce((a, b) => a + b, 0) / moduleUnitScores.length)
+              : null;
+            return {
+              moduleId,
+              moduleTitle: info.title,
+              unitsCompleted: moduleProgress.get(moduleId)?.completed || 0,
+              unitsTotal: moduleProgress.get(moduleId)?.total || 0,
+              units: info.unitsList,
+              avgScore,
+            };
+          });
         };
 
         const rows: CoachRow[] = ((profiles || []) as ProfileRow[]).map((p) => {
@@ -541,15 +555,24 @@ export default function AdminAnalytics() {
                                   <span className="text-primary font-bold mr-2">{idx + 1}.</span>
                                   {mod.moduleTitle}
                                 </span>
-                                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                                  mod.unitsCompleted === mod.unitsTotal && mod.unitsTotal > 0
-                                    ? "bg-green-100 text-green-700"
-                                    : mod.unitsCompleted > 0
-                                    ? "bg-amber-100 text-amber-700"
-                                    : "bg-gray-100 text-gray-600"
-                                }`}>
-                                  {mod.unitsCompleted}/{mod.unitsTotal} units
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  {mod.avgScore !== null && (
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                      mod.avgScore >= 80 ? "bg-green-100 text-green-700" : mod.avgScore >= 60 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-600"
+                                    }`}>
+                                      avg {mod.avgScore}%
+                                    </span>
+                                  )}
+                                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                                    mod.unitsCompleted === mod.unitsTotal && mod.unitsTotal > 0
+                                      ? "bg-green-100 text-green-700"
+                                      : mod.unitsCompleted > 0
+                                      ? "bg-amber-100 text-amber-700"
+                                      : "bg-gray-100 text-gray-600"
+                                  }`}>
+                                    {mod.unitsCompleted}/{mod.unitsTotal} units
+                                  </span>
+                                </div>
                               </div>
                               {/* Units list */}
                               <div className="space-y-2">
@@ -558,7 +581,7 @@ export default function AdminAnalytics() {
                                     <div className="flex-1">
                                       <p className="text-foreground font-medium">{unit.unitTitle}</p>
                                       <p className="text-muted-foreground text-xs mt-0.5">
-                                        {unit.quizType.charAt(0).toUpperCase() + unit.quizType.slice(1)} • {unit.tabSwitches} tab switch{unit.tabSwitches !== 1 ? "es" : ""}
+                                        {unit.quizType.charAt(0).toUpperCase() + unit.quizType.slice(1)} • {unit.score !== null ? `${unit.score}%` : "—"} • {unit.attemptCount} attempt{unit.attemptCount !== 1 ? "s" : ""} • {unit.tabSwitches} tab switch{unit.tabSwitches !== 1 ? "es" : ""}
                                       </p>
                                     </div>
                                     <span className={`font-medium flex items-center gap-1.5 whitespace-nowrap ml-2 ${unit.passed ? "text-green-600" : "text-amber-600"}`}>
