@@ -8,6 +8,7 @@ import { GraduationCap, ClipboardList, Clock, BarChart2, ArrowLeft } from 'lucid
 import { CoachingHubTab } from '@/components/observation/CoachingHubTab';
 import { DraftObservationsTab } from '@/components/observation/DraftObservationsTab';
 import { ObservationsOverviewTab } from '@/components/observation/ObservationsOverviewTab';
+import { QuickObservationPanel } from '@/components/observation/QuickObservationPanel';
 import type { CotObservation } from '@/types/observation';
 
 export default function ObservationScheduler() {
@@ -16,6 +17,7 @@ export default function ObservationScheduler() {
   const [observations, setObservations] = useState<CotObservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('hub');
+  const [quickObs, setQuickObs] = useState<CotObservation | null>(null);
 
   const loadObservations = useCallback(async () => {
     if (!user) return;
@@ -67,6 +69,20 @@ export default function ObservationScheduler() {
         </div>
       </header>
 
+      {/* Quick Observation Panel */}
+      {quickObs && (
+        <QuickObservationPanel
+          observation={quickObs}
+          onSaved={(updated) => setQuickObs(updated)}
+          onSaveToDraft={async () => {
+            await loadObservations();
+            setQuickObs(null);
+            setActiveTab('draft');
+          }}
+          onClose={() => setQuickObs(null)}
+        />
+      )}
+
       <main className="container px-4 py-6 max-w-3xl">
         {/* Page title */}
         <div className="mb-6">
@@ -107,6 +123,7 @@ export default function ObservationScheduler() {
               observations={observations}
               onRefresh={loadObservations}
               onStarted={() => setActiveTab('draft')}
+              onNewObservation={(obs) => setQuickObs(obs)}
             />
           </TabsContent>
 
