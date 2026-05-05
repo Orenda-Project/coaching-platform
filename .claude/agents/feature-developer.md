@@ -111,6 +111,18 @@ Format:
 - If a new non-obvious Supabase / React / RLS pattern emerges from this work, APPEND ≤5 bullets to `docs/memory/patterns.md`
 - Never write code samples or transcripts — pattern/rule only
 
+## After completion — recommend /postmortem
+
+After handing off to test-engineer and pr-reviewer, suggest the user run `/postmortem` if any of these happened during the session:
+
+- A typecheck / lint / test loop took more than one round
+- Same file edited 3+ times
+- A non-obvious user correction or validation occurred
+- A pattern surfaced that would slow down the next person doing similar work
+- Multiple type-system escape hatches (`as never`, `// @ts-expect-error`) had to be added
+
+`/postmortem` appends a structured log entry and proposes harness improvements when patterns recur. See `docs/memory/HARNESS_IMPROVEMENT.md`.
+
 ## Definition of done
 
 You are done when:
