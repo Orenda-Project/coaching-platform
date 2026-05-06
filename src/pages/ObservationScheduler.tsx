@@ -5,8 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, ClipboardList, Clock, CheckCircle2, BarChart2, ArrowLeft, CalendarDays } from 'lucide-react';
-import { CoachingHubTab } from '@/components/observation/CoachingHubTab';
+import { GraduationCap, Clock, CheckCircle2, BarChart2, ArrowLeft, CalendarDays } from 'lucide-react';
 import { DraftObservationsTab } from '@/components/observation/DraftObservationsTab';
 import { SubmittedObservationsTab } from '@/components/observation/SubmittedObservationsTab';
 import { ObservationsOverviewTab } from '@/components/observation/ObservationsOverviewTab';
@@ -100,15 +99,10 @@ export default function ObservationScheduler() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="scheduler" className="text-xs sm:text-sm gap-1.5">
               <CalendarDays className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Smart Plan</span>
-            </TabsTrigger>
-
-            <TabsTrigger value="hub" className="text-xs sm:text-sm gap-1.5">
-              <ClipboardList className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Schedule</span>
             </TabsTrigger>
 
             <TabsTrigger value="draft" className="text-xs sm:text-sm gap-1.5">
@@ -143,15 +137,6 @@ export default function ObservationScheduler() {
                 setQuickObs(obs);
                 setActiveTab('draft');
               }}
-            />
-          </TabsContent>
-
-          <TabsContent value="hub">
-            <CoachingHubTab
-              observations={observations}
-              onRefresh={loadObservations}
-              onStarted={() => setActiveTab('draft')}
-              onNewObservation={(obs) => setQuickObs(obs)}
             />
           </TabsContent>
 
