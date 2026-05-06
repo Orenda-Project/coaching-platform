@@ -25,6 +25,20 @@ export function QuickObservationPanel({
 }: Props) {
   const [current, setCurrent] = useState(initialObs);
   const [saving, setSaving] = useState(false);
+  const [testMode, setTestMode] = useState(false);
+
+  // Test mode: skip DC, go straight to Neo
+  const skipToDC = async () => {
+    const updated = {
+      ...current,
+      dc_status: 'completed' as const,
+      dc_results: {} as any,
+      dc_completed_at: new Date().toISOString(),
+    };
+    setCurrent(updated);
+    handleUpdate(updated);
+    setTestMode(true);
+  };
 
   const handleUpdate = (updated: CotObservation) => {
     setCurrent(updated);
@@ -125,6 +139,18 @@ export function QuickObservationPanel({
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="space-y-6">
+          {/* Test mode button (dev only) */}
+          {current.dc_status !== 'completed' && !testMode && (
+            <div className="flex justify-center">
+              <button
+                onClick={skipToDC}
+                className="text-xs px-2 py-1 rounded bg-amber-100 text-amber-800 hover:bg-amber-200"
+              >
+                [Test] Skip DC → Neo
+              </button>
+            </div>
+          )}
+
           <div>
             <h3 className="font-semibold text-foreground mb-4">
               {current.dc_status === 'completed' ? 'Debrief Conversation' : 'Record Classroom Session'}
