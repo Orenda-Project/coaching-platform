@@ -41,13 +41,24 @@ export default function SmartScheduleTab() {
   const loadData = async () => {
     setLoading(true);
 
-    const assignRes = await (supabase as any)
-      .from('coach_assignments')
-      .select('region, sub_region')
-      .eq('coach_id', user!.id)
-      .single();
+    let coachSubRegion = 'Tarnol'; // default
 
-    const coachSubRegion = assignRes.data?.sub_region ?? 'Tarnol';
+    try {
+      const assignRes = await (supabase as any)
+        .from('coach_assignments')
+        .select('region, sub_region')
+        .eq('coach_id', user!.id)
+        .single();
+
+      if (assignRes.data?.sub_region) {
+        coachSubRegion = assignRes.data.sub_region;
+      }
+      if (assignRes.error) {
+        console.error('Coach assignment error:', assignRes.error);
+      }
+    } catch (err) {
+      console.error('Error fetching coach assignment:', err);
+    }
 
     const [scoresRes, visitsRes] = await Promise.all([
       (supabase as any)
