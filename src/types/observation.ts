@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export type ObservationStatus = 'Scheduled' | 'Draft' | 'Submitted' | 'Approved';
 
 export interface DcIndicatorDetail {

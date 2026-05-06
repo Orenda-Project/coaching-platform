@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const typedSupabase = supabase as any;
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   buildRosterFromDcScores,
@@ -9,7 +12,6 @@ import {
   generateFourWeekPlan,
   detectTierChange,
   type PriorityTier,
-  type RankedTeacher,
 } from '@/lib/scheduler-utils';
 import PriorityList from './PriorityList';
 import WeeklyPlanView from './WeeklyPlanView';
@@ -33,21 +35,16 @@ export default function SmartScheduleTab() {
   const prevTierMap = useRef<Map<string, PriorityTier>>(new Map());
   const [tierChanges, setTierChanges] = useState<TierChange[]>([]);
 
-  useEffect(() => {
-    if (!user) return;
-    loadData();
-  }, [user]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
 
     const [scoresRes, visitsRes] = await Promise.all([
-      (supabase as any)
+      typedSupabase
         .from('teacher_dc_scores')
         .select('*')
         .eq('observer_id', user!.id)
         .order('scored_at', { ascending: false }),
-      (supabase as any)
+      typedSupabase
         .from('cot_observations')
         .select('teacher_name, school_name, submitted_at, status')
         .eq('observer_id', user!.id)
@@ -57,7 +54,12 @@ export default function SmartScheduleTab() {
     setDcScores(scoresRes.data ?? []);
     setVisits(visitsRes.data ?? []);
     setLoading(false);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    loadData();
+  }, [user, loadData]);
 
   const rankedTeachers = useMemo(() => {
     const roster = buildRosterFromDcScores(dcScores, visits);

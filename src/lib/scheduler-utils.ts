@@ -137,7 +137,7 @@ export function generateWeeklySchedule(
 
   // Get working days (Mon–Fri) starting from the startDate
   const workingDatesList: Date[] = [];
-  let current = new Date(startDate);
+  const current = new Date(startDate);
 
   // Find next Monday if needed
   const dayOfWeek = current.getDay();
@@ -216,7 +216,7 @@ export function generateFourWeekPlan(
 ): ScheduledVisit[] {
   const allScheduled: ScheduledVisit[] = [];
   let remaining = rankedTeachers;
-  let currentDate = new Date(startDate);
+  const currentDate = new Date(startDate);
 
   for (let week = 0; week < 4; week++) {
     const { scheduled, overflow } = generateWeeklySchedule(remaining, currentDate);
