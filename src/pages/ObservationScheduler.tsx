@@ -162,7 +162,12 @@ export default function ObservationScheduler() {
           </TabsContent>
 
           <TabsContent value="scheduler">
-            <SmartScheduleTab />
+            <SmartScheduleTab
+              onNewObservation={(obs) => {
+                setQuickObs(obs);
+                setActiveTab('draft');
+              }}
+            />
           </TabsContent>
         </Tabs>
       </main>

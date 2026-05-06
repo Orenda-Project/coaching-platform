@@ -2,10 +2,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import DCDashboard from './DCDashboard';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ChevronLeft, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import type { CotObservation } from '@/types/observation';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const typedSupabase = supabase as any;
+
+interface SmartScheduleTabProps {
+  onNewObservation?: (obs: CotObservation) => void;
+}
 
 interface DCTeacher {
   user_id: string;
@@ -32,11 +39,13 @@ interface DCTeacher {
   non_verbal_communication: number;
 }
 
-export default function SmartScheduleTab() {
-  useAuth();
+export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabProps) {
+  const { user } = useAuth();
   const [teachers, setTeachers] = useState<DCTeacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSector, setSelectedSector] = useState<string | null>(null);
+  const [schedulingTeacherId, setSchedulingTeacherId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -120,6 +129,45 @@ export default function SmartScheduleTab() {
     loadData();
   }, [loadData]);
 
+  const handleScheduleVisit = useCallback(async (teacher: DCTeacher) => {
+    if (!user) {
+      toast.error('Not authenticated');
+      return;
+    }
+
+    setSchedulingTeacherId(teacher.user_id);
+    try {
+      const { data, error: insertError } = await typedSupabase
+        .from('cot_observations')
+        .insert({
+          observer_id: user.id,
+          teacher_name: teacher.teacher_name,
+          school_name: teacher.school,
+          subject: teacher.subject,
+          grade: teacher.grade,
+          framework: 'FICO',
+          date: new Date().toISOString(),
+          status: 'Draft',
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        toast.error('Failed to schedule visit');
+        console.error(insertError);
+        return;
+      }
+
+      toast.success('Visit scheduled! Opening debrief...');
+      onNewObservation?.(data as CotObservation);
+    } catch (err) {
+      toast.error('Error scheduling visit');
+      console.error(err);
+    } finally {
+      setSchedulingTeacherId(null);
+    }
+  }, [user, onNewObservation]);
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-14 text-center">
@@ -133,21 +181,83 @@ export default function SmartScheduleTab() {
     );
   }
 
+  // Extract unique sectors and count teachers per sector
+  const uniqueSectors = Array.from(
+    new Map(
+      teachers.map(t => [
+        t.sector,
+        { sector: t.sector, count: teachers.filter(x => x.sector === t.sector).length }
+      ])
+    ).values()
+  ).sort((a, b) => a.sector.localeCompare(b.sector));
+
+  // Filter teachers by selected sector
+  const filteredTeachers = selectedSector
+    ? teachers.filter(t => t.sector === selectedSector)
+    : [];
+
+  // Sector selector view
+  if (!selectedSector) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-foreground">Select Your Sector</h2>
+          <p className="text-sm text-muted-foreground">
+            Choose your sub-region to see assigned teachers
+          </p>
+        </div>
+
+        {uniqueSectors.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 text-center">
+            <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
+            <h3 className="font-semibold text-foreground mb-1">No sectors found</h3>
+            <p className="text-sm text-muted-foreground">
+              No teacher data available yet.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {uniqueSectors.map(({ sector, count }) => (
+              <button
+                key={sector}
+                onClick={() => setSelectedSector(sector)}
+                className="p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors text-left"
+              >
+                <div className="font-medium text-foreground">{sector}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {count} teacher{count !== 1 ? 's' : ''}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Teacher list view for selected sector
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="font-display text-lg font-semibold text-foreground">DC Teacher Scores</h2>
-        <p className="text-sm text-muted-foreground">
-          Ranked by Digital Coach performance metrics. Teachers with lower scores are prioritized for coaching visits.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <button
+            onClick={() => setSelectedSector(null)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Change sector
+          </button>
+          <h2 className="font-display text-lg font-semibold text-foreground">{selectedSector}</h2>
+          <p className="text-sm text-muted-foreground">
+            {filteredTeachers.length} teacher{filteredTeachers.length !== 1 ? 's' : ''} • Ranked by coaching priority
+          </p>
+        </div>
       </div>
 
       <DCDashboard
-        teachers={teachers}
+        teachers={filteredTeachers}
         loading={loading}
-        onScheduleVisit={(teacher) => {
-          console.log('Schedule visit for:', teacher.teacher_name);
-        }}
+        onScheduleVisit={handleScheduleVisit}
       />
     </div>
   );
