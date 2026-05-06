@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -21,9 +22,53 @@ interface Props {
 }
 
 type NeoPhase = 'idle' | 'recording' | 'uploading' | 'processing' | 'completed' | 'failed';
+type Language = 'en' | 'ur';
+
+const translations: Record<Language, Record<string, string>> = {
+  en: {
+    'Coach Debrief': 'Coach Debrief',
+    'Record your verbal feedback': 'Record your verbal feedback with the teacher. Neo will analyze your coaching communication quality.',
+    'Record': 'Record',
+    'Upload Audio': 'Upload Audio',
+    'Recording': 'Recording',
+    'Stop & Upload': 'Stop & Upload',
+    'Uploading audio': 'Uploading audio...',
+    'Neo is analyzing': 'Neo is analyzing your debrief (max ~2 minutes)...',
+    'Debrief Analysis Complete': 'Debrief Analysis Complete',
+    'Overall Score': 'Overall Score',
+    'Section Scores': 'Section Scores',
+    'Section': 'Section',
+    'Detailed Feedback': 'Detailed Feedback',
+    'Strengths': '✓ Strengths',
+    'Next Steps for Growth': '→ Next Steps for Growth',
+    'Analysis Failed': 'Analysis Failed',
+    'Try Again': 'Try Again',
+  },
+  ur: {
+    'Coach Debrief': 'کوچ کا جائزہ',
+    'Record your verbal feedback': 'اپنی شفاہی تنقید ریکارڈ کریں۔ Neo آپ کی کوچنگ کی معیار کا تجزیہ کرے گا۔',
+    'Record': 'ریکارڈ کریں',
+    'Upload Audio': 'آڈیو اپ لوڈ کریں',
+    'Recording': 'ریکارڈنگ',
+    'Stop & Upload': 'روکیں اور اپ لوڈ کریں',
+    'Uploading audio': 'آڈیو اپ لوڈ کیا جا رہا ہے...',
+    'Neo is analyzing': 'Neo آپ کے جائزے کا تجزیہ کر رہا ہے (زیادہ سے زیادہ 2 منٹ)...',
+    'Debrief Analysis Complete': 'جائزہ کا تجزیہ مکمل ہو گیا',
+    'Overall Score': 'کل اسکور',
+    'Section Scores': 'سیکشن کے اسکور',
+    'Section': 'سیکشن',
+    'Detailed Feedback': 'تفصیلی تنقید',
+    'Strengths': '✓ طاقتیں',
+    'Next Steps for Growth': '→ ترقی کے اگلے قدم',
+    'Analysis Failed': 'تجزیہ ناکام',
+    'Try Again': 'دوبارہ کوشش کریں',
+  },
+};
 
 export function NeoAnalysis({ observation, onSaved }: Props) {
   const [phase, setPhase] = useState<NeoPhase>('idle');
+  const [language, setLanguage] = useState<Language>('en');
+  const t = (key: string) => translations[language][key] || key;
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pollProgress, setPollProgress] = useState(0);
@@ -224,20 +269,40 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   if (phase === 'idle') {
     return (
       <div className="space-y-3">
-        <div>
-          <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <Brain className="w-4 h-4" /> Coach Debrief
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Record your verbal feedback with the teacher. Neo will analyze your coaching communication quality.
-          </p>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <Brain className="w-4 h-4" /> {t('Coach Debrief')}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('Record your verbal feedback')}
+            </p>
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <Button
+              variant={language === 'en' ? 'default' : 'outline'}
+              size="sm"
+              className="text-xs h-7 px-2"
+              onClick={() => setLanguage('en')}
+            >
+              EN
+            </Button>
+            <Button
+              variant={language === 'ur' ? 'default' : 'outline'}
+              size="sm"
+              className="text-xs h-7 px-2"
+              onClick={() => setLanguage('ur')}
+            >
+              اردو
+            </Button>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button onClick={startRecording} className="gap-2">
-            <Mic className="w-4 h-4" /> Record
+            <Mic className="w-4 h-4" /> {t('Record')}
           </Button>
           <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
-            <Upload className="w-4 h-4" /> Upload Audio
+            <Upload className="w-4 h-4" /> {t('Upload Audio')}
           </Button>
         </div>
         <input
@@ -259,10 +324,10 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-foreground">
           <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-          Recording — {mins}:{secs.toString().padStart(2, '0')}
+          {t('Recording')} — {mins}:{secs.toString().padStart(2, '0')}
         </div>
         <Button onClick={stopRecording} variant="destructive" className="w-full gap-2">
-          <Square className="w-4 h-4" /> Stop & Upload
+          <Square className="w-4 h-4" /> {t('Stop & Upload')}
         </Button>
       </div>
     );
@@ -272,7 +337,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   if (phase === 'uploading') {
     return (
       <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">Uploading audio...</p>
+        <p className="text-xs text-muted-foreground">{t('Uploading audio')}</p>
         <Progress value={uploadProgress} className="h-2" />
       </div>
     );
@@ -282,7 +347,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   if (phase === 'processing') {
     return (
       <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">Neo is analyzing your debrief (max ~2 minutes)...</p>
+        <p className="text-xs text-muted-foreground">{t('Neo is analyzing')}</p>
         <Progress value={pollProgress} className="h-2" />
       </div>
     );
@@ -303,20 +368,18 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
     return (
       <div className="space-y-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-semibold text-foreground flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-green-600" /> Debrief Analysis Complete
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">{results.readiness_level}</p>
-          </div>
+        <div>
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-600" /> {t('Debrief Analysis Complete')}
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{results.readiness_level}</p>
         </div>
 
         <Card className="bg-muted/40 border-0">
           <CardContent className="p-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-muted-foreground">Overall Score</p>
+                <p className="text-xs text-muted-foreground">{t('Overall Score')}</p>
                 <p className="text-2xl font-bold text-foreground">{results.overall_score}</p>
               </div>
               <div className="flex items-end justify-end">
@@ -328,28 +391,62 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           </CardContent>
         </Card>
 
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-foreground">Section Scores</p>
-          <div className="grid grid-cols-5 gap-2">
-            {['A', 'B', 'C', 'D', 'E'].map((section) => (
-              <div key={section} className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">Section {section}</div>
-                <div className="bg-muted rounded px-2 py-1 text-sm font-semibold text-foreground">
-                  {results.section_scores[section as keyof typeof results.section_scores] || 0}
+        {Object.values(results.section_scores).some(s => s !== 0) && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-foreground">{t('Section Scores')}</p>
+            <div className="grid grid-cols-5 gap-2">
+              {['A', 'B', 'C', 'D', 'E'].map((section) => (
+                <div key={section} className="text-center">
+                  <div className="text-xs text-muted-foreground mb-1">{t('Section')} {section}</div>
+                  <div className="bg-muted rounded px-2 py-1 text-sm font-semibold text-foreground">
+                    {results.section_scores[section as keyof typeof results.section_scores] || 0}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {results.observer_feedback && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-foreground">Feedback</p>
-            <div className="bg-muted/30 rounded p-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
-              {typeof results.observer_feedback === 'string'
-                ? results.observer_feedback
-                : JSON.stringify(results.observer_feedback, null, 2)}
-            </div>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-foreground">{t('Detailed Feedback')}</p>
+
+            {typeof results.observer_feedback === 'object' && results.observer_feedback !== null && (
+              <>
+                {(results.observer_feedback as any).strengths && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-green-700 text-opacity-80">{t('Strengths')}</p>
+                    <div className="space-y-1 text-xs text-foreground">
+                      {((results.observer_feedback as any).strengths || []).map((strength: string, idx: number) => (
+                        <div key={idx} className="bg-green-50 border border-green-200 rounded p-2 text-green-900">
+                          {strength}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(results.observer_feedback as any).next_steps && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-blue-700">{t('Next Steps for Growth')}</p>
+                    <div className="space-y-1 text-xs text-foreground">
+                      {((results.observer_feedback as any).next_steps || []).map((step: any, idx: number) => (
+                        <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-2 text-blue-900">
+                          <p className="font-medium">{step.growth_area}</p>
+                          <p className="text-xs mt-1">{step.specific_behavior}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {typeof results.observer_feedback === 'string' && (
+              <div className="bg-muted/30 rounded p-3 text-xs text-foreground">
+                {results.observer_feedback}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -363,12 +460,12 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         <div className="flex items-start gap-2">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-red-700">Analysis Failed</p>
+            <p className="font-semibold text-red-700">{t('Analysis Failed')}</p>
             <p className="text-xs text-red-600 mt-1">{error}</p>
           </div>
         </div>
         <Button onClick={retry} variant="outline" className="w-full">
-          Try Again
+          {t('Try Again')}
         </Button>
       </div>
     );

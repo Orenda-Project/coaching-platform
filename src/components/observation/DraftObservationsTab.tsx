@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,7 +16,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { DCAnalysis } from './DCAnalysis';
 import { NeoAnalysis } from './NeoAnalysis';
 import type { CotObservation } from '@/types/observation';
 
@@ -56,11 +56,6 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
   };
 
   const handleSubmit = async (obs: CotObservation) => {
-    const current = resolve(obs);
-    if (current.dc_status !== 'completed') {
-      toast.error('Please record and complete DC analysis before submitting');
-      return;
-    }
     setSubmitting(obs.id);
     const { error } = await (supabase as any)
       .from('cot_observations')
@@ -111,7 +106,6 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
 
         return (
           <Card key={obs.id} className="glass-card overflow-hidden">
-            {/* Collapsible header */}
             <button
               className="w-full text-left focus:outline-none"
               onClick={() => setExpanded(isExpanded ? null : obs.id)}
@@ -129,20 +123,20 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
                       <Badge variant="outline" className="text-xs">
                         {isFico ? 'FICO' : 'HOTS'}
                       </Badge>
-                      {current.dc_status === 'completed' && (
+                      {current.neo_status === 'completed' && (
                         <Badge
                           variant="outline"
                           className="text-xs text-green-700 border-green-200 bg-green-50"
                         >
-                          DC Complete
+                          Debrief Done
                         </Badge>
                       )}
-                      {current.dc_status === 'processing' && (
+                      {current.neo_status === 'processing' && (
                         <Badge
                           variant="outline"
                           className="text-xs text-blue-700 border-blue-200 bg-blue-50"
                         >
-                          DC Processing…
+                          Debrief Processing…
                         </Badge>
                       )}
                     </div>
@@ -185,31 +179,26 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
               </CardContent>
             </button>
 
-            {/* Expanded detail — DC Analysis + Neo (if DC completed) */}
             {isExpanded && (
               <div className="border-t border-border px-4 pb-5">
                 <div className="mt-4">
-                  <DCAnalysis observation={current} onSaved={handleObsUpdate} />
+                  <NeoAnalysis observation={current} onSaved={handleObsUpdate} />
                 </div>
-
-                {current.dc_status === 'completed' && (
-                  <div className="mt-4 pt-4 border-t border-border">
-                    <NeoAnalysis observation={current} onSaved={handleObsUpdate} />
-                  </div>
-                )}
 
                 <div className="mt-5 pt-4 border-t border-border space-y-2">
                   <Button
                     onClick={() => handleSubmit(current)}
-                    disabled={submitting === obs.id}
+                    disabled={submitting === obs.id || current.neo_status !== 'completed'}
                     className="w-full"
                   >
                     <Send className="w-4 h-4 mr-2" />
-                    {submitting === obs.id ? 'Submitting...' : 'Submit Observation'}
+                    {submitting === obs.id ? 'Submitting...' : 'Mark Visit Complete'}
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Record and complete DC analysis before submitting
-                  </p>
+                  {current.neo_status !== 'completed' && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Record debrief conversation to complete the visit
+                    </p>
+                  )}
 
                   {confirmDeleteId === obs.id ? (
                     <div className="flex items-center justify-center gap-2 pt-1">

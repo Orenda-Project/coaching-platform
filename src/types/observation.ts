@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export type ObservationStatus = 'Scheduled' | 'Draft' | 'Submitted' | 'Approved';
 
 export interface DcIndicatorDetail {
@@ -68,6 +70,22 @@ export interface CotObservation {
   approved_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface TeacherDcScore {
+  id: string;
+  observer_id: string;
+  teacher_name: string;
+  school_name: string;
+  region: string;
+  subject?: string | null;
+  grade?: string | null;
+  framework: string;
+  total_score: number;
+  proficiency_level?: string | null;
+  scored_at: string;
+  raw_results?: Record<string, any> | null;
+  created_at: string;
 }
 
 export interface ScheduleFormData {

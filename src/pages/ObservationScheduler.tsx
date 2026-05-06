@@ -1,13 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, ClipboardList, Clock, BarChart2, ArrowLeft } from 'lucide-react';
+import { GraduationCap, ClipboardList, Clock, CheckCircle2, BarChart2, ArrowLeft, CalendarDays } from 'lucide-react';
 import { CoachingHubTab } from '@/components/observation/CoachingHubTab';
 import { DraftObservationsTab } from '@/components/observation/DraftObservationsTab';
+import { SubmittedObservationsTab } from '@/components/observation/SubmittedObservationsTab';
 import { ObservationsOverviewTab } from '@/components/observation/ObservationsOverviewTab';
+import SmartScheduleTab from '@/components/observation/SmartScheduleTab';
+import { QuickObservationPanel } from '@/components/observation/QuickObservationPanel';
 import type { CotObservation } from '@/types/observation';
 
 export default function ObservationScheduler() {
@@ -16,6 +20,7 @@ export default function ObservationScheduler() {
   const [observations, setObservations] = useState<CotObservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('hub');
+  const [quickObs, setQuickObs] = useState<CotObservation | null>(null);
 
   const loadObservations = useCallback(async () => {
     if (!user) return;
@@ -36,6 +41,7 @@ export default function ObservationScheduler() {
   }, [loadObservations]);
 
   const draftCount = observations.filter(o => o.status === 'Draft').length;
+  const submittedCount = observations.filter(o => o.status === 'Submitted' || o.status === 'Approved').length;
 
   if (loading) {
     return (
@@ -67,6 +73,20 @@ export default function ObservationScheduler() {
         </div>
       </header>
 
+      {/* Quick Observation Panel */}
+      {quickObs && (
+        <QuickObservationPanel
+          observation={quickObs}
+          onSaved={(updated) => setQuickObs(updated)}
+          onSaveToDraft={async () => {
+            await loadObservations();
+            setQuickObs(null);
+            setActiveTab('draft');
+          }}
+          onClose={() => setQuickObs(null)}
+        />
+      )}
+
       <main className="container px-4 py-6 max-w-3xl">
         {/* Page title */}
         <div className="mb-6">
@@ -80,15 +100,15 @@ export default function ObservationScheduler() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="hub" className="text-xs sm:text-sm gap-1.5">
               <ClipboardList className="w-3.5 h-3.5" />
-              <span>Schedule &amp; Observe</span>
+              <span className="hidden sm:inline">Schedule</span>
             </TabsTrigger>
 
             <TabsTrigger value="draft" className="text-xs sm:text-sm gap-1.5">
               <Clock className="w-3.5 h-3.5" />
-              <span>Drafts</span>
+              <span className="hidden sm:inline">In Progress</span>
               {draftCount > 0 && (
                 <span className="ml-0.5 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
                   {draftCount}
@@ -96,9 +116,24 @@ export default function ObservationScheduler() {
               )}
             </TabsTrigger>
 
+            <TabsTrigger value="submitted" className="text-xs sm:text-sm gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Submitted</span>
+              {submittedCount > 0 && (
+                <span className="ml-0.5 bg-green-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
+                  {submittedCount}
+                </span>
+              )}
+            </TabsTrigger>
+
             <TabsTrigger value="overview" className="text-xs sm:text-sm gap-1.5">
               <BarChart2 className="w-3.5 h-3.5" />
-              <span>Overview</span>
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+
+            <TabsTrigger value="scheduler" className="text-xs sm:text-sm gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Smart Plan</span>
             </TabsTrigger>
           </TabsList>
 
@@ -107,6 +142,7 @@ export default function ObservationScheduler() {
               observations={observations}
               onRefresh={loadObservations}
               onStarted={() => setActiveTab('draft')}
+              onNewObservation={(obs) => setQuickObs(obs)}
             />
           </TabsContent>
 
@@ -117,8 +153,16 @@ export default function ObservationScheduler() {
             />
           </TabsContent>
 
+          <TabsContent value="submitted">
+            <SubmittedObservationsTab observations={observations} />
+          </TabsContent>
+
           <TabsContent value="overview">
             <ObservationsOverviewTab observations={observations} />
+          </TabsContent>
+
+          <TabsContent value="scheduler">
+            <SmartScheduleTab />
           </TabsContent>
         </Tabs>
       </main>

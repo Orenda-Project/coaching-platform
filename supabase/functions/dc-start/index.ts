@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     // Build form data for DC API
     const formData = new FormData();
     formData.append('audio_s3_url', presigned_get_url);
-    formData.append('lesson_plan_text', lesson_plan_text || obs.topic || '');
+    formData.append('lesson_plan_text', lesson_plan_text || obs.topic || 'General classroom observation');
     formData.append('test_name', `obs-${observation_id}`);
     formData.append('rubric_type', 'fico-v3');
     formData.append('region', 'ict');
