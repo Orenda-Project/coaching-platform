@@ -1,4 +1,4 @@
-import { CotObservation } from '@/types/observation';
+import { CotObservation, TeacherDcScore } from '@/types/observation';
 
 export type PriorityTier = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -237,6 +237,57 @@ export function detectTierChange(
 ): boolean {
   if (!oldTier) return false;
   return oldTier !== newTier;
+}
+
+// Normalize raw score to 0–100 percentage based on framework
+export function normalizeScore(score: number, framework: string): number {
+  const max = framework === 'FICO' ? 100 : 80;
+  return Math.round((score / max) * 100);
+}
+
+// Build roster from teacher_dc_scores + cot_observations (new primary path)
+export function buildRosterFromDcScores(
+  dcScores: TeacherDcScore[],
+  visits: Pick<CotObservation, 'teacher_name' | 'school_name' | 'submitted_at' | 'status'>[]
+): TeacherWithScore[] {
+  // Group dc scores per teacher+school, ordered newest first
+  const scoreMap = new Map<string, TeacherDcScore[]>();
+  for (const s of dcScores) {
+    const key = `${s.teacher_name}||${s.school_name}`;
+    if (!scoreMap.has(key)) scoreMap.set(key, []);
+    scoreMap.get(key)!.push(s);
+  }
+
+  // Last-visit lookup from submitted observations
+  const lastVisitMap = new Map<string, Date>();
+  for (const v of visits) {
+    const key = `${v.teacher_name}||${v.school_name}`;
+    if (!lastVisitMap.has(key) && v.submitted_at) {
+      lastVisitMap.set(key, new Date(v.submitted_at));
+    }
+  }
+
+  const result: TeacherWithScore[] = [];
+  for (const [key, scores] of scoreMap.entries()) {
+    const latest = scores[0];
+    const latestNorm = normalizeScore(latest.total_score, latest.framework);
+    const prevNorm = scores[1] ? normalizeScore(scores[1].total_score, scores[1].framework) : null;
+    const scoreTrend = getScoreTrend(latestNorm, prevNorm);
+    const lastVisitDate = lastVisitMap.get(key) ?? null;
+    const neverObserved = !lastVisitDate;
+
+    result.push({
+      teacher_name: latest.teacher_name,
+      school_name: latest.school_name,
+      region: latest.region,
+      latestScore: latestNorm,
+      lastVisitDate,
+      neverObserved,
+      scoreTrend,
+    });
+  }
+
+  return result;
 }
 
 // Build a roster with latest scores from observations
