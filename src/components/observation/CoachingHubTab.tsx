@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,6 +23,7 @@ interface Props {
   observations: CotObservation[];
   onRefresh: () => void;
   onStarted: (obs: CotObservation) => void;
+  onNewObservation?: (obs: CotObservation) => void;
 }
 
 export function CoachingHubTab({ observations, onRefresh, onStarted }: Props) {
@@ -198,7 +200,7 @@ export function CoachingHubTab({ observations, onRefresh, onStarted }: Props) {
       <ScheduleDialog
         open={scheduleOpen}
         onClose={() => setScheduleOpen(false)}
-        onScheduled={() => onRefresh()}
+        onScheduled={(obs) => { onRefresh(); onNewObservation?.(obs); }}
       />
     </div>
   );

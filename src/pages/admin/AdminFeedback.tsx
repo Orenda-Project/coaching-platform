@@ -154,7 +154,7 @@ export default function AdminFeedback() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, page, filters]);
+  }, [page, filters]);
 
   useEffect(() => {
     setPage(1);
