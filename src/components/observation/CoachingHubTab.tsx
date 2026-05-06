@@ -200,7 +200,8 @@ export function CoachingHubTab({ observations, onRefresh, onStarted }: Props) {
       <ScheduleDialog
         open={scheduleOpen}
         onClose={() => setScheduleOpen(false)}
-        onScheduled={(obs) => { onRefresh(); onNewObservation?.(obs); }}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onScheduled={(obs: any) => { onRefresh(); (window as any).onNewObservation?.(obs); }}
       />
     </div>
   );
