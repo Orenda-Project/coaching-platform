@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BarChart2, Users, TrendingUp, Search, AlertTriangle, CheckCircle2, Clock, Flag, ChevronDown, ChevronRight } from "lucide-react";
+import { BarChart2, Users, TrendingUp, Search, AlertTriangle, CheckCircle2, Clock, Flag, ChevronDown, ChevronRight, Download } from "lucide-react";
+import { exportCoachDataToExcel } from "@/domain/excel-export";
 
 const REGIONS = [
   { value: "", label: "All Regions" },
@@ -296,6 +297,20 @@ export default function AdminAnalytics() {
     ? Math.round(filtered.filter((c) => c.endline_score !== null).reduce((a, c) => a + (c.endline_score || 0), 0) / (filtered.filter((c) => c.endline_score !== null).length || 1))
     : null;
 
+  const handleExportToExcel = async () => {
+    const exportData = filtered.map((c) => ({
+      full_name: c.full_name,
+      phone: c.phone,
+      region: c.region,
+      school_id: c.school_id,
+      persona: c.persona,
+      baseline_score: c.baseline_score,
+      endline_score: c.endline_score,
+    }));
+
+    await exportCoachDataToExcel(exportData, "coaching-analytics");
+  };
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -371,7 +386,7 @@ export default function AdminAnalytics() {
             {PERSONAS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-2 self-center pt-4">
+        <div className="flex items-center gap-3 self-center pt-4">
           <input
             type="checkbox"
             id="flagged-only"
@@ -382,6 +397,14 @@ export default function AdminAnalytics() {
           <label htmlFor="flagged-only" className="text-sm text-foreground whitespace-nowrap flex items-center gap-1">
             <AlertTriangle className="w-3 h-3 text-amber-500" /> Flagged only
           </label>
+          <button
+            onClick={handleExportToExcel}
+            disabled={filtered.length === 0}
+            className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export Excel
+          </button>
         </div>
       </div>
 
