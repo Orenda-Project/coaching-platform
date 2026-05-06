@@ -40,11 +40,21 @@ export default function SmartScheduleTab() {
 
   const loadData = async () => {
     setLoading(true);
+
+    const assignRes = await (supabase as any)
+      .from('coach_assignments')
+      .select('region, sub_region')
+      .eq('coach_id', user!.id)
+      .single();
+
+    const coachSubRegion = assignRes.data?.sub_region ?? 'Tarnol';
+
     const [scoresRes, visitsRes] = await Promise.all([
       (supabase as any)
         .from('teacher_dc_scores')
         .select('*')
         .eq('observer_id', user!.id)
+        .eq('sub_region', coachSubRegion)
         .order('scored_at', { ascending: false }),
       (supabase as any)
         .from('cot_observations')
@@ -116,12 +126,14 @@ export default function SmartScheduleTab() {
     );
   }
 
+  const subRegion = rankedTeachers.length > 0 ? rankedTeachers[0]?.region || 'ICT' : 'ICT';
+
   return (
     <div className="space-y-4">
       <div>
         <h2 className="font-display text-lg font-semibold text-foreground">Smart Visit Scheduler</h2>
         <p className="text-sm text-muted-foreground">
-          {rankedTeachers.length} teacher{rankedTeachers.length !== 1 ? 's' : ''} ranked by urgency
+          {rankedTeachers.length} teacher{rankedTeachers.length !== 1 ? 's' : ''} in <span className="font-medium text-foreground">{subRegion}</span>
           {criticalCount > 0 && (
             <span className="text-red-600 font-medium"> · {criticalCount} critical</span>
           )}
