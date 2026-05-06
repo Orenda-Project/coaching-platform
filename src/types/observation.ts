@@ -70,6 +70,22 @@ export interface CotObservation {
   updated_at: string;
 }
 
+export interface TeacherDcScore {
+  id: string;
+  observer_id: string;
+  teacher_name: string;
+  school_name: string;
+  region: string;
+  subject?: string | null;
+  grade?: string | null;
+  framework: string;
+  total_score: number;
+  proficiency_level?: string | null;
+  scored_at: string;
+  raw_results?: Record<string, any> | null;
+  created_at: string;
+}
+
 export interface ScheduleFormData {
   school_name: string;
   teacher_name: string;

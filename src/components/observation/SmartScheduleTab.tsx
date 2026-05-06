@@ -1,237 +1,210 @@
-import { useState, useMemo } from 'react';
-import { CotObservation } from '@/types/observation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  buildTeacherRosterWithScores,
-  rankTeachersByUrgency,
-  generateWeeklySchedule,
-  generateFourWeekPlan,
-  RankedTeacher,
-  ScheduledVisit,
-  PriorityTier,
-} from '@/lib/scheduler-utils';
-import PriorityList from './PriorityList';
-import WeeklyPlanView from './WeeklyPlanView';
-import FourWeekOverview from './FourWeekOverview';
-import PriorityAlertBanner from './PriorityAlertBanner';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { User, MapPin, BookOpen, TrendingDown, Clock, AlertTriangle } from 'lucide-react';
+import type { TeacherDcScore, CotObservation } from '@/types/observation';
 
-interface TeacherRosterRow {
-  teacher_name: string;
-  school_name: string;
-  region?: string;
+interface RankedEntry {
+  score: TeacherDcScore;
+  lastVisit: string | null;
+  daysSinceVisit: number | null;
+  tier: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 }
 
-interface SmartScheduleTabProps {
-  observations: CotObservation[];
-  onAddToSchedule: (teacher: ScheduledVisit) => void;
+function getTier(totalScore: number, framework: string): 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' {
+  const max = framework === 'FICO' ? 100 : 80;
+  const pct = (totalScore / max) * 100;
+  if (pct < 40) return 'CRITICAL';
+  if (pct < 60) return 'HIGH';
+  if (pct < 75) return 'MEDIUM';
+  return 'LOW';
 }
 
-export default function SmartScheduleTab({
-  observations,
-  onAddToSchedule,
-}: SmartScheduleTabProps) {
-  const [roster, setRoster] = useState<TeacherRosterRow[]>([]);
-  const [newTeacherName, setNewTeacherName] = useState('');
-  const [newSchoolName, setNewSchoolName] = useState('');
-  const [newRegion, setNewRegion] = useState('');
-  const [openDialog, setOpenDialog] = useState(false);
-  const [lastPlanTierMap, setLastPlanTierMap] = useState<
-    Map<string, PriorityTier>
-  >(new Map());
+const TIER_STYLES: Record<string, { badge: string; Icon: React.ElementType }> = {
+  CRITICAL: { badge: 'text-red-700 border-red-200 bg-red-50', Icon: AlertTriangle },
+  HIGH: { badge: 'text-orange-700 border-orange-200 bg-orange-50', Icon: TrendingDown },
+  MEDIUM: { badge: 'text-yellow-700 border-yellow-200 bg-yellow-50', Icon: Clock },
+  LOW: { badge: 'text-green-700 border-green-200 bg-green-50', Icon: Clock },
+};
 
-  // Build teacher roster with scores and rank by urgency
-  const rankedTeachers = useMemo(() => {
-    const withScores = buildTeacherRosterWithScores(roster, observations);
-    return rankTeachersByUrgency(withScores);
-  }, [roster, observations]);
+const TIER_SCORE_COLORS: Record<string, string> = {
+  CRITICAL: 'text-red-600',
+  HIGH: 'text-orange-600',
+  MEDIUM: 'text-yellow-600',
+  LOW: 'text-green-600',
+};
 
-  // Generate this week's schedule
-  const { scheduled: weeklySchedule } = useMemo(
-    () => generateWeeklySchedule(rankedTeachers),
-    [rankedTeachers]
-  );
+const TIER_LABELS: Record<string, string> = {
+  CRITICAL: 'Critical — visit ASAP',
+  HIGH: 'High — visit within 2 weeks',
+  MEDIUM: 'Medium — visit within 3 weeks',
+  LOW: 'Low — visit monthly',
+};
 
-  // Generate 4-week plan
-  const fourWeekPlan = useMemo(
-    () => generateFourWeekPlan(rankedTeachers),
-    [rankedTeachers]
-  );
+export default function SmartScheduleTab() {
+  const { user } = useAuth();
+  const [ranked, setRanked] = useState<RankedEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Detect tier changes from last plan run
-  const tierChanges = useMemo(() => {
-    const changes: Array<{ teacher: string; school: string; oldTier: PriorityTier | null; newTier: PriorityTier }> = [];
-    rankedTeachers.forEach((teacher) => {
-      const key = `${teacher.teacher_name}-${teacher.school_name}`;
-      const oldTier = lastPlanTierMap.get(key) ?? null;
-      if (oldTier && oldTier !== teacher.tier) {
-        changes.push({
-          teacher: teacher.teacher_name,
-          school: teacher.school_name,
-          oldTier,
-          newTier: teacher.tier,
-        });
-      }
-    });
-    return changes;
-  }, [rankedTeachers, lastPlanTierMap]);
+  useEffect(() => {
+    if (!user) return;
+    loadData();
+  }, [user]);
 
-  // Add teacher to roster
-  const handleAddTeacher = () => {
-    if (!newTeacherName.trim() || !newSchoolName.trim()) {
-      alert('Please fill in teacher name and school');
-      return;
-    }
+  const loadData = async () => {
+    setLoading(true);
 
-    const isDuplicate = roster.some(
-      (t) =>
-        t.teacher_name === newTeacherName &&
-        t.school_name === newSchoolName
-    );
-    if (isDuplicate) {
-      alert('This teacher is already in your roster');
-      return;
-    }
-
-    setRoster([
-      ...roster,
-      {
-        teacher_name: newTeacherName,
-        school_name: newSchoolName,
-        region: newRegion,
-      },
+    const [scoresRes, obsRes] = await Promise.all([
+      (supabase as any)
+        .from('teacher_dc_scores')
+        .select('*')
+        .eq('observer_id', user!.id)
+        .order('scored_at', { ascending: false }),
+      (supabase as any)
+        .from('cot_observations')
+        .select('teacher_name, school_name, submitted_at, status')
+        .eq('observer_id', user!.id)
+        .in('status', ['Submitted', 'Approved'])
+        .order('submitted_at', { ascending: false }),
     ]);
 
-    setNewTeacherName('');
-    setNewSchoolName('');
-    setNewRegion('');
-    setOpenDialog(false);
-  };
+    const scores: TeacherDcScore[] = scoresRes.data ?? [];
+    const visits: Pick<CotObservation, 'teacher_name' | 'school_name' | 'submitted_at' | 'status'>[] = obsRes.data ?? [];
 
-  // Remove teacher from roster
-  const handleRemoveTeacher = (teacherName: string, schoolName: string) => {
-    setRoster((prev) =>
-      prev.filter(
-        (t) => !(t.teacher_name === teacherName && t.school_name === schoolName)
-      )
-    );
-  };
+    // Keep latest score per teacher+school
+    const seen = new Set<string>();
+    const latest: TeacherDcScore[] = [];
+    for (const s of scores) {
+      const key = `${s.teacher_name}||${s.school_name}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        latest.push(s);
+      }
+    }
 
-  // Update tier map after viewing plan
-  const handleViewPlan = () => {
-    const newMap = new Map<string, PriorityTier>();
-    rankedTeachers.forEach((teacher) => {
-      const key = `${teacher.teacher_name}-${teacher.school_name}`;
-      newMap.set(key, teacher.tier);
+    // Build last-visit lookup
+    const lastVisitMap = new Map<string, string>();
+    for (const v of visits) {
+      const key = `${v.teacher_name}||${v.school_name}`;
+      if (!lastVisitMap.has(key) && v.submitted_at) {
+        lastVisitMap.set(key, v.submitted_at);
+      }
+    }
+
+    const today = new Date();
+    const entries: RankedEntry[] = latest.map(s => {
+      const key = `${s.teacher_name}||${s.school_name}`;
+      const lastVisit = lastVisitMap.get(key) ?? null;
+      const daysSinceVisit = lastVisit
+        ? Math.floor((today.getTime() - new Date(lastVisit).getTime()) / 86400000)
+        : null;
+      return { score: s, lastVisit, daysSinceVisit, tier: getTier(s.total_score, s.framework) };
     });
-    setLastPlanTierMap(newMap);
+
+    const tierOrder: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+    entries.sort((a, b) => {
+      const diff = tierOrder[a.tier] - tierOrder[b.tier];
+      if (diff !== 0) return diff;
+      return (b.daysSinceVisit ?? 999) - (a.daysSinceVisit ?? 999);
+    });
+
+    setRanked(entries);
+    setLoading(false);
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-14">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (ranked.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-14 text-center">
+        <TrendingDown className="w-10 h-10 text-muted-foreground mb-3" />
+        <h3 className="font-semibold text-foreground mb-1">No DC scores yet</h3>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Teacher scores from the DC dashboard will appear here once synced. Teachers with lower scores are prioritised for visits.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-semibold">Smart Coach Visit Scheduler</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {roster.length} teachers · {rankedTeachers.filter(t => t.tier === 'CRITICAL').length} critical
-          </p>
-        </div>
-
-        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-          <DialogTrigger asChild>
-            <Button>+ Add Teacher to Roster</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Teacher to Roster</DialogTitle>
-              <DialogDescription>
-                Add a teacher even if they haven't been observed yet.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Teacher Name</label>
-                <Input
-                  value={newTeacherName}
-                  onChange={(e) => setNewTeacherName(e.target.value)}
-                  placeholder="e.g., Ayesha Khan"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">School Name</label>
-                <Input
-                  value={newSchoolName}
-                  onChange={(e) => setNewSchoolName(e.target.value)}
-                  placeholder="e.g., Gov School Jand"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Region (Optional)</label>
-                <Input
-                  value={newRegion}
-                  onChange={(e) => setNewRegion(e.target.value)}
-                  placeholder="e.g., ICT, Punjab"
-                />
-              </div>
-              <Button onClick={handleAddTeacher} className="w-full">
-                Add Teacher
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-display text-lg font-semibold text-foreground">Smart Visit Scheduler</h2>
+        <p className="text-sm text-muted-foreground">
+          {ranked.length} teacher{ranked.length !== 1 ? 's' : ''} ranked by priority · lower DC scores visited first
+        </p>
       </div>
 
-      {/* Alert Banner: Show if tier changes detected */}
-      {tierChanges.length > 0 && (
-        <PriorityAlertBanner changes={tierChanges} />
-      )}
+      <div className="space-y-3">
+        {ranked.map((entry, idx) => {
+          const { score, daysSinceVisit, tier } = entry;
+          const { badge, Icon } = TIER_STYLES[tier];
+          const max = score.framework === 'FICO' ? 100 : 80;
 
-      {roster.length === 0 ? (
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-          <p className="text-gray-600 mb-4">
-            No teachers in your roster yet. Add some to generate a smart schedule.
-          </p>
-          <Button onClick={() => setOpenDialog(true)}>Add Your First Teacher</Button>
-        </div>
-      ) : (
-        <Tabs defaultValue="priority" onValueChange={(value) => {
-          if (value === 'weekly') handleViewPlan();
-        }}>
-          <TabsList>
-            <TabsTrigger value="priority">Priority List</TabsTrigger>
-            <TabsTrigger value="weekly">Weekly Plan</TabsTrigger>
-            <TabsTrigger value="month">4-Week Overview</TabsTrigger>
-          </TabsList>
+          return (
+            <Card key={score.id} className="glass-card">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-medium text-muted-foreground">#{idx + 1}</span>
+                      <Badge variant="outline" className={`text-xs ${badge}`}>
+                        <Icon className="w-3 h-3 mr-1" />
+                        {tier}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">{score.framework}</Badge>
+                    </div>
 
-          <TabsContent value="priority">
-            <PriorityList
-              rankedTeachers={rankedTeachers}
-              onRemoveTeacher={handleRemoveTeacher}
-              onAddToSchedule={onAddToSchedule}
-            />
-          </TabsContent>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="font-medium text-foreground truncate">{score.teacher_name}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{score.school_name}</span>
+                      </div>
+                      {(score.subject || score.grade) && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                          <span>{[score.subject, score.grade].filter(Boolean).join(' · ')}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          {daysSinceVisit === null
+                            ? 'Never visited'
+                            : `${daysSinceVisit}d since last visit`}
+                        </span>
+                      </div>
+                    </div>
 
-          <TabsContent value="weekly">
-            <WeeklyPlanView
-              schedule={weeklySchedule}
-              onAddToSchedule={onAddToSchedule}
-            />
-          </TabsContent>
+                    <p className="text-xs text-muted-foreground">{TIER_LABELS[tier]}</p>
+                  </div>
 
-          <TabsContent value="month">
-            <FourWeekOverview plan={fourWeekPlan} />
-          </TabsContent>
-        </Tabs>
-      )}
+                  <div className="text-right shrink-0">
+                    <div className={`text-2xl font-bold ${TIER_SCORE_COLORS[tier]}`}>
+                      {score.total_score}/{max}
+                    </div>
+                    {score.proficiency_level && (
+                      <div className="text-xs text-muted-foreground">{score.proficiency_level}</div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
