@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import DCDashboard from './DCDashboard';
-import { AlertCircle, ChevronLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CotObservation } from '@/types/observation';
 
@@ -43,9 +42,41 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const { user } = useAuth();
   const [teachers, setTeachers] = useState<DCTeacher[]>([]);
   const [loading, setLoading] = useState(true);
+  const [assignmentLoading, setAssignmentLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSector, setSelectedSector] = useState<string | null>(null);
+  const [coachSubRegion, setCoachSubRegion] = useState<string | null>(null);
   const [schedulingTeacherId, setSchedulingTeacherId] = useState<string | null>(null);
+
+  // Load coach's assigned sub-region from coach_assignments
+  useEffect(() => {
+    const loadAssignment = async () => {
+      if (!user) {
+        setAssignmentLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error: queryError } = await typedSupabase
+          .from('coach_assignments')
+          .select('sub_region')
+          .eq('coach_id', user.id)
+          .single();
+
+        if (queryError && queryError.code !== 'PGRST116') {
+          // PGRST116 = no rows, which is expected for new/unassigned coaches
+          console.error('Failed to load coach assignment:', queryError);
+        }
+
+        setCoachSubRegion(data?.sub_region ?? null);
+      } catch (err) {
+        console.error('Error loading coach assignment:', err);
+      } finally {
+        setAssignmentLoading(false);
+      }
+    };
+
+    loadAssignment();
+  }, [user]);
 
   const loadData = useCallback(async () => {
     try {
@@ -61,7 +92,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         setError(queryError.message);
         setTeachers([]);
       } else if (!data || data.length === 0) {
-        setError('No DC scores available. Seed the teacher_dc_scores table first.');
+        setError('No teachers assigned to your sub-region.');
         setTeachers([]);
       } else {
         // Map database fields to component interface
@@ -168,94 +199,52 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     }
   }, [user, onNewObservation]);
 
-  if (error) {
+  // Show loading state while fetching assignment
+  if (assignmentLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  // No assignment state
+  if (!coachSubRegion) {
     return (
       <div className="flex flex-col items-center justify-center py-14 text-center">
         <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
-        <h3 className="font-semibold text-foreground mb-1">Unable to load DC scores</h3>
-        <p className="text-sm text-muted-foreground max-w-xs mb-4">{error}</p>
-        <p className="text-xs text-muted-foreground max-w-sm">
-          To get started, seed teacher DC scores into the database using the seed script, or ensure the data sync from the DC dashboard is configured.
+        <h3 className="font-semibold text-foreground mb-1">Sub-region not assigned</h3>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Your account has no sub-region assigned. Please contact your administrator.
         </p>
       </div>
     );
   }
 
-  // Extract unique sectors and count teachers per sector
-  const uniqueSectors = Array.from(
-    new Map(
-      teachers.map(t => [
-        t.sector,
-        { sector: t.sector, count: teachers.filter(x => x.sector === t.sector).length }
-      ])
-    ).values()
-  ).sort((a, b) => a.sector.localeCompare(b.sector));
-
-  // Filter teachers by selected sector
-  const filteredTeachers = selectedSector
-    ? teachers.filter(t => t.sector === selectedSector)
-    : [];
-
-  // Sector selector view
-  if (!selectedSector) {
+  // Load error state
+  if (error) {
     return (
-      <div className="space-y-4">
-        <div>
-          <h2 className="font-display text-lg font-semibold text-foreground">Select Your Sector</h2>
-          <p className="text-sm text-muted-foreground">
-            Choose your sub-region to see assigned teachers
-          </p>
-        </div>
-
-        {uniqueSectors.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 text-center">
-            <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
-            <h3 className="font-semibold text-foreground mb-1">No sectors found</h3>
-            <p className="text-sm text-muted-foreground">
-              No teacher data available yet.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {uniqueSectors.map(({ sector, count }) => (
-              <button
-                key={sector}
-                onClick={() => setSelectedSector(sector)}
-                className="p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors text-left"
-              >
-                <div className="font-medium text-foreground">{sector}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {count} teacher{count !== 1 ? 's' : ''}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="flex flex-col items-center justify-center py-14 text-center">
+        <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
+        <h3 className="font-semibold text-foreground mb-1">Unable to load teachers</h3>
+        <p className="text-sm text-muted-foreground max-w-xs mb-4">{error}</p>
       </div>
     );
   }
 
-  // Teacher list view for selected sector
+  // Teacher list view
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => setSelectedSector(null)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Change sector
-          </button>
-          <h2 className="font-display text-lg font-semibold text-foreground">{selectedSector}</h2>
-          <p className="text-sm text-muted-foreground">
-            {filteredTeachers.length} teacher{filteredTeachers.length !== 1 ? 's' : ''} • Ranked by coaching priority
-          </p>
-        </div>
+      <div>
+        <h2 className="font-display text-lg font-semibold text-foreground">Smart Schedule</h2>
+        <p className="text-sm text-muted-foreground">
+          Sub-region: <span className="font-medium text-foreground">{coachSubRegion}</span>
+          {' '}· {teachers.length} teacher{teachers.length !== 1 ? 's' : ''} · Ranked by coaching priority
+        </p>
       </div>
 
       <DCDashboard
-        teachers={filteredTeachers}
+        teachers={teachers}
         loading={loading}
         onScheduleVisit={handleScheduleVisit}
       />
