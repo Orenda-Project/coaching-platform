@@ -77,7 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await new Promise((r) => setTimeout(r, 500));
 
       // Insert coach assignment for the new user
-      const { error: assignError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: assignError } = await (supabase as any)
         .from('coach_assignments')
         .insert({
           coach_id: signUpData.user.id,
