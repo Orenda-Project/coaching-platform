@@ -19,6 +19,7 @@ import {
   ChevronRight,
   FileQuestion,
   User,
+  CalendarDays,
 } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -209,6 +210,14 @@ export default function Dashboard() {
             {profile?.persona && (
               <PersonaBadge persona={profile.persona} size="sm" />
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/observation-scheduler")}
+            >
+              <CalendarDays className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Scheduler</span>
+            </Button>
             <Button
               variant="ghost"
               size="sm"

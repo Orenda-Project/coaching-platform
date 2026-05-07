@@ -227,7 +227,8 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           setPhase('completed');
           toast.success('Debrief analysis complete!');
           // Refresh observation data
-          const { data: updated } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: updated } = await (supabase as any)
             .from('cot_observations')
             .select('*')
             .eq('id', observation.id)

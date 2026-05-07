@@ -113,9 +113,14 @@ export default function CertificatePage() {
             </div>
             <span className="font-display font-bold text-lg text-foreground">RABT</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> Dashboard
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/observation-scheduler")}>
+              Schedule Observations
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Dashboard
+            </Button>
+          </div>
         </div>
       </header>
 
