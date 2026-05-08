@@ -74,8 +74,8 @@ export default function Onboarding() {
       return;
     }
 
-    if (!subRegion.trim()) {
-      toast.error("Sub-region is required");
+    if (region === "islamabad" && !subRegion.trim()) {
+      toast.error("Sub-region is required for Islamabad");
       return;
     }
 
@@ -197,30 +197,32 @@ export default function Onboarding() {
                 </select>
               </div>
 
-              {/* Sub-Region */}
-              <div className="space-y-2">
-                <Label htmlFor="subRegion" className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-purple-600" />
-                  Sub-Region *
-                </Label>
-                <select
-                  id="subRegion"
-                  value={subRegion}
-                  onChange={(e) => setSubRegion(e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">Select your sub-region...</option>
-                  {SUB_REGIONS.map((sr) => (
-                    <option key={sr} value={sr}>
-                      {sr}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-muted-foreground">
-                  Choose the sub-region where you work
-                </p>
-              </div>
+              {/* Sub-Region (only for Islamabad) */}
+              {region === "islamabad" && (
+                <div className="space-y-2">
+                  <Label htmlFor="subRegion" className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-purple-600" />
+                    Sub-Region *
+                  </Label>
+                  <select
+                    id="subRegion"
+                    value={subRegion}
+                    onChange={(e) => setSubRegion(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Select your sub-region...</option>
+                    {SUB_REGIONS.map((sr) => (
+                      <option key={sr} value={sr}>
+                        {sr}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Choose the sub-region where you work
+                  </p>
+                </div>
+              )}
 
               {/* School */}
               <div className="space-y-2">
