@@ -5,14 +5,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { GraduationCap, Eye, EyeOff } from "lucide-react";
+
+const SUB_REGIONS = ["Nilore", "Tarnol", "Sihala", "B.K", "Urban-I", "Urban-II"];
 
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [subRegion, setSubRegion] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { signUp } = useAuth();
@@ -24,12 +34,16 @@ export default function Signup() {
       toast.error("Please fill in all required fields");
       return;
     }
+    if (!subRegion) {
+      toast.error("Please select your sub-region");
+      return;
+    }
     if (password.length < 8) {
       toast.error("Password must be at least 8 characters");
       return;
     }
     setLoading(true);
-    const { error } = await signUp(email, password, phone, fullName);
+    const { error } = await signUp(email, password, phone, fullName, subRegion);
     setLoading(false);
     if (error) {
       toast.error(error.message);
@@ -86,6 +100,21 @@ export default function Signup() {
                   onChange={(e) => setPhone(e.target.value)}
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="subRegion">Sub-Region *</Label>
+                <Select value={subRegion} onValueChange={setSubRegion}>
+                  <SelectTrigger id="subRegion">
+                    <SelectValue placeholder="Select your sub-region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUB_REGIONS.map((region) => (
+                      <SelectItem key={region} value={region}>
+                        {region}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password *</Label>
