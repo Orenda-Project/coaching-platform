@@ -14,6 +14,8 @@ const REGIONS = [
   { value: "rawalpindi", label: "Rawalpindi (Rwp)" },
 ];
 
+const SUB_REGIONS = ["Nilore", "Tarnol", "Sihala", "B.K", "Urban-I", "Urban-II"] as const;
+
 const PERSONAS = [
   { value: "", label: "All Personas" },
   { value: "A", label: "A — Advanced" },
@@ -27,6 +29,7 @@ interface ProfileRow {
   full_name: string | null;
   phone: string;
   region: string | null;
+  sub_region?: string | null;
   school_id: string | null;
   persona: string | null;
   baseline_completed: boolean;
@@ -86,6 +89,7 @@ interface CoachRow extends ProfileRow {
   tabSwitchBreakdown: TabSwitchBreakdown;
   flagged: boolean;
   moduleDetails: ModuleDetail[];
+  sub_region?: string | null;
 }
 
 function regionLabel(val: string | null): string {
@@ -106,6 +110,7 @@ export default function AdminAnalytics() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [regionFilter, setRegionFilter] = useState("");
+  const [subRegionFilter, setSubRegionFilter] = useState("");
   const [personaFilter, setPersonaFilter] = useState("");
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
   const [expandedCoachId, setExpandedCoachId] = useState<string | null>(null);
@@ -273,6 +278,7 @@ export default function AdminAnalytics() {
 
   const filtered = coaches.filter((c) => {
     if (regionFilter && c.region !== regionFilter) return false;
+    if (subRegionFilter && c.region === "islamabad" && c.sub_region !== subRegionFilter) return false;
     if (personaFilter && c.persona !== personaFilter) return false;
     if (showFlaggedOnly && !c.flagged) return false;
     if (search) {
@@ -302,6 +308,7 @@ export default function AdminAnalytics() {
       full_name: c.full_name,
       phone: c.phone,
       region: c.region,
+      sub_region: c.region === "islamabad" ? c.sub_region : undefined,
       school_id: c.school_id,
       persona: c.persona,
       baseline_score: c.baseline_score,
@@ -370,12 +377,28 @@ export default function AdminAnalytics() {
           <Label className="text-xs mb-1 block">Region</Label>
           <select
             value={regionFilter}
-            onChange={(e) => setRegionFilter(e.target.value)}
+            onChange={(e) => {
+              setRegionFilter(e.target.value);
+              if (e.target.value !== "islamabad") setSubRegionFilter("");
+            }}
             className="h-8 px-3 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {REGIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
         </div>
+        {regionFilter === "islamabad" && (
+          <div>
+            <Label className="text-xs mb-1 block">Sub-Region</Label>
+            <select
+              value={subRegionFilter}
+              onChange={(e) => setSubRegionFilter(e.target.value)}
+              className="h-8 px-3 border border-input rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">All Sub-Regions</option>
+              {SUB_REGIONS.map((sr) => <option key={sr} value={sr}>{sr}</option>)}
+            </select>
+          </div>
+        )}
         <div>
           <Label className="text-xs mb-1 block">Persona</Label>
           <select
@@ -423,6 +446,7 @@ export default function AdminAnalytics() {
                 <th className="text-center px-2 py-2 font-semibold whitespace-nowrap w-8"></th>
                 <th className="text-left px-3 py-2 font-semibold whitespace-nowrap">Coach Name / Phone / Email</th>
                 <th className="text-left px-3 py-2 font-semibold whitespace-nowrap">Region</th>
+                <th className="text-left px-3 py-2 font-semibold whitespace-nowrap">Sub-Region</th>
                 <th className="text-left px-3 py-2 font-semibold whitespace-nowrap">School</th>
                 <th className="text-center px-3 py-2 font-semibold whitespace-nowrap">Persona</th>
                 <th className="text-center px-3 py-2 font-semibold whitespace-nowrap">Baseline</th>
@@ -456,6 +480,11 @@ export default function AdminAnalytics() {
 
                     {/* Region */}
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-foreground">{regionLabel(c.region)}</td>
+
+                    {/* Sub-Region */}
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-foreground">
+                      {c.region === "islamabad" ? (c.sub_region || "—") : "—"}
+                    </td>
 
                     {/* School */}
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-foreground max-w-40 truncate" title={c.school_id || ""}>
@@ -545,7 +574,7 @@ export default function AdminAnalytics() {
                   {/* Expanded module details row with unit-level status and tab switches */}
                   {expandedCoachId === c.id && (c.moduleDetails.length > 0 || c.total_tab_switches > 0) && (
                     <tr className="bg-muted/20 border-b border-border">
-                      <td colSpan={11} className="px-6 py-4">
+                      <td colSpan={12} className="px-6 py-4">
                         <div className="space-y-4">
                           <div>
                             <h4 className="font-semibold text-sm text-foreground mb-3">📊 Assessment & Module Details</h4>
