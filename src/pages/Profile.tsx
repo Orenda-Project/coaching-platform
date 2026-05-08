@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PersonaBadge } from "@/components/PersonaBadge";
-import { ArrowLeft, User, Mail, Phone, School, BookOpen, Trophy, Edit2, Save, X, GraduationCap, Building2 } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, School, BookOpen, Trophy, Edit2, Save, X, GraduationCap, Building2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -34,6 +34,7 @@ const REGIONS = [
   { value: "punjab", label: "Punjab" },
   { value: "rawalpindi", label: "Rawalpindi (Rwp)" },
 ] as const;
+const SUB_REGIONS = ["Nilore", "Tarnol", "Sihala", "B.K", "Urban-I", "Urban-II"] as const;
 const emptyQualification = (): Qualification => ({ degree_type: "", degree: "", passing_year: "" });
 const emptyExperience = (): Experience => ({ org: "", designation: "", joining: "", leaving: "", current: false });
 
@@ -52,7 +53,7 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
 
   // Form state
-  const [form, setForm] = useState({ full_name: "", phone: "", school_id: "", region: "" });
+  const [form, setForm] = useState({ full_name: "", phone: "", school_id: "", region: "", sub_region: "" });
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
 
@@ -64,6 +65,7 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
+        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
@@ -92,6 +94,7 @@ export default function Profile() {
           phone: form.phone,
           school_id: form.school_id,
           region: form.region,
+          sub_region: form.sub_region,
           // See Onboarding.tsx — local interfaces lack a Json index signature.
           qualifications: qualifications as unknown as Json,
           experiences: experiences as unknown as Json,
@@ -118,6 +121,7 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
+        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
@@ -230,6 +234,21 @@ export default function Profile() {
                   </select>
                 </div>
 
+                <div>
+                  <Label htmlFor="sub_region">Sub-Region</Label>
+                  <select
+                    id="sub_region"
+                    value={form.sub_region}
+                    onChange={(e) => setForm({ ...form, sub_region: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    <option value="">Select sub-region</option>
+                    {SUB_REGIONS.map((sr) => (
+                      <option key={sr} value={sr}>{sr}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="flex gap-2 pt-4 border-t">
                   <Button
                     onClick={handleSave}
@@ -284,6 +303,15 @@ export default function Profile() {
                   </p>
                   <p className="text-sm font-medium text-foreground">
                     {REGIONS.find((r) => r.value === form.region)?.label || "Not set"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                    Sub-Region
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    {form.sub_region || "Not set"}
                   </p>
                 </div>
               </div>

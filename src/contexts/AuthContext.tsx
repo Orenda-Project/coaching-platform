@@ -10,7 +10,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, phone: string, fullName?: string, subRegion?: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, phone: string, fullName?: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, phone: string, fullName?: string, subRegion?: string) => {
+  const signUp = async (email: string, password: string, phone: string, fullName?: string) => {
     const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
@@ -72,25 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { phone, full_name: fullName },
       },
     });
-    if (!error && subRegion && signUpData.user) {
-      // Trigger will create profile with full_name from user_metadata
-      await new Promise((r) => setTimeout(r, 500));
-
-      // Insert coach assignment for the new user
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: assignError } = await (supabase as any)
-        .from('coach_assignments')
-        .insert({
-          coach_id: signUpData.user.id,
-          region: 'ICT',
-          sub_region: subRegion,
-        });
-
-      if (assignError) {
-        // Non-fatal: log and warn user but don't block signup
-        console.error('Failed to insert coach_assignments:', assignError.message);
-      }
-    } else if (!error) {
+    if (!error) {
       // Trigger will create profile with full_name from user_metadata
       await new Promise((r) => setTimeout(r, 500));
     }
