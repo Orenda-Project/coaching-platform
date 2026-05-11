@@ -263,8 +263,10 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         }
 
         const data = await response.json();
+        console.log(`Poll #${pollCount}: status=${data.status}`, data);
 
         if (data.status === 'completed') {
+          console.log('Neo processing completed!');
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
@@ -282,6 +284,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
             onSaved(updated as CotObservation);
           }
         } else if (data.status === 'failed') {
+          console.error('Neo processing FAILED:', data.error);
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
