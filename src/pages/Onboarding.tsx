@@ -25,6 +25,7 @@ interface Experience {
 }
 
 const DEGREE_TYPES = ["Bachelors", "Masters", "MPhil", "PhD", "Diploma", "Other"] as const;
+const SUB_REGIONS = ["Nilore", "Tarnol", "Sihala", "B.K", "Urban-I", "Urban-II"] as const;
 const emptyQualification = (): Qualification => ({ degree_type: "", degree: "", passing_year: "" });
 const emptyExperience = (): Experience => ({ org: "", designation: "", joining: "", leaving: "", current: false });
 
@@ -32,6 +33,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile } = useAuth();
   const [region, setRegion] = useState("");
+  const [subRegion, setSubRegion] = useState("");
   const [school, setSchool] = useState("");
   const [teachers, setTeachers] = useState("");
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
@@ -72,6 +74,11 @@ export default function Onboarding() {
       return;
     }
 
+    if (region === "islamabad" && !subRegion.trim()) {
+      toast.error("Sub-region is required for Islamabad");
+      return;
+    }
+
     if (!user?.id) {
       toast.error("User not authenticated");
       return;
@@ -84,6 +91,7 @@ export default function Onboarding() {
         .from("profiles")
         .update({
           region: region,
+          sub_region: subRegion,
           school_id: school,
           teacher_ids: teachers
             .split(",")
@@ -188,6 +196,33 @@ export default function Onboarding() {
                   ))}
                 </select>
               </div>
+
+              {/* Sub-Region (only for Islamabad) */}
+              {region === "islamabad" && (
+                <div className="space-y-2">
+                  <Label htmlFor="subRegion" className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-purple-600" />
+                    Sub-Region *
+                  </Label>
+                  <select
+                    id="subRegion"
+                    value={subRegion}
+                    onChange={(e) => setSubRegion(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Select your sub-region...</option>
+                    {SUB_REGIONS.map((sr) => (
+                      <option key={sr} value={sr}>
+                        {sr}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Choose the sub-region where you work
+                  </p>
+                </div>
+              )}
 
               {/* School */}
               <div className="space-y-2">
