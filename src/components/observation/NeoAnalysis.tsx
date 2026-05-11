@@ -161,11 +161,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
         console.log(`Uploading ${audioChunksRef.current.length} chunks`);
         setPhase('uploading');
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/ogg' });
         console.log(`Blob created: ${audioBlob.size} bytes`);
-        // Create a File with .webm extension so Neo API recognizes it
-        const audioFile = new File([audioBlob], `coaching-recording-${Date.now()}.webm`, { type: 'audio/webm' });
-        uploadAudio(audioFile, 'audio/webm');
+        // Create a File with .ogg extension for better Neo compatibility
+        const audioFile = new File([audioBlob], `coaching-recording-${Date.now()}.ogg`, { type: 'audio/ogg' });
+        uploadAudio(audioFile, 'audio/ogg');
       }, 200);
     }
   };
