@@ -93,19 +93,27 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const startRecording = async () => {
     try {
+      console.log('Starting recording - requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone access granted. Stream:', stream);
+
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      console.log('MediaRecorder created');
 
       mediaRecorder.ondataavailable = (event) => {
+        console.log(`dataavailable event fired: ${event.data.size} bytes`);
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
           console.log(`Audio chunk captured: ${event.data.size} bytes, total chunks: ${audioChunksRef.current.length}`);
+        } else {
+          console.log('dataavailable event had 0 bytes');
         }
       };
 
       mediaRecorder.onstart = () => {
+        console.log('Recording started');
         setPhase('recording');
         setRecordingTime(0);
         recordingIntervalRef.current = window.setInterval(() => {
@@ -114,33 +122,49 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       };
 
       mediaRecorder.onstop = () => {
+        console.log(`Recording stopped. Total chunks collected: ${audioChunksRef.current.length}`);
         if (recordingIntervalRef.current) {
           clearInterval(recordingIntervalRef.current);
         }
+        // Stop tracks after a small delay to ensure final dataavailable event is processed
+        setTimeout(() => {
+          stream.getTracks().forEach((track) => {
+            console.log(`Stopping audio track: ${track.kind}`);
+            track.stop();
+          });
+        }, 100);
       };
 
+      console.log('Calling mediaRecorder.start(1000)...');
       mediaRecorder.start(1000); // Collect data every 1 second
     } catch (err) {
+      console.error('Microphone error:', err);
       toast.error('Could not access microphone');
-      setError('Microphone access denied');
+      setError(err instanceof Error ? err.message : 'Microphone access denied');
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && phase === 'recording') {
+      console.log('Stopping recording...');
       mediaRecorderRef.current.stop();
-      const stream = mediaRecorderRef.current.stream;
-      stream.getTracks().forEach((track) => track.stop());
 
-      if (audioChunksRef.current.length === 0) {
-        toast.error('No audio recorded. Please try again.');
-        setPhase('idle');
-        return;
-      }
+      // Wait a moment for the final dataavailable event to be processed
+      setTimeout(() => {
+        console.log(`Stop recording confirmed. Chunks: ${audioChunksRef.current.length}`);
+        if (audioChunksRef.current.length === 0) {
+          console.error('No audio chunks recorded!');
+          toast.error('No audio recorded. Please try again.');
+          setPhase('idle');
+          return;
+        }
 
-      setPhase('uploading');
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      uploadAudio(audioBlob, 'audio/webm');
+        console.log(`Uploading ${audioChunksRef.current.length} chunks`);
+        setPhase('uploading');
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log(`Blob created: ${audioBlob.size} bytes`);
+        uploadAudio(audioBlob, 'audio/webm');
+      }, 200);
     }
   };
 
