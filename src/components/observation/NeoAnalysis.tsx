@@ -101,6 +101,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          console.log(`Audio chunk captured: ${event.data.size} bytes, total chunks: ${audioChunksRef.current.length}`);
         }
       };
 
