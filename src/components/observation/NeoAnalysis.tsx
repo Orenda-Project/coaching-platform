@@ -163,7 +163,9 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         setPhase('uploading');
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         console.log(`Blob created: ${audioBlob.size} bytes`);
-        uploadAudio(audioBlob, 'audio/webm');
+        // Create a File with .webm extension so Neo API recognizes it
+        const audioFile = new File([audioBlob], `coaching-recording-${Date.now()}.webm`, { type: 'audio/webm' });
+        uploadAudio(audioFile, 'audio/webm');
       }, 200);
     }
   };
