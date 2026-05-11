@@ -178,10 +178,14 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
     try {
+      console.log('uploadAudio called with blob size:', blob.size, 'mimeType:', mimeType);
+      console.log('observation.id:', observation.id);
+
       const formData = new FormData();
       formData.append('file', blob);
       formData.append('observation_id', observation.id);
 
+      console.log('FormData created. Checking token...');
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) {
         toast.error('Not authenticated');
@@ -189,22 +193,26 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         return;
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
+      const uploadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`;
+      console.log('Sending POST to:', uploadUrl);
+      console.log('Authorization header present:', !!token);
+
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      console.log('Upload response received');
+      console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        console.error('Upload response status:', response.status, response.statusText);
-        console.error('Upload URL:', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`);
+        console.error('Upload response NOT OK');
         console.error('Blob size:', blob.size);
         const err = await response.json().catch(() => ({}));
+        console.error('Error from server:', err);
         throw new Error(err.error || `Upload failed: ${response.status}`);
       }
 
