@@ -1,0 +1,10 @@
+---
+# IDD Test Map — maps feature domain names to their file/directory paths
+# Used by: tests/scripts/match_features.py and tests/scripts/validate_intent.py
+
+features:
+  login:               tests/features/login/
+  signup:              tests/features/signup/
+  baseline-assessment: tests/features/baseline-assessment/
+  onboarding:          tests/features/onboarding/
+  # add new domains here
