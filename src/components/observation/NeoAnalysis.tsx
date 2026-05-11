@@ -234,17 +234,24 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   };
 
   const pollNeoStatus = async () => {
+    console.log('pollNeoStatus called');
     const token = (await supabase.auth.getSession()).data.session?.access_token;
-    if (!token) return;
+    if (!token) {
+      console.error('No token for polling');
+      return;
+    }
 
+    console.log('Starting Neo status polling with observation_id:', observation.id);
     let pollCount = 0;
     const maxPolls = 15; // ~120 seconds
 
     pollIntervalRef.current = window.setInterval(async () => {
       pollCount++;
+      console.log(`Poll interval tick #${pollCount}`);
       setPollProgress(Math.min((pollCount / maxPolls) * 100, 90));
 
       try {
+        console.log(`Poll #${pollCount}: fetching neo-status...`);
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-status`,
           {
@@ -257,8 +264,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           }
         );
 
+        console.log(`Poll #${pollCount}: response status=${response.status}`);
+
         if (!response.ok) {
           const err = await response.json();
+          console.error(`Poll #${pollCount}: error response`, err);
           throw new Error(err.error || 'Status check failed');
         }
 
