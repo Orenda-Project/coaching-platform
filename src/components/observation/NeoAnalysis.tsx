@@ -135,8 +135,8 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         }, 100);
       };
 
-      console.log('Calling mediaRecorder.start(1000)...');
-      mediaRecorder.start(1000); // Collect data every 1 second
+      console.log('Calling mediaRecorder.start()...');
+      mediaRecorder.start(); // No timeslice = one complete audio blob on stop()
     } catch (err) {
       console.error('Microphone error:', err);
       toast.error('Could not access microphone');
