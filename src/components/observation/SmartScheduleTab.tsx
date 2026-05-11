@@ -179,6 +179,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
           framework: 'FICO',
           date: new Date().toISOString(),
           status: 'Draft',
+          region: coachSubRegion || teacher.sector,
         })
         .select()
         .single();
