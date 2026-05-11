@@ -161,11 +161,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
         console.log(`Uploading ${audioChunksRef.current.length} chunks`);
         setPhase('uploading');
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/ogg' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         console.log(`Blob created: ${audioBlob.size} bytes`);
-        // Create a File with .ogg extension for better Neo compatibility
-        const audioFile = new File([audioBlob], `coaching-recording-${Date.now()}.ogg`, { type: 'audio/ogg' });
-        uploadAudio(audioFile, 'audio/ogg');
+        // Create a File with .wav extension - simple uncompressed format
+        const audioFile = new File([audioBlob], `coaching-recording-${Date.now()}.wav`, { type: 'audio/wav' });
+        uploadAudio(audioFile, 'audio/wav');
       }, 200);
     }
   };
