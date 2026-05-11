@@ -60,10 +60,9 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
           .from('coach_assignments')
           .select('sub_region')
           .eq('coach_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (queryError && queryError.code !== 'PGRST116') {
-          // PGRST116 = no rows, which is expected for new/unassigned coaches
+        if (queryError) {
           console.error('Failed to load coach assignment:', queryError);
         }
 
