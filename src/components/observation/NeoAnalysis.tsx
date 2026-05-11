@@ -118,7 +118,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         }
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // Collect data every 1 second
     } catch (err) {
       toast.error('Could not access microphone');
       setError('Microphone access denied');
@@ -130,6 +130,13 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       mediaRecorderRef.current.stop();
       const stream = mediaRecorderRef.current.stream;
       stream.getTracks().forEach((track) => track.stop());
+
+      if (audioChunksRef.current.length === 0) {
+        toast.error('No audio recorded. Please try again.');
+        setPhase('idle');
+        return;
+      }
+
       setPhase('uploading');
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       uploadAudio(audioBlob, 'audio/webm');
@@ -169,8 +176,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       );
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Upload failed');
+        console.error('Upload response status:', response.status, response.statusText);
+        console.error('Upload URL:', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`);
+        console.error('Blob size:', blob.size);
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Upload failed: ${response.status}`);
       }
 
       const data = await response.json();

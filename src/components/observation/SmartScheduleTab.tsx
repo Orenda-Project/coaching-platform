@@ -208,15 +208,49 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     );
   }
 
-  // No assignment state
+  // No assignment state - show sector picker as fallback
   if (!coachSubRegion) {
+    const uniqueSectors = Array.from(
+      new Map(
+        teachers.map(t => [
+          t.sector,
+          { sector: t.sector, count: teachers.filter(x => x.sector === t.sector).length }
+        ])
+      ).values()
+    ).sort((a, b) => a.sector.localeCompare(b.sector));
+
+    if (uniqueSectors.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-14 text-center">
+          <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
+          <h3 className="font-semibold text-foreground mb-1">No teachers available</h3>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            No teacher data available. Please seed the database.
+          </p>
+        </div>
+      );
+    }
+
     return (
-      <div className="flex flex-col items-center justify-center py-14 text-center">
-        <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
-        <h3 className="font-semibold text-foreground mb-1">Sub-region not assigned</h3>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Your account has no sub-region assigned. Please contact your administrator.
-        </p>
+      <div className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-foreground">Select Your Sector</h2>
+          <p className="text-sm text-muted-foreground">
+            Choose your sector to see assigned teachers
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {uniqueSectors.map((sector) => (
+            <button
+              key={sector.sector}
+              onClick={() => setCoachSubRegion(sector.sector)}
+              className="px-4 py-2 rounded-md bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors font-medium"
+            >
+              {sector.sector} ({sector.count})
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
