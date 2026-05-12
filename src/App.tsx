@@ -29,6 +29,7 @@ import AdminScenarioOptions from "./pages/admin/AdminScenarioOptions";
 import AdminRegions from "./pages/admin/AdminRegions";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminFeedback from "./pages/admin/AdminFeedback";
+import AdminFieldIssues from "./pages/admin/AdminFieldIssues";
 import Profile from "./pages/Profile";
 import ObservationScheduler from "./pages/ObservationScheduler";
 import { FeedbackChatbot } from '@/components/feedback/FeedbackChatbot';
@@ -68,6 +69,7 @@ const App = () => (
               <Route path="scenarios/:scenarioId/options" element={<AdminScenarioOptions />} />
               <Route path="quiz-questions" element={<AdminQuizQuestions />} />
               <Route path="regions" element={<AdminRegions />} />
+              <Route path="field-issues" element={<AdminFieldIssues />} />
               <Route path="seed" element={<AdminSeed />} />
             </Route>
             <Route path="*" element={<NotFound />} />

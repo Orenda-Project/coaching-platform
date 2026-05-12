@@ -54,7 +54,7 @@ const getCoachIdentifier = (coach: CoachExportData): string => {
 };
 
 // Helper function to format cell values
-const formatCellValue = (value: any): string => {
+const formatCellValue = (value: unknown): string => {
   if (value === null || value === undefined) {
     return "NULL";
   }

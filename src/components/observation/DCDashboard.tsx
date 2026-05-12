@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { TrendingDown, TrendingUp, BarChart3 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrendingDown, TrendingUp, BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface DCTeacher {
   user_id: string;
@@ -34,6 +35,9 @@ interface Props {
   teachers: DCTeacher[];
   onScheduleVisit: (teacher: DCTeacher) => void;
   loading: boolean;
+  isOffline?: boolean;
+  lastSynced?: string | null;
+  onRetry?: () => void;
 }
 
 const INDICATORS = [
@@ -66,11 +70,44 @@ function getScoreBg(percentage: number) {
   return 'bg-red-50';
 }
 
-export default function DCDashboard({ teachers, onScheduleVisit, loading }: Props) {
+function getPriorityTier(percentage: number): { label: string; description: string; headerBg: string; headerText: string } {
+  if (percentage < 60) return { label: 'Priority Tier 1', description: 'Lowest Scores — Needs Immediate Coaching', headerBg: 'bg-red-100', headerText: 'text-red-800' };
+  if (percentage < 75) return { label: 'Priority Tier 2', description: 'Middle Scores — Needs Regular Support', headerBg: 'bg-yellow-100', headerText: 'text-yellow-800' };
+  return { label: 'Priority Tier 3', description: 'Highest Scores — Performing Well', headerBg: 'bg-green-100', headerText: 'text-green-800' };
+}
+
+function formatRelativeTime(isoString: string | null): string {
+  if (!isoString) return 'unknown time';
+  const date = new Date(isoString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+function isCacheStale(timestamp: string | null): boolean {
+  if (!timestamp) return true;
+  const age = Date.now() - new Date(timestamp).getTime();
+  const ttl = 24 * 60 * 60 * 1000; // 24 hours
+  return age > ttl;
+}
+
+export default function DCDashboard({ teachers, onScheduleVisit, loading, isOffline, lastSynced, onRetry }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const sortedTeachers = useMemo(() => {
-    return [...teachers].sort((a, b) => a.overall_percentage - b.overall_percentage);
+  const groupedTeachers = useMemo(() => {
+    const sorted = [...teachers].sort((a, b) => a.overall_percentage - b.overall_percentage);
+    const tier1 = sorted.filter(t => t.overall_percentage < 60);
+    const tier2 = sorted.filter(t => t.overall_percentage >= 60 && t.overall_percentage < 75);
+    const tier3 = sorted.filter(t => t.overall_percentage >= 75);
+    return [
+      { tier: getPriorityTier(0), teachers: tier1 },
+      { tier: getPriorityTier(60), teachers: tier2 },
+      { tier: getPriorityTier(75), teachers: tier3 },
+    ].filter(group => group.teachers.length > 0);
   }, [teachers]);
 
   if (loading) {
@@ -91,8 +128,30 @@ export default function DCDashboard({ teachers, onScheduleVisit, loading }: Prop
     );
   }
 
+  const stale = isCacheStale(lastSynced);
+
   return (
     <div className="space-y-4">
+      {isOffline && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-start gap-3">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-900">
+              Offline — showing data last synced {formatRelativeTime(lastSynced)}
+              {stale && ' (may be outdated)'}
+            </p>
+          </div>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="shrink-0 px-3 py-1.5 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-medium transition-colors flex items-center gap-1.5"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry
+            </button>
+          )}
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -129,59 +188,71 @@ export default function DCDashboard({ teachers, onScheduleVisit, loading }: Prop
         </Card>
       </div>
 
-      <div className="space-y-2">
-        {sortedTeachers.map((teacher) => (
-          <div key={teacher.user_id} className={`border rounded-lg p-4 ${getScoreBg(teacher.overall_percentage)}`}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-foreground truncate">{teacher.teacher_name}</h3>
-                  <Badge variant="outline" className={`shrink-0 ${getScoreColor(teacher.overall_percentage)}`}>
-                    {teacher.overall_percentage.toFixed(1)}%
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{teacher.school}</p>
-                <p className="text-xs text-muted-foreground">Grade {teacher.grade} · {teacher.subject} · Last assessed: {new Date(teacher.created_date).toLocaleDateString()}</p>
-              </div>
+      <Tabs defaultValue="tier1" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          {groupedTeachers.map((group, idx) => (
+            <TabsTrigger key={group.tier.label} value={`tier${idx + 1}`} className="gap-2">
+              {group.tier.label} <Badge variant="secondary" className="ml-1">{group.teachers.length}</Badge>
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-              <div className="flex gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setExpanded(expanded === teacher.user_id ? null : teacher.user_id)}
-                >
-                  {expanded === teacher.user_id ? 'Hide' : 'View'} Indicators
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => onScheduleVisit(teacher)}
-                >
-                  Schedule Visit
-                </Button>
-              </div>
-            </div>
-
-            {/* Indicators Grid */}
-            {expanded === teacher.user_id && (
-              <div className="mt-4 pt-4 border-t grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {INDICATORS.map((indicator) => {
-                  const value = teacher[indicator.key as keyof DCTeacher] as number;
-                  const percentage = (value / 4) * 100;
-                  return (
-                    <div key={indicator.key} className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-medium text-foreground">{indicator.label}</label>
-                        <span className="text-xs font-bold">{value.toFixed(1)}</span>
-                      </div>
-                      <Progress value={percentage} className="h-1.5" />
+        {groupedTeachers.map((group, idx) => (
+          <TabsContent key={group.tier.label} value={`tier${idx + 1}`} className="space-y-2 mt-4">
+            {group.teachers.map((teacher) => (
+              <div key={teacher.user_id} className={`border rounded-lg p-4 ${getScoreBg(teacher.overall_percentage)}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-foreground truncate">{teacher.teacher_name}</h3>
+                      <Badge variant="outline" className={`shrink-0 ${getScoreColor(teacher.overall_percentage)}`}>
+                        {teacher.overall_percentage.toFixed(1)}%
+                      </Badge>
                     </div>
-                  );
-                })}
+                    <p className="text-sm text-muted-foreground">{teacher.school}</p>
+                    <p className="text-xs text-muted-foreground">Grade {teacher.grade} · {teacher.subject} · Last assessed: {new Date(teacher.created_date).toLocaleDateString()}</p>
+                  </div>
+
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setExpanded(expanded === teacher.user_id ? null : teacher.user_id)}
+                    >
+                      {expanded === teacher.user_id ? 'Hide' : 'View'} Indicators
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => onScheduleVisit(teacher)}
+                    >
+                      Schedule Visit
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Indicators Grid */}
+                {expanded === teacher.user_id && (
+                  <div className="mt-4 pt-4 border-t grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {INDICATORS.map((indicator) => {
+                      const value = teacher[indicator.key as keyof DCTeacher] as number;
+                      const percentage = (value / 4) * 100;
+                      return (
+                        <div key={indicator.key} className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs font-medium text-foreground">{indicator.label}</label>
+                            <span className="text-xs font-bold">{value.toFixed(1)}</span>
+                          </div>
+                          <Progress value={percentage} className="h-1.5" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            ))}
+          </TabsContent>
         ))}
-      </div>
+      </Tabs>
     </div>
   );
 }

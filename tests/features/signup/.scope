@@ -1,0 +1,3 @@
+# Signup feature scope
+src/pages/Signup.tsx
+src/contexts/AuthContext.tsx

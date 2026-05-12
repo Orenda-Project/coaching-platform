@@ -1,1 +1,15 @@
-{}
+{
+  "permissions": {
+    "allow": [
+      "Read(**/*.feature)",
+      "Read(**/.scope)",
+      "Read(.claude/skills/idd/**)",
+      "Read(.claude/rules/idd/**)",
+      "Read(**/*.py)",
+      "Read(**/*.ts)",
+      "Read(**/*.tsx)",
+      "Read(**/*.js)",
+      "Read(**/*.jsx)"
+    ]
+  }
+}

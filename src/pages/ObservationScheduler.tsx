@@ -11,6 +11,7 @@ import { SubmittedObservationsTab } from '@/components/observation/SubmittedObse
 import { ObservationsOverviewTab } from '@/components/observation/ObservationsOverviewTab';
 import SmartScheduleTab from '@/components/observation/SmartScheduleTab';
 import { QuickObservationPanel } from '@/components/observation/QuickObservationPanel';
+import ReportIssueButton from '@/components/observation/ReportIssueButton';
 import type { CotObservation } from '@/types/observation';
 
 export default function ObservationScheduler() {
@@ -61,7 +62,7 @@ export default function ObservationScheduler() {
             </div>
             <div className="leading-tight">
               <span className="font-display font-bold text-base text-foreground block">
-                CoachCert
+                RABT
               </span>
               <span className="text-xs text-muted-foreground">Observation Scheduler</span>
             </div>
@@ -156,6 +157,8 @@ export default function ObservationScheduler() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <ReportIssueButton />
     </div>
   );
 }
