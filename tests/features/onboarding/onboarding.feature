@@ -18,7 +18,7 @@ Feature: User Onboarding
     Then my profile is updated successfully
     And I am redirected to the dashboard
 
-  @chunk @positive
+  @positive
   Scenario: Complete onboarding without optional Teachers coached field
     Given I select "Central" from the Region dropdown
     And I enter "Private Academy" in the School Name field
@@ -27,7 +27,7 @@ Feature: User Onboarding
     Then my profile is updated successfully
     And I am redirected to the dashboard
 
-  @chunk @positive
+  @positive
   Scenario: All required form fields are visible on the page
     Then I can see the Region dropdown marked as required
     And I can see the School Name field marked as required
@@ -44,7 +44,7 @@ Feature: User Onboarding
       | East    |
       | West    |
 
-  @chunk @positive
+  @positive
   Scenario: Loading state is shown while the request is processing
     Given I select "East" from the Region dropdown
     And I enter "Test School" in the School Name field
