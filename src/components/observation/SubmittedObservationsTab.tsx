@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   User,
   MapPin,
@@ -7,6 +9,8 @@ import {
   Calendar,
   CheckCircle2,
   Award,
+  Eye,
+  X,
 } from 'lucide-react';
 import { getProficiencyLevel } from '@/lib/observation-utils';
 import { getFicoProficiency } from '@/lib/fico-utils';
@@ -22,6 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function SubmittedObservationsTab({ observations }: Props) {
+  const [selectedObs, setSelectedObs] = useState<CotObservation | null>(null);
   const submitted = observations.filter(o => o.status === 'Submitted' || o.status === 'Approved');
 
   if (submitted.length === 0) {
@@ -102,23 +107,128 @@ export function SubmittedObservationsTab({ observations }: Props) {
                     </div>
                   </div>
 
-                  {/* Score badge */}
-                  {proficiency && (
-                    <div className="text-right shrink-0">
-                      <div className={`text-2xl font-bold ${proficiency.color}`}>
-                        {obs.total_score}/{isFico ? '100' : '80'}
+                  <div className="flex flex-col items-end gap-3 shrink-0">
+                    {/* Score badge */}
+                    {proficiency && (
+                      <div className="text-right">
+                        <div className={`text-2xl font-bold ${proficiency.color}`}>
+                          {obs.total_score}/{isFico ? '100' : '80'}
+                        </div>
+                        <div className={`text-xs font-medium ${proficiency.color}`}>
+                          {proficiency.level}
+                        </div>
                       </div>
-                      <div className={`text-xs font-medium ${proficiency.color}`}>
-                        {proficiency.level}
-                      </div>
-                    </div>
-                  )}
+                    )}
+                    {/* Review button */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectedObs(obs)}
+                      className="gap-1.5"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Review
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      {/* Review Modal */}
+      {selectedObs && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardContent className="p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Observation Details</h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {new Date(selectedObs.submitted_at || selectedObs.created_at).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedObs(null)}
+                  className="p-1 hover:bg-muted rounded-md transition-colors"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="space-y-6">
+                {/* Teacher & School */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Teacher</p>
+                    <p className="text-sm font-medium text-foreground">{selectedObs.teacher_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">School</p>
+                    <p className="text-sm font-medium text-foreground">{selectedObs.school_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Subject</p>
+                    <p className="text-sm text-foreground">{selectedObs.subject}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Grade</p>
+                    <p className="text-sm text-foreground">{selectedObs.grade}</p>
+                  </div>
+                  {selectedObs.topic && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Topic</p>
+                      <p className="text-sm text-foreground">{selectedObs.topic}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Framework & Score */}
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Framework</p>
+                      <p className="text-sm font-medium text-foreground">{selectedObs.framework}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Total Score</p>
+                      <p className="text-2xl font-bold text-foreground">{selectedObs.total_score}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="border-t pt-4">
+                  <Badge
+                    variant="outline"
+                    className={`text-xs ${STATUS_COLORS[selectedObs.status]}`}
+                  >
+                    <CheckCircle2 className="w-3 h-3 mr-1" /> {selectedObs.status}
+                  </Badge>
+                </div>
+
+                {/* Close Button */}
+                <div className="border-t pt-4">
+                  <Button
+                    onClick={() => setSelectedObs(null)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
