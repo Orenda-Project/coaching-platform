@@ -5,9 +5,16 @@ import { Card } from '@/components/ui/card';
 
 const tierColors: Record<string, { bg: string; text: string; badge: string }> = {
   CRITICAL: { bg: 'bg-red-50', text: 'text-red-700', badge: 'bg-red-100 text-red-800' },
-  HIGH: { bg: 'bg-yellow-50', text: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-800' },
-  MEDIUM: { bg: 'bg-blue-50', text: 'text-blue-700', badge: 'bg-blue-100 text-blue-800' },
+  HIGH: { bg: 'bg-red-50', text: 'text-red-700', badge: 'bg-red-100 text-red-800' },
+  MEDIUM: { bg: 'bg-yellow-50', text: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-800' },
   LOW: { bg: 'bg-green-50', text: 'text-green-700', badge: 'bg-green-100 text-green-800' },
+};
+
+const tierLabel: Record<string, string> = {
+  CRITICAL: 'Priority Tier 1',
+  HIGH: 'Priority Tier 1',
+  MEDIUM: 'Priority Tier 2',
+  LOW: 'Priority Tier 3',
 };
 
 interface PriorityListProps {
@@ -56,7 +63,7 @@ export default function PriorityList({
                   <h3 className="font-semibold text-gray-900">
                     {teacher.teacher_name}
                   </h3>
-                  <Badge className={colors.badge}>{teacher.tier}</Badge>
+                  <Badge className={colors.badge}>{tierLabel[teacher.tier]}</Badge>
                 </div>
                 <p className="text-sm text-gray-700 mb-2">
                   {teacher.school_name}
