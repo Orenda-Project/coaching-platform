@@ -55,8 +55,8 @@ export function ScheduleVisitModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-      <Card className="w-full max-w-xl">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <Card className="w-full max-w-xl my-auto">
         <CardContent className="p-6">
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
