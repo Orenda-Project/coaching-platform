@@ -66,11 +66,25 @@ function getScoreBg(percentage: number) {
   return 'bg-red-50';
 }
 
+function getPriorityTier(percentage: number): { label: string; description: string; headerBg: string; headerText: string } {
+  if (percentage < 60) return { label: 'Priority Tier 1', description: 'Lowest Scores — Needs Immediate Coaching', headerBg: 'bg-red-100', headerText: 'text-red-800' };
+  if (percentage < 75) return { label: 'Priority Tier 2', description: 'Middle Scores — Needs Regular Support', headerBg: 'bg-yellow-100', headerText: 'text-yellow-800' };
+  return { label: 'Priority Tier 3', description: 'Highest Scores — Performing Well', headerBg: 'bg-green-100', headerText: 'text-green-800' };
+}
+
 export default function DCDashboard({ teachers, onScheduleVisit, loading }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const sortedTeachers = useMemo(() => {
-    return [...teachers].sort((a, b) => a.overall_percentage - b.overall_percentage);
+  const groupedTeachers = useMemo(() => {
+    const sorted = [...teachers].sort((a, b) => a.overall_percentage - b.overall_percentage);
+    const tier1 = sorted.filter(t => t.overall_percentage < 60);
+    const tier2 = sorted.filter(t => t.overall_percentage >= 60 && t.overall_percentage < 75);
+    const tier3 = sorted.filter(t => t.overall_percentage >= 75);
+    return [
+      { tier: getPriorityTier(0), teachers: tier1 },
+      { tier: getPriorityTier(60), teachers: tier2 },
+      { tier: getPriorityTier(75), teachers: tier3 },
+    ].filter(group => group.teachers.length > 0);
   }, [teachers]);
 
   if (loading) {
@@ -129,8 +143,14 @@ export default function DCDashboard({ teachers, onScheduleVisit, loading }: Prop
         </Card>
       </div>
 
-      <div className="space-y-2">
-        {sortedTeachers.map((teacher) => (
+      <div className="space-y-6">
+        {groupedTeachers.map((group) => (
+          <div key={group.tier.label} className="space-y-2">
+            <div className={`px-4 py-2 rounded-lg ${group.tier.headerBg}`}>
+              <h3 className={`font-semibold text-sm ${group.tier.headerText}`}>{group.tier.label}</h3>
+              <p className={`text-xs ${group.tier.headerText} opacity-80`}>{group.tier.description} · {group.teachers.length} teacher{group.teachers.length !== 1 ? 's' : ''}</p>
+            </div>
+            {group.teachers.map((teacher) => (
           <div key={teacher.user_id} className={`border rounded-lg p-4 ${getScoreBg(teacher.overall_percentage)}`}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -179,6 +199,8 @@ export default function DCDashboard({ teachers, onScheduleVisit, loading }: Prop
                 })}
               </div>
             )}
+          </div>
+            ))}
           </div>
         ))}
       </div>
