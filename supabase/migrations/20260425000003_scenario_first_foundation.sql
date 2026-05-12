@@ -104,10 +104,12 @@ CREATE INDEX IF NOT EXISTS idx_user_regions_user_id
 
 ALTER TABLE public.regions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone authenticated can read regions" ON public.regions;
 CREATE POLICY "Anyone authenticated can read regions"
   ON public.regions FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "Admins can manage regions" ON public.regions;
 CREATE POLICY "Admins can manage regions"
   ON public.regions FOR ALL
   USING (has_role(auth.uid(), 'admin'));
@@ -116,10 +118,12 @@ CREATE POLICY "Admins can manage regions"
 
 ALTER TABLE public.user_regions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read own region assignments" ON public.user_regions;
 CREATE POLICY "Users can read own region assignments"
   ON public.user_regions FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can manage user_regions" ON public.user_regions;
 CREATE POLICY "Admins can manage user_regions"
   ON public.user_regions FOR ALL
   USING (has_role(auth.uid(), 'admin'));
@@ -128,10 +132,12 @@ CREATE POLICY "Admins can manage user_regions"
 
 ALTER TABLE public.scenarios ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can read active scenarios" ON public.scenarios;
 CREATE POLICY "Authenticated users can read active scenarios"
   ON public.scenarios FOR SELECT
   USING (auth.uid() IS NOT NULL AND is_active = true);
 
+DROP POLICY IF EXISTS "Admins can manage all scenarios" ON public.scenarios;
 CREATE POLICY "Admins can manage all scenarios"
   ON public.scenarios FOR ALL
   USING (has_role(auth.uid(), 'admin'));
@@ -140,10 +146,12 @@ CREATE POLICY "Admins can manage all scenarios"
 
 ALTER TABLE public.scenario_options ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can read scenario options" ON public.scenario_options;
 CREATE POLICY "Authenticated users can read scenario options"
   ON public.scenario_options FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "Admins can manage scenario options" ON public.scenario_options;
 CREATE POLICY "Admins can manage scenario options"
   ON public.scenario_options FOR ALL
   USING (has_role(auth.uid(), 'admin'));
@@ -152,14 +160,17 @@ CREATE POLICY "Admins can manage scenario options"
 
 ALTER TABLE public.scenario_responses ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can insert own responses" ON public.scenario_responses;
 CREATE POLICY "Users can insert own responses"
   ON public.scenario_responses FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can read own responses" ON public.scenario_responses;
 CREATE POLICY "Users can read own responses"
   ON public.scenario_responses FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can read all responses" ON public.scenario_responses;
 CREATE POLICY "Admins can read all responses"
   ON public.scenario_responses FOR SELECT
   USING (has_role(auth.uid(), 'admin'));
@@ -168,14 +179,17 @@ CREATE POLICY "Admins can read all responses"
 
 ALTER TABLE public.analytics_events ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can insert own events" ON public.analytics_events;
 CREATE POLICY "Users can insert own events"
   ON public.analytics_events FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can read own events" ON public.analytics_events;
 CREATE POLICY "Users can read own events"
   ON public.analytics_events FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can read all analytics" ON public.analytics_events;
 CREATE POLICY "Admins can read all analytics"
   ON public.analytics_events FOR SELECT
   USING (has_role(auth.uid(), 'admin'));

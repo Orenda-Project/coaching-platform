@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import DCDashboard from './DCDashboard';
-import { AlertCircle, ChevronLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CotObservation } from '@/types/observation';
 
@@ -43,13 +42,110 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const { user } = useAuth();
   const [teachers, setTeachers] = useState<DCTeacher[]>([]);
   const [loading, setLoading] = useState(true);
+  const [assignmentLoading, setAssignmentLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSector, setSelectedSector] = useState<string | null>(null);
+  const [coachSubRegion, setCoachSubRegion] = useState<string | null>(null);
   const [schedulingTeacherId, setSchedulingTeacherId] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState(false);
+
+  // Cache management helpers
+  const getCacheKey = useCallback((suffix: string) => `scheduler_${suffix}_${user?.id}`, [user?.id]);
+
+  const readCache = useCallback(() => {
+    if (!user) return { teachers: null, assignment: null, timestamp: null };
+    try {
+      const cachedTeachers = localStorage.getItem(getCacheKey('teachers'));
+      const cachedAssignment = localStorage.getItem(getCacheKey('assignment'));
+      const cachedTimestamp = localStorage.getItem(getCacheKey('cache_ts'));
+
+      return {
+        teachers: cachedTeachers ? JSON.parse(cachedTeachers) : null,
+        assignment: cachedAssignment,
+        timestamp: cachedTimestamp,
+      };
+    } catch {
+      return { teachers: null, assignment: null, timestamp: null };
+    }
+  }, [user, getCacheKey]);
+
+  const writeCache = useCallback((teacherList: DCTeacher[], assignment: string | null) => {
+    if (!user) return;
+    try {
+      const now = new Date().toISOString();
+      localStorage.setItem(getCacheKey('teachers'), JSON.stringify(teacherList));
+      if (assignment) localStorage.setItem(getCacheKey('assignment'), assignment);
+      localStorage.setItem(getCacheKey('cache_ts'), now);
+      setLastSynced(now);
+      setIsOffline(false);
+      setConnectionError(false);
+    } catch {
+      // localStorage full or not available, continue without caching
+    }
+  }, [user, getCacheKey]);
+
+  // Load coach's assigned sub-region from coach_assignments
+  useEffect(() => {
+    const loadAssignment = async () => {
+      if (!user) {
+        setAssignmentLoading(false);
+        return;
+      }
+
+      // Try cache first
+      const cache = readCache();
+      if (cache.assignment) {
+        setCoachSubRegion(cache.assignment);
+      }
+
+      try {
+        const { data, error: queryError } = await typedSupabase
+          .from('coach_assignments')
+          .select('sub_region')
+          .eq('coach_id', user.id)
+          .maybeSingle();
+
+        if (queryError) {
+          console.error('Failed to load coach assignment:', queryError);
+        }
+
+        const subRegion = data?.sub_region ?? null;
+        setCoachSubRegion(subRegion);
+        if (subRegion) {
+          localStorage.setItem(getCacheKey('assignment'), subRegion);
+        }
+      } catch (err) {
+        console.error('Error loading coach assignment:', err);
+        setIsOffline(true);
+      } finally {
+        setAssignmentLoading(false);
+      }
+    };
+
+    loadAssignment();
+  }, [user, readCache, getCacheKey]);
 
   const loadData = useCallback(async () => {
-    try {
+    // Load from cache first, if available
+    const cache = readCache();
+    if (cache.teachers) {
+      setTeachers(cache.teachers);
+      setLastSynced(cache.timestamp);
+      setLoading(false);
+      setError(null);
+    } else {
       setLoading(true);
+    }
+
+    // Set a 10s timeout for first load with no cache
+    const timeoutId = setTimeout(() => {
+      if (cache.teachers === null) {
+        setConnectionError(true);
+      }
+    }, 10000);
+
+    try {
       setError(null);
 
       const { data, error: queryError } = await typedSupabase
@@ -57,11 +153,24 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         .select('*')
         .order('total_score', { ascending: true });
 
+      clearTimeout(timeoutId);
+
       if (queryError) {
-        setError(queryError.message);
-        setTeachers([]);
+        // Network error - show cached data if available, otherwise show error
+        if (cache.teachers) {
+          setIsOffline(true);
+          setConnectionError(false);
+        } else {
+          setError(queryError.message);
+          setTeachers([]);
+          setConnectionError(false);
+        }
       } else if (!data || data.length === 0) {
-        setError('No DC scores available. Seed the teacher_dc_scores table first.');
+        if (cache.teachers) {
+          setIsOffline(true);
+        } else {
+          setError('No teachers assigned to your sub-region.');
+        }
         setTeachers([]);
       } else {
         // Map database fields to component interface
@@ -116,14 +225,23 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
           non_verbal_communication: row.raw_results?.non_verbal_communication || 0,
         }));
         setTeachers(mappedTeachers);
+        writeCache(mappedTeachers, coachSubRegion);
+        setConnectionError(false);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setTeachers([]);
+      clearTimeout(timeoutId);
+      // Network error - show cached data if available
+      if (cache.teachers) {
+        setIsOffline(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setTeachers([]);
+      }
+      setConnectionError(false);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [coachSubRegion, readCache, writeCache]);
 
   useEffect(() => {
     loadData();
@@ -148,12 +266,17 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
           framework: 'FICO',
           date: new Date().toISOString(),
           status: 'Draft',
+          region: coachSubRegion || teacher.sector,
         })
         .select()
         .single();
 
       if (insertError) {
-        toast.error('Failed to schedule visit');
+        if (insertError.message?.includes('Failed to fetch') || insertError.message?.includes('network')) {
+          toast.error('No connection — reconnect and try again');
+        } else {
+          toast.error('Failed to schedule visit');
+        }
         console.error(insertError);
         return;
       }
@@ -161,103 +284,126 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
       toast.success('Visit scheduled! Opening debrief...');
       onNewObservation?.(data as CotObservation);
     } catch (err) {
-      toast.error('Error scheduling visit');
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      if (errMsg.includes('Failed to fetch') || errMsg.includes('network')) {
+        toast.error('No connection — reconnect and try again');
+      } else {
+        toast.error('Error scheduling visit');
+      }
       console.error(err);
     } finally {
       setSchedulingTeacherId(null);
     }
-  }, [user, onNewObservation]);
+  }, [user, onNewObservation, coachSubRegion]);
 
-  if (error) {
+  // Show loading state while fetching assignment
+  if (assignmentLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-14 text-center">
-        <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
-        <h3 className="font-semibold text-foreground mb-1">Unable to load DC scores</h3>
-        <p className="text-sm text-muted-foreground max-w-xs mb-4">{error}</p>
-        <p className="text-xs text-muted-foreground max-w-sm">
-          To get started, seed teacher DC scores into the database using the seed script, or ensure the data sync from the DC dashboard is configured.
-        </p>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
-  // Extract unique sectors and count teachers per sector
-  const uniqueSectors = Array.from(
-    new Map(
-      teachers.map(t => [
-        t.sector,
-        { sector: t.sector, count: teachers.filter(x => x.sector === t.sector).length }
-      ])
-    ).values()
-  ).sort((a, b) => a.sector.localeCompare(b.sector));
+  // No assignment state - show sector picker as fallback
+  if (!coachSubRegion) {
+    const uniqueSectors = Array.from(
+      new Map(
+        teachers.map(t => [
+          t.sector,
+          { sector: t.sector, count: teachers.filter(x => x.sector === t.sector).length }
+        ])
+      ).values()
+    ).sort((a, b) => a.sector.localeCompare(b.sector));
 
-  // Filter teachers by selected sector
-  const filteredTeachers = selectedSector
-    ? teachers.filter(t => t.sector === selectedSector)
-    : [];
+    if (uniqueSectors.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-14 text-center">
+          <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
+          <h3 className="font-semibold text-foreground mb-1">No teachers available</h3>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            No teacher data available. Please seed the database.
+          </p>
+        </div>
+      );
+    }
 
-  // Sector selector view
-  if (!selectedSector) {
     return (
       <div className="space-y-4">
         <div>
           <h2 className="font-display text-lg font-semibold text-foreground">Select Your Sector</h2>
           <p className="text-sm text-muted-foreground">
-            Choose your sub-region to see assigned teachers
+            Choose your sector to see assigned teachers
           </p>
         </div>
 
-        {uniqueSectors.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 text-center">
-            <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
-            <h3 className="font-semibold text-foreground mb-1">No sectors found</h3>
-            <p className="text-sm text-muted-foreground">
-              No teacher data available yet.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {uniqueSectors.map(({ sector, count }) => (
-              <button
-                key={sector}
-                onClick={() => setSelectedSector(sector)}
-                className="p-4 rounded-lg border border-border bg-card hover:bg-accent transition-colors text-left"
-              >
-                <div className="font-medium text-foreground">{sector}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {count} teacher{count !== 1 ? 's' : ''}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {uniqueSectors.map((sector) => (
+            <button
+              key={sector.sector}
+              onClick={() => setCoachSubRegion(sector.sector)}
+              className="px-4 py-2 rounded-md bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors font-medium"
+            >
+              {sector.sector} ({sector.count})
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
 
-  // Teacher list view for selected sector
+  // Connection timeout state (first load with no cache and timeout reached)
+  if (connectionError && teachers.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-14 text-center">
+        <AlertCircle className="w-10 h-10 text-red-600 mb-3" />
+        <h3 className="font-semibold text-foreground mb-1">Unable to connect</h3>
+        <p className="text-sm text-muted-foreground max-w-xs mb-4">Check your signal and try again.</p>
+        <button
+          onClick={() => loadData()}
+          className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Load error state
+  if (error && teachers.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-14 text-center">
+        <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
+        <h3 className="font-semibold text-foreground mb-1">Unable to load teachers</h3>
+        <p className="text-sm text-muted-foreground max-w-xs mb-4">{error}</p>
+        <button
+          onClick={() => loadData()}
+          className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Teacher list view
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <button
-            onClick={() => setSelectedSector(null)}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Change sector
-          </button>
-          <h2 className="font-display text-lg font-semibold text-foreground">{selectedSector}</h2>
-          <p className="text-sm text-muted-foreground">
-            {filteredTeachers.length} teacher{filteredTeachers.length !== 1 ? 's' : ''} • Ranked by coaching priority
-          </p>
-        </div>
+      <div>
+        <h2 className="font-display text-lg font-semibold text-foreground">Smart Schedule</h2>
+        <p className="text-sm text-muted-foreground">
+          Sub-region: <span className="font-medium text-foreground">{coachSubRegion}</span>
+          {' '}· {teachers.length} teacher{teachers.length !== 1 ? 's' : ''} · Ranked by coaching priority
+        </p>
       </div>
 
       <DCDashboard
-        teachers={filteredTeachers}
+        teachers={teachers}
         loading={loading}
         onScheduleVisit={handleScheduleVisit}
+        isOffline={isOffline}
+        lastSynced={lastSynced}
+        onRetry={loadData}
       />
     </div>
   );

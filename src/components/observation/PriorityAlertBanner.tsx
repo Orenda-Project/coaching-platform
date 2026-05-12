@@ -13,10 +13,10 @@ interface Props {
 }
 
 const tierLabel: Record<PriorityTier, string> = {
-  CRITICAL: 'Critical',
-  HIGH: 'High',
-  MEDIUM: 'Medium',
-  LOW: 'Low',
+  CRITICAL: 'Priority Tier 1',
+  HIGH: 'Priority Tier 1',
+  MEDIUM: 'Priority Tier 2',
+  LOW: 'Priority Tier 3',
 };
 
 function isEscalation(oldTier: PriorityTier, newTier: PriorityTier): boolean {

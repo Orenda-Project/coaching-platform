@@ -33,7 +33,7 @@ const translations: Record<Language, Record<string, string>> = {
     'Recording': 'Recording',
     'Stop & Upload': 'Stop & Upload',
     'Uploading audio': 'Uploading audio...',
-    'Neo is analyzing': 'Neo is analyzing your debrief (max ~2 minutes)...',
+    'Neo is analyzing': 'Neo is analyzing your debrief (min 2 minutes)...',
     'Debrief Analysis Complete': 'Debrief Analysis Complete',
     'Overall Score': 'Overall Score',
     'Section Scores': 'Section Scores',
@@ -52,7 +52,7 @@ const translations: Record<Language, Record<string, string>> = {
     'Recording': 'ریکارڈنگ',
     'Stop & Upload': 'روکیں اور اپ لوڈ کریں',
     'Uploading audio': 'آڈیو اپ لوڈ کیا جا رہا ہے...',
-    'Neo is analyzing': 'Neo آپ کے جائزے کا تجزیہ کر رہا ہے (زیادہ سے زیادہ 2 منٹ)...',
+    'Neo is analyzing': 'Neo آپ کے جائزے کا تجزیہ کر رہا ہے (کم از کم 2 منٹ)...',
     'Debrief Analysis Complete': 'جائزہ کا تجزیہ مکمل ہو گیا',
     'Overall Score': 'کل اسکور',
     'Section Scores': 'سیکشن کے اسکور',
@@ -73,16 +73,61 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pollProgress, setPollProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [translatedFeedback, setTranslatedFeedback] = useState<any>(null);
+  const [translating, setTranslating] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
   const pollIntervalRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Translation function
+  const translateText = async (text: string): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ur`
+      );
+      const data = await response.json();
+      return data.responseData?.translatedText || text;
+    } catch (err) {
+      console.error('Translation error:', err);
+      return text;
+    }
+  };
+
+  const translateFeedback = async (feedback: any) => {
+    setTranslating(true);
+    try {
+      const translated = { ...feedback };
+
+      if (feedback.strengths && Array.isArray(feedback.strengths)) {
+        translated.strengths = await Promise.all(
+          feedback.strengths.map((s: string) => translateText(s))
+        );
+      }
+
+      if (feedback.next_steps && Array.isArray(feedback.next_steps)) {
+        translated.next_steps = await Promise.all(
+          feedback.next_steps.map(async (step: any) => ({
+            growth_area: await translateText(step.growth_area),
+            specific_behavior: await translateText(step.specific_behavior),
+          }))
+        );
+      }
+
+      setTranslatedFeedback(translated);
+    } catch (err) {
+      console.error('Feedback translation error:', err);
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   // Update from observation real-time
   useEffect(() => {
     if (observation.neo_status === 'completed') {
       setPhase('completed');
+      setTranslatedFeedback(null);
     } else if (observation.neo_status === 'failed') {
       setPhase('failed');
       setError(observation.neo_error || 'Neo processing failed');
@@ -93,18 +138,27 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const startRecording = async () => {
     try {
+      console.log('Starting recording - requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone access granted. Stream:', stream);
+
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      console.log('MediaRecorder created');
 
       mediaRecorder.ondataavailable = (event) => {
+        console.log(`dataavailable event fired: ${event.data.size} bytes`);
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          console.log(`Audio chunk captured: ${event.data.size} bytes, total chunks: ${audioChunksRef.current.length}`);
+        } else {
+          console.log('dataavailable event had 0 bytes');
         }
       };
 
       mediaRecorder.onstart = () => {
+        console.log('Recording started');
         setPhase('recording');
         setRecordingTime(0);
         recordingIntervalRef.current = window.setInterval(() => {
@@ -113,26 +167,51 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       };
 
       mediaRecorder.onstop = () => {
+        console.log(`Recording stopped. Total chunks collected: ${audioChunksRef.current.length}`);
         if (recordingIntervalRef.current) {
           clearInterval(recordingIntervalRef.current);
         }
+        // Stop tracks after a small delay to ensure final dataavailable event is processed
+        setTimeout(() => {
+          stream.getTracks().forEach((track) => {
+            console.log(`Stopping audio track: ${track.kind}`);
+            track.stop();
+          });
+        }, 100);
       };
 
-      mediaRecorder.start();
+      console.log('Calling mediaRecorder.start()...');
+      mediaRecorder.start(); // No timeslice = one complete audio blob on stop()
     } catch (err) {
+      console.error('Microphone error:', err);
       toast.error('Could not access microphone');
-      setError('Microphone access denied');
+      setError(err instanceof Error ? err.message : 'Microphone access denied');
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && phase === 'recording') {
+      console.log('Stopping recording...');
       mediaRecorderRef.current.stop();
-      const stream = mediaRecorderRef.current.stream;
-      stream.getTracks().forEach((track) => track.stop());
-      setPhase('uploading');
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      uploadAudio(audioBlob, 'audio/webm');
+
+      // Wait a moment for the final dataavailable event to be processed
+      setTimeout(() => {
+        console.log(`Stop recording confirmed. Chunks: ${audioChunksRef.current.length}`);
+        if (audioChunksRef.current.length === 0) {
+          console.error('No audio chunks recorded!');
+          toast.error('No audio recorded. Please try again.');
+          setPhase('idle');
+          return;
+        }
+
+        console.log(`Uploading ${audioChunksRef.current.length} chunks`);
+        setPhase('uploading');
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log(`Blob created: ${audioBlob.size} bytes`);
+        // Create a File with .webm extension - properly formatted from single stop() event
+        const audioFile = new File([audioBlob], `coaching-recording-${Date.now()}.webm`, { type: 'audio/webm' });
+        uploadAudio(audioFile, 'audio/webm');
+      }, 200);
     }
   };
 
@@ -146,10 +225,14 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
     try {
+      console.log('uploadAudio called with blob size:', blob.size, 'mimeType:', mimeType);
+      console.log('observation.id:', observation.id);
+
       const formData = new FormData();
       formData.append('file', blob);
       formData.append('observation_id', observation.id);
 
+      console.log('FormData created. Checking token...');
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) {
         toast.error('Not authenticated');
@@ -157,20 +240,27 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         return;
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
+      const uploadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`;
+      console.log('Sending POST to:', uploadUrl);
+      console.log('Authorization header present:', !!token);
+
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      console.log('Upload response received');
+      console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Upload failed');
+        console.error('Upload response NOT OK');
+        console.error('Blob size:', blob.size);
+        const err = await response.json().catch(() => ({}));
+        console.error('Error from server:', err);
+        throw new Error(err.error || `Upload failed: ${response.status}`);
       }
 
       const data = await response.json();
@@ -189,17 +279,24 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   };
 
   const pollNeoStatus = async () => {
+    console.log('pollNeoStatus called');
     const token = (await supabase.auth.getSession()).data.session?.access_token;
-    if (!token) return;
+    if (!token) {
+      console.error('No token for polling');
+      return;
+    }
 
+    console.log('Starting Neo status polling with observation_id:', observation.id);
     let pollCount = 0;
     const maxPolls = 15; // ~120 seconds
 
     pollIntervalRef.current = window.setInterval(async () => {
       pollCount++;
+      console.log(`Poll interval tick #${pollCount}`);
       setPollProgress(Math.min((pollCount / maxPolls) * 100, 90));
 
       try {
+        console.log(`Poll #${pollCount}: fetching neo-status...`);
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-status`,
           {
@@ -212,14 +309,19 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           }
         );
 
+        console.log(`Poll #${pollCount}: response status=${response.status}`);
+
         if (!response.ok) {
           const err = await response.json();
+          console.error(`Poll #${pollCount}: error response`, err);
           throw new Error(err.error || 'Status check failed');
         }
 
         const data = await response.json();
+        console.log(`Poll #${pollCount}: status=${data.status}`, data);
 
         if (data.status === 'completed') {
+          console.log('Neo processing completed!');
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
@@ -237,6 +339,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
             onSaved(updated as CotObservation);
           }
         } else if (data.status === 'failed') {
+          console.error('Neo processing FAILED:', data.error);
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
@@ -369,18 +472,49 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
     return (
       <div className="space-y-3">
-        <div>
-          <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-green-600" /> {t('Debrief Analysis Complete')}
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{results.readiness_level}</p>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-600" /> {t('Debrief Analysis Complete')}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              {language === 'ur' && translatedFeedback ? translatedFeedback.readiness_level || results.readiness_level : results.readiness_level}
+            </p>
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <Button
+              variant={language === 'en' ? 'default' : 'outline'}
+              size="sm"
+              className="text-xs h-7 px-2"
+              onClick={() => {
+                setLanguage('en');
+                setTranslatedFeedback(null);
+              }}
+            >
+              EN
+            </Button>
+            <Button
+              variant={language === 'ur' ? 'default' : 'outline'}
+              size="sm"
+              className="text-xs h-7 px-2"
+              onClick={() => {
+                setLanguage('ur');
+                if (!translatedFeedback) {
+                  translateFeedback(results.observer_feedback);
+                }
+              }}
+              disabled={translating}
+            >
+              {translating ? '...' : 'اردو'}
+            </Button>
+          </div>
         </div>
 
         <Card className="bg-muted/40 border-0">
           <CardContent className="p-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-muted-foreground">{t('Overall Score')}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('Overall Score')}</p>
                 <p className="text-2xl font-bold text-foreground">{results.overall_score}</p>
               </div>
               <div className="flex items-end justify-end">
@@ -414,11 +548,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
             {typeof results.observer_feedback === 'object' && results.observer_feedback !== null && (
               <>
-                {(results.observer_feedback as any).strengths && (
+                {((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).strengths && (
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-green-700 text-opacity-80">{t('Strengths')}</p>
                     <div className="space-y-1 text-xs text-foreground">
-                      {((results.observer_feedback as any).strengths || []).map((strength: string, idx: number) => (
+                      {(((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).strengths || []).map((strength: string, idx: number) => (
                         <div key={idx} className="bg-green-50 border border-green-200 rounded p-2 text-green-900">
                           {strength}
                         </div>
@@ -427,11 +561,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
                   </div>
                 )}
 
-                {(results.observer_feedback as any).next_steps && (
+                {((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).next_steps && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-blue-700">{t('Next Steps for Growth')}</p>
                     <div className="space-y-1 text-xs text-foreground">
-                      {((results.observer_feedback as any).next_steps || []).map((step: any, idx: number) => (
+                      {(((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).next_steps || []).map((step: any, idx: number) => (
                         <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-2 text-blue-900">
                           <p className="font-medium">{step.growth_area}</p>
                           <p className="text-xs mt-1">{step.specific_behavior}</p>
