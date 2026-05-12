@@ -1,0 +1,3 @@
+# Login feature scope
+src/pages/Login.tsx
+src/contexts/AuthContext.tsx
