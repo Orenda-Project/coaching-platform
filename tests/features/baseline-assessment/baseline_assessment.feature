@@ -10,7 +10,7 @@ Feature: Baseline Assessment (18 MCQ)
 
   # ── POSITIVE SCENARIOS ───────────────────────────────────────────────────────
 
-  @chunk
+  @chunk @positive
   Scenario: Successfully view all 18 baseline questions 
     Then I can see the Baseline Assessment heading
     And I can see "Question 1 of 18" at the top
@@ -19,6 +19,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see the "Next" button
     And I can see a progress bar showing 0% completion
 
+  @positive
   Scenario: Navigate through all 18 questions sequentially
     When I select option "B" for question 1
     And I click the "Next" button
@@ -27,6 +28,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see the second baseline question
     And the progress bar updates to show 5% completion
 
+  @positive
   Scenario: Go back to previous question and view previous answer (read-only before submission)
     Given I have answered questions 1 through 3
     When I click the "Previous" button
@@ -34,6 +36,7 @@ Feature: Baseline Assessment (18 MCQ)
     And my previous answer for question 2 is still selected
     And I can proceed forward to question 3 again
 
+  @positive
   Scenario: Successfully submit baseline with all 18 questions answered (all correct)
     Given I answer all 18 questions correctly
     When I click the "Submit" button on question 18
@@ -42,6 +45,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am redirected to the training dashboard
     And Module 1 is now unlocked
 
+  @positive
   Scenario: Successfully submit baseline with all 18 questions answered (mixed correct/incorrect)
     Given I answer 16 questions correctly and 2 questions incorrectly
     When I click the "Submit" button on question 18
@@ -50,6 +54,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am redirected to the training dashboard
     And Module 1 is now unlocked
 
+  @positive
   Scenario: Successfully submit baseline with all 18 questions answered (all incorrect)
     Given I select all incorrect answers for all 18 questions
     When I click the "Submit" button on question 18
@@ -58,6 +63,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am redirected to the training dashboard
     And Module 1 is now unlocked (regardless of score)
 
+  @positive
   Scenario: Baseline assessment form shows all required fields
     Then I can see the Baseline Assessment heading
     And I can see the question text
@@ -67,6 +73,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see the progress bar
     And I can see "Question X of 18" indicator
 
+  @positive
   Scenario: Loading state is shown while questions are loading
     When I first navigate to the Baseline Assessment
     Then I see a loading spinner
@@ -74,6 +81,7 @@ Feature: Baseline Assessment (18 MCQ)
     And after questions load, the spinner disappears
     And I can see the first baseline question
 
+  @positive
   Scenario: Loading state is shown while answer is being saved
     Given I am on any baseline question
     When I click the "Next" button
@@ -81,11 +89,13 @@ Feature: Baseline Assessment (18 MCQ)
     And the button is disabled until the save completes
     And then I proceed to the next question
 
+  @positive
   Scenario: Display timer showing estimated time (15-20 minutes)
     Then I can see a timer showing estimated time to complete
     And the timer is visible at the top of the page
     And it provides a helpful reference for completion
 
+  @positive
   Scenario: Save and return later to resume baseline
     Given I am on question 5 of 18
     When I close the browser or navigate away
@@ -96,6 +106,7 @@ Feature: Baseline Assessment (18 MCQ)
     And my previous answers (1-5) are preserved
     And I can continue from where I left off
 
+  @positive
   Scenario: Dashboard shows baseline as completed after submission
     Given I have submitted all 18 baseline answers
     When I view the dashboard
@@ -104,6 +115,7 @@ Feature: Baseline Assessment (18 MCQ)
     And Module 1 is now unlocked and available for training
     And all other modules are available for training
 
+  @positive
   Scenario: All 18 questions are from the coaching modules curriculum
     When I navigate through all baseline questions
     Then I see questions about SCARF model (Partnership)
@@ -114,12 +126,14 @@ Feature: Baseline Assessment (18 MCQ)
 
   # ── NEGATIVE SCENARIOS ───────────────────────────────────────────────────────
 
+  @negative
   Scenario: Cannot proceed to next question without selecting an answer
     Given I am on question 1
     When I click the "Next" button without selecting any option
     Then I see an error message "Please select an answer before proceeding"
     And I am not taken to the next question
 
+  @negative
   Scenario: Cannot submit baseline if any questions remain unanswered
     Given I have answered only 16 out of 18 questions
     And I leave questions 5 and 12 unanswered
@@ -128,6 +142,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see which questions are incomplete (e.g., "Questions 5, 12 require answers")
     And I can click to jump to those questions
 
+  @negative
   Scenario: Cannot change or correct answer after submission
     Given I have submitted all 18 baseline answers
     When I try to navigate back to question 5
@@ -135,6 +150,7 @@ Feature: Baseline Assessment (18 MCQ)
     And the baseline assessment is locked for editing
     And I am redirected to the dashboard
 
+  @negative
   Scenario: Submitted baseline shows in read-only mode if user navigates back
     Given I have submitted the baseline assessment
     When I click on "View Baseline Assessment" from the dashboard
@@ -143,12 +159,14 @@ Feature: Baseline Assessment (18 MCQ)
     And there is no "Next" or "Previous" button for navigation
     And I can see my final score
 
+  @negative
   Scenario: Cannot access baseline if already completed and submitted
     Given I have submitted the baseline assessment
     When I try to navigate directly to the baseline assessment page
     Then I am automatically redirected to the training dashboard
     And I see a message "You have already completed the baseline assessment"
 
+  @negative
   Scenario: Cannot access training modules without completing baseline first
     Given I have not yet submitted the baseline assessment
     When I navigate to the training section
@@ -156,6 +174,7 @@ Feature: Baseline Assessment (18 MCQ)
     And all training modules are locked
     And I see a "Go to Baseline Assessment" button
 
+  @negative
   Scenario: Server returns an error while saving answer
     Given I am on question 5
     And the server is experiencing an error
@@ -164,6 +183,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am not taken to the next question
     And my answer is not lost
 
+  @negative
   Scenario: Connection is lost during baseline assessment
     Given I am on question 7
     And the internet connection is lost
@@ -171,6 +191,7 @@ Feature: Baseline Assessment (18 MCQ)
     Then I see an error message "No internet connection. Please check your network."
     And I can click "Retry" to continue when connection is restored
 
+  @negative
   Scenario: Session timeout during baseline assessment
     Given I have been on the baseline page for an extended period without submitting
     When the session times out
@@ -178,6 +199,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am redirected to login
     And I can resume the baseline later with my answers preserved
 
+  @negative
   Scenario: Cannot submit baseline with network error mid-submission
     Given I am on question 18 (last question)
     And I have answered all 18 questions
@@ -186,12 +208,14 @@ Feature: Baseline Assessment (18 MCQ)
     And my answers are still saved
     And I can click "Submit" again to complete
 
+  @negative
   Scenario: Back button on first question is disabled
     Given I am on question 1 of 18
     When I look at the "Previous" button
     Then the button appears disabled/grayed out
     And I cannot click it to go backward
 
+  @negative
   Scenario: Whitespace-only selection is treated as no selection
     Given I am on a baseline question
     When I accidentally select only whitespace/blank option
@@ -200,6 +224,7 @@ Feature: Baseline Assessment (18 MCQ)
 
   # ── EDGE CASE SCENARIOS ──────────────────────────────────────────────────────
 
+  @negative
   Scenario: User identity changes between page loads during baseline
     Given I am on question 5 of the baseline
     When another user logs in on the same device
@@ -207,17 +232,20 @@ Feature: Baseline Assessment (18 MCQ)
     And when the previous user logs back in, they can resume from question 6
     And the new user must start from question 1
 
+  @negative
   Scenario: Rapid clicking of Next button doesn't create duplicate submissions
     Given I am on question 2
     When I rapidly click the "Next" button multiple times
     Then only one navigation to question 3 occurs
     And no duplicate answers are recorded
 
+  @negative
   Scenario: Baseline questions are always shown in the same order (1-18)
     Given I submit the baseline assessment once
     When I view the submitted baseline in read-only mode
     Then the questions are displayed in the same consistent order (Q1, Q2, ..., Q18)
 
+  @negative
   Scenario: After submission, viewing dashboard shows baseline status immediately
     Given I just submitted the baseline
     When I view the dashboard page
@@ -225,6 +253,7 @@ Feature: Baseline Assessment (18 MCQ)
     And my score is displayed (e.g., "88.9% (16/18)")
     And Module 1 is unlocked for training
 
+  @negative
   Scenario: Cannot re-submit baseline once already submitted
     Given I have already submitted the baseline assessment
     When I try to navigate to "Submit Baseline" again
