@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
 import type { DCTeacher } from '@/types/teacher';
 import type { ScheduleVisitFormData } from '@/types/observation';
 
@@ -30,6 +30,8 @@ export function ScheduleVisitModal({
 }: ScheduleVisitModalProps) {
   const [date, setDate] = useState('');
   const [visitPurpose, setVisitPurpose] = useState('');
+  const [purposeSearch, setPurposeSearch] = useState('');
+  const [purposeDropdownOpen, setPurposeDropdownOpen] = useState(false);
   const [lessonTopic, setLessonTopic] = useState('');
 
   // Compute today's date in local timezone (not UTC)
@@ -40,6 +42,14 @@ export function ScheduleVisitModal({
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   })();
+
+  // Filter purpose options based on search
+  const filteredPurposes = useMemo(() => {
+    if (!purposeSearch.trim()) return VISIT_PURPOSE_OPTIONS;
+    return VISIT_PURPOSE_OPTIONS.filter(p =>
+      p.toLowerCase().includes(purposeSearch.toLowerCase())
+    );
+  }, [purposeSearch]);
 
   const isFormValid = Boolean(date && visitPurpose);
 
@@ -121,24 +131,59 @@ export function ScheduleVisitModal({
               <p className="text-xs text-muted-foreground mt-1">Cannot be in the past</p>
             </div>
 
-            {/* Purpose dropdown */}
+            {/* Purpose typedown */}
             <div>
               <label className="text-sm font-medium text-foreground block mb-1.5">
                 Purpose of Visit <span className="text-red-500">*</span>
               </label>
-              <select
-                value={visitPurpose}
-                onChange={(e) => setVisitPurpose(e.target.value)}
-                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              >
-                <option value="">Select a purpose...</option>
-                {VISIT_PURPOSE_OPTIONS.map((purpose) => (
-                  <option key={purpose} value={purpose}>
-                    {purpose}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Type to search..."
+                    value={visitPurpose || purposeSearch}
+                    onChange={(e) => {
+                      setPurposeSearch(e.target.value);
+                      if (e.target.value) {
+                        setVisitPurpose('');
+                      }
+                      setPurposeDropdownOpen(true);
+                    }}
+                    onFocus={() => setPurposeDropdownOpen(true)}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 pointer-events-none" />
+                </div>
+
+                {/* Dropdown list */}
+                {purposeDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-1 border border-input rounded-md bg-background shadow-lg z-10">
+                    {filteredPurposes.length > 0 ? (
+                      <ul className="max-h-48 overflow-y-auto">
+                        {filteredPurposes.map((purpose) => (
+                          <li key={purpose}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setVisitPurpose(purpose);
+                                setPurposeSearch('');
+                                setPurposeDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors text-foreground"
+                            >
+                              {purpose}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No matches found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Lesson topic text input */}
