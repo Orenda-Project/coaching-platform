@@ -73,16 +73,61 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pollProgress, setPollProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [translatedFeedback, setTranslatedFeedback] = useState<any>(null);
+  const [translating, setTranslating] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
   const pollIntervalRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Translation function
+  const translateText = async (text: string): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ur`
+      );
+      const data = await response.json();
+      return data.responseData?.translatedText || text;
+    } catch (err) {
+      console.error('Translation error:', err);
+      return text;
+    }
+  };
+
+  const translateFeedback = async (feedback: any) => {
+    setTranslating(true);
+    try {
+      const translated = { ...feedback };
+
+      if (feedback.strengths && Array.isArray(feedback.strengths)) {
+        translated.strengths = await Promise.all(
+          feedback.strengths.map((s: string) => translateText(s))
+        );
+      }
+
+      if (feedback.next_steps && Array.isArray(feedback.next_steps)) {
+        translated.next_steps = await Promise.all(
+          feedback.next_steps.map(async (step: any) => ({
+            growth_area: await translateText(step.growth_area),
+            specific_behavior: await translateText(step.specific_behavior),
+          }))
+        );
+      }
+
+      setTranslatedFeedback(translated);
+    } catch (err) {
+      console.error('Feedback translation error:', err);
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   // Update from observation real-time
   useEffect(() => {
     if (observation.neo_status === 'completed') {
       setPhase('completed');
+      setTranslatedFeedback(null);
     } else if (observation.neo_status === 'failed') {
       setPhase('failed');
       setError(observation.neo_error || 'Neo processing failed');
@@ -427,11 +472,42 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
     return (
       <div className="space-y-3">
-        <div>
-          <h3 className="font-semibold text-foreground flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-green-600" /> {t('Debrief Analysis Complete')}
-          </h3>
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{results.readiness_level}</p>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-green-600" /> {t('Debrief Analysis Complete')}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              {language === 'ur' && translatedFeedback ? translatedFeedback.readiness_level || results.readiness_level : results.readiness_level}
+            </p>
+          </div>
+          <div className="flex gap-1 shrink-0">
+            <Button
+              variant={language === 'en' ? 'default' : 'outline'}
+              size="sm"
+              className="text-xs h-7 px-2"
+              onClick={() => {
+                setLanguage('en');
+                setTranslatedFeedback(null);
+              }}
+            >
+              EN
+            </Button>
+            <Button
+              variant={language === 'ur' ? 'default' : 'outline'}
+              size="sm"
+              className="text-xs h-7 px-2"
+              onClick={() => {
+                setLanguage('ur');
+                if (!translatedFeedback) {
+                  translateFeedback(results.observer_feedback);
+                }
+              }}
+              disabled={translating}
+            >
+              {translating ? '...' : 'اردو'}
+            </Button>
+          </div>
         </div>
 
         <Card className="bg-muted/40 border-0">
@@ -472,11 +548,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
             {typeof results.observer_feedback === 'object' && results.observer_feedback !== null && (
               <>
-                {(results.observer_feedback as any).strengths && (
+                {((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).strengths && (
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-green-700 text-opacity-80">{t('Strengths')}</p>
                     <div className="space-y-1 text-xs text-foreground">
-                      {((results.observer_feedback as any).strengths || []).map((strength: string, idx: number) => (
+                      {(((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).strengths || []).map((strength: string, idx: number) => (
                         <div key={idx} className="bg-green-50 border border-green-200 rounded p-2 text-green-900">
                           {strength}
                         </div>
@@ -485,11 +561,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
                   </div>
                 )}
 
-                {(results.observer_feedback as any).next_steps && (
+                {((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).next_steps && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-blue-700">{t('Next Steps for Growth')}</p>
                     <div className="space-y-1 text-xs text-foreground">
-                      {((results.observer_feedback as any).next_steps || []).map((step: any, idx: number) => (
+                      {(((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).next_steps || []).map((step: any, idx: number) => (
                         <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-2 text-blue-900">
                           <p className="font-medium">{step.growth_area}</p>
                           <p className="text-xs mt-1">{step.specific_behavior}</p>
