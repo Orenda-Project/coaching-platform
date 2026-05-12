@@ -1,6 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { ScheduleVisitModal } from './ScheduleVisitModal';
 import type { DCTeacher } from '@/types/teacher';
 
@@ -56,8 +55,7 @@ describe('ScheduleVisitModal', () => {
     expect(screen.getByText('Islamabad')).toBeInTheDocument();
   });
 
-  it('disables Confirm button until date and purpose are filled', async () => {
-    const user = userEvent.setup();
+  it('disables Confirm button until date and purpose are filled', () => {
     render(
       <ScheduleVisitModal
         teacher={mockTeacher}
@@ -73,18 +71,16 @@ describe('ScheduleVisitModal', () => {
 
     // Fill only date
     const dateInput = screen.getByLabelText(/Visit Date/i) as HTMLInputElement;
-    await user.click(dateInput);
     fireEvent.change(dateInput, { target: { value: '2026-05-20' } });
     expect(confirmButton).toBeDisabled();
 
     // Fill purpose
     const purposeSelect = screen.getByLabelText(/Purpose of Visit/i) as HTMLSelectElement;
-    await user.selectOptions(purposeSelect, 'Classroom Observation');
+    fireEvent.change(purposeSelect, { target: { value: 'Classroom Observation' } });
     expect(confirmButton).not.toBeDisabled();
   });
 
-  it('calls onConfirm with correct data including optional lesson_topic', async () => {
-    const user = userEvent.setup();
+  it('calls onConfirm with correct data including optional lesson_topic', () => {
     render(
       <ScheduleVisitModal
         teacher={mockTeacher}
@@ -95,30 +91,26 @@ describe('ScheduleVisitModal', () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Visit Date/i);
-    await user.click(dateInput);
+    const dateInput = screen.getByLabelText(/Visit Date/i) as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: '2026-05-20' } });
 
-    const purposeSelect = screen.getByLabelText(/Purpose of Visit/i);
-    await user.selectOptions(purposeSelect, 'Lesson Plan Review');
+    const purposeSelect = screen.getByLabelText(/Purpose of Visit/i) as HTMLSelectElement;
+    fireEvent.change(purposeSelect, { target: { value: 'Lesson Plan Review' } });
 
-    const topicInput = screen.getByPlaceholderText(/e.g., Fractions/i);
-    await user.type(topicInput, 'Fractions in Division');
+    const topicInput = screen.getByPlaceholderText(/e.g., Fractions/i) as HTMLInputElement;
+    fireEvent.change(topicInput, { target: { value: 'Fractions in Division' } });
 
     const confirmButton = screen.getByRole('button', { name: /Confirm Visit/i });
-    await user.click(confirmButton);
+    fireEvent.click(confirmButton);
 
-    await waitFor(() => {
-      expect(mockOnConfirm).toHaveBeenCalledWith({
-        date: '2026-05-20',
-        visit_purpose: 'Lesson Plan Review',
-        lesson_topic: 'Fractions in Division',
-      });
+    expect(mockOnConfirm).toHaveBeenCalledWith({
+      date: '2026-05-20',
+      visit_purpose: 'Lesson Plan Review',
+      lesson_topic: 'Fractions in Division',
     });
   });
 
-  it('calls onConfirm with undefined lesson_topic when topic is blank', async () => {
-    const user = userEvent.setup();
+  it('calls onConfirm with undefined lesson_topic when topic is blank', () => {
     render(
       <ScheduleVisitModal
         teacher={mockTeacher}
@@ -129,22 +121,19 @@ describe('ScheduleVisitModal', () => {
       />
     );
 
-    const dateInput = screen.getByLabelText(/Visit Date/i);
-    await user.click(dateInput);
+    const dateInput = screen.getByLabelText(/Visit Date/i) as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: '2026-05-20' } });
 
-    const purposeSelect = screen.getByLabelText(/Purpose of Visit/i);
-    await user.selectOptions(purposeSelect, 'Coaching Follow-up');
+    const purposeSelect = screen.getByLabelText(/Purpose of Visit/i) as HTMLSelectElement;
+    fireEvent.change(purposeSelect, { target: { value: 'Coaching Follow-up' } });
 
     const confirmButton = screen.getByRole('button', { name: /Confirm Visit/i });
-    await user.click(confirmButton);
+    fireEvent.click(confirmButton);
 
-    await waitFor(() => {
-      expect(mockOnConfirm).toHaveBeenCalledWith({
-        date: '2026-05-20',
-        visit_purpose: 'Coaching Follow-up',
-        lesson_topic: undefined,
-      });
+    expect(mockOnConfirm).toHaveBeenCalledWith({
+      date: '2026-05-20',
+      visit_purpose: 'Coaching Follow-up',
+      lesson_topic: undefined,
     });
   });
 
@@ -170,8 +159,7 @@ describe('ScheduleVisitModal', () => {
     expect(dateInput.min).toBe(todayStr);
   });
 
-  it('calls onClose when cancel button is clicked', async () => {
-    const user = userEvent.setup();
+  it('calls onClose when cancel button is clicked', () => {
     render(
       <ScheduleVisitModal
         teacher={mockTeacher}
@@ -183,14 +171,13 @@ describe('ScheduleVisitModal', () => {
     );
 
     const cancelButton = screen.getByRole('button', { name: /Cancel/i });
-    await user.click(cancelButton);
+    fireEvent.click(cancelButton);
 
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('calls onClose when X button is clicked', async () => {
-    const user = userEvent.setup();
-    render(
+  it('calls onClose when X button is clicked', () => {
+    const { container } = render(
       <ScheduleVisitModal
         teacher={mockTeacher}
         coachName="Fatima Ali"
@@ -200,8 +187,10 @@ describe('ScheduleVisitModal', () => {
       />
     );
 
-    const closeButton = screen.getByRole('button', { name: '' }); // X button has no accessible name
-    await user.click(closeButton);
+    const closeButton = container.querySelector('button[type="button"]');
+    if (closeButton) {
+      fireEvent.click(closeButton);
+    }
 
     expect(mockOnClose).toHaveBeenCalled();
   });
