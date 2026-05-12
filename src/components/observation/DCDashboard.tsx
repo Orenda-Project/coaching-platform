@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingDown, TrendingUp, BarChart3 } from 'lucide-react';
+import { TrendingDown, TrendingUp, BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface DCTeacher {
   user_id: string;
@@ -35,6 +35,9 @@ interface Props {
   teachers: DCTeacher[];
   onScheduleVisit: (teacher: DCTeacher) => void;
   loading: boolean;
+  isOffline?: boolean;
+  lastSynced?: string | null;
+  onRetry?: () => void;
 }
 
 const INDICATORS = [
@@ -73,7 +76,26 @@ function getPriorityTier(percentage: number): { label: string; description: stri
   return { label: 'Priority Tier 3', description: 'Highest Scores — Performing Well', headerBg: 'bg-green-100', headerText: 'text-green-800' };
 }
 
-export default function DCDashboard({ teachers, onScheduleVisit, loading }: Props) {
+function formatRelativeTime(isoString: string | null): string {
+  if (!isoString) return 'unknown time';
+  const date = new Date(isoString);
+  const now = new Date();
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 60) return 'just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
+}
+
+function isCacheStale(timestamp: string | null): boolean {
+  if (!timestamp) return true;
+  const age = Date.now() - new Date(timestamp).getTime();
+  const ttl = 24 * 60 * 60 * 1000; // 24 hours
+  return age > ttl;
+}
+
+export default function DCDashboard({ teachers, onScheduleVisit, loading, isOffline, lastSynced, onRetry }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const groupedTeachers = useMemo(() => {
@@ -106,8 +128,30 @@ export default function DCDashboard({ teachers, onScheduleVisit, loading }: Prop
     );
   }
 
+  const stale = isCacheStale(lastSynced);
+
   return (
     <div className="space-y-4">
+      {isOffline && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-start gap-3">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-900">
+              Offline — showing data last synced {formatRelativeTime(lastSynced)}
+              {stale && ' (may be outdated)'}
+            </p>
+          </div>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="shrink-0 px-3 py-1.5 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-medium transition-colors flex items-center gap-1.5"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry
+            </button>
+          )}
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">

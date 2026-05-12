@@ -514,7 +514,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           <CardContent className="p-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs text-muted-foreground">{t('Overall Score')}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('Overall Score')}</p>
                 <p className="text-2xl font-bold text-foreground">{results.overall_score}</p>
               </div>
               <div className="flex items-end justify-end">
