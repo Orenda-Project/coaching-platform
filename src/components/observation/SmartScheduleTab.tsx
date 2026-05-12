@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import DCDashboard from './DCDashboard';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import type { CotObservation } from '@/types/observation';
+import type { CotObservation, ScheduleVisitFormData } from '@/types/observation';
+import type { DCTeacher } from '@/types/teacher';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const typedSupabase = supabase as any;
@@ -13,33 +14,8 @@ interface SmartScheduleTabProps {
   onNewObservation?: (obs: CotObservation) => void;
 }
 
-interface DCTeacher {
-  user_id: string;
-  teacher_name: string;
-  school: string;
-  sector: string;
-  overall_percentage: number;
-  total_score: number;
-  created_date: string;
-  grade: string;
-  subject: string;
-  accurate_lesson_planning: number;
-  timely_lesson_delivery: number;
-  subject_command: number;
-  effective_pedagogy: number;
-  effective_resource_use: number;
-  activity_based_learning: number;
-  student_participation: number;
-  critical_thinking: number;
-  inclusive_practices: number;
-  technology_integration: number;
-  technology_handling: number;
-  verbal_communication: number;
-  non_verbal_communication: number;
-}
-
 export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [teachers, setTeachers] = useState<DCTeacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [assignmentLoading, setAssignmentLoading] = useState(true);
@@ -49,6 +25,8 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const [isOffline, setIsOffline] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState(false);
+
+  const coachName = profile?.full_name || user?.email || 'Coach';
 
   // Cache management helpers
   const getCacheKey = useCallback((suffix: string) => `scheduler_${suffix}_${user?.id}`, [user?.id]);
@@ -248,7 +226,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     loadData();
   }, [loadData]);
 
-  const handleScheduleVisit = useCallback(async (teacher: DCTeacher) => {
+  const handleScheduleVisit = useCallback(async (teacher: DCTeacher, formData: ScheduleVisitFormData) => {
     if (!user) {
       toast.error('Not authenticated');
       return;
@@ -264,9 +242,11 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
           school_name: teacher.school,
           subject: teacher.subject,
           grade: teacher.grade,
+          topic: formData.lesson_topic || null,
           framework: 'FICO',
-          date: new Date().toISOString(),
-          status: 'Draft',
+          date: formData.date,
+          visit_purpose: formData.visit_purpose,
+          status: 'Scheduled',
           region: coachSubRegion || teacher.sector,
         })
         .select()
@@ -402,6 +382,8 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         teachers={teachers}
         loading={loading}
         onScheduleVisit={handleScheduleVisit}
+        coachName={coachName}
+        subRegion={coachSubRegion || 'Unknown'}
         isOffline={isOffline}
         lastSynced={lastSynced}
         onRetry={loadData}
