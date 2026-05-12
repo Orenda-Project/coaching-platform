@@ -32,8 +32,16 @@ export function ScheduleVisitModal({
   const [visitPurpose, setVisitPurpose] = useState('');
   const [lessonTopic, setLessonTopic] = useState('');
 
-  const today = new Date().toISOString().split('T')[0];
-  const isFormValid = date && visitPurpose;
+  // Compute today's date in local timezone (not UTC)
+  const today = (() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  })();
+
+  const isFormValid = Boolean(date && visitPurpose);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +65,7 @@ export function ScheduleVisitModal({
               <p className="text-sm text-muted-foreground mt-1">Plan your coaching visit</p>
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="p-1 hover:bg-muted rounded-md transition-colors"
             >

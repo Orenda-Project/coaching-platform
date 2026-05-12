@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import DCDashboard from './DCDashboard';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { scheduleVisit } from '@/data/observations';
 import type { CotObservation, ScheduleVisitFormData } from '@/types/observation';
 import type { DCTeacher } from '@/types/teacher';
 
@@ -232,46 +233,44 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
       return;
     }
 
+    // Defense-in-depth: validate that date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(formData.date);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    if (selectedDate < today) {
+      toast.error('Visit date cannot be in the past');
+      return;
+    }
+
     setSchedulingTeacherId(teacher.user_id);
     try {
-      const { data, error: insertError } = await typedSupabase
-        .from('cot_observations')
-        .insert({
-          observer_id: user.id,
-          teacher_name: teacher.teacher_name,
-          school_name: teacher.school,
-          subject: teacher.subject,
-          grade: teacher.grade,
-          topic: formData.lesson_topic || null,
-          framework: 'FICO',
-          date: formData.date,
-          visit_purpose: formData.visit_purpose,
-          status: 'Scheduled',
-          region: coachSubRegion || teacher.sector,
-        })
-        .select()
-        .single();
+      const data = await scheduleVisit({
+        observer_id: user.id,
+        teacher_name: teacher.teacher_name,
+        school_name: teacher.school,
+        subject: teacher.subject,
+        grade: teacher.grade,
+        topic: formData.lesson_topic || null,
+        framework: 'FICO',
+        date: formData.date,
+        visit_purpose: formData.visit_purpose,
+        status: 'Scheduled',
+        region: coachSubRegion || teacher.sector,
+      });
 
-      if (insertError) {
-        if (insertError.message?.includes('Failed to fetch') || insertError.message?.includes('network')) {
-          toast.error('No connection — reconnect and try again');
-        } else {
-          toast.error('Failed to schedule visit');
-        }
-        console.error(insertError);
-        return;
-      }
-
-      toast.success('Visit scheduled! Opening debrief...');
-      onNewObservation?.(data as CotObservation);
+      toast.success('Visit scheduled! Opening Neo recording...');
+      onNewObservation?.(data);
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Unknown error';
       if (errMsg.includes('Failed to fetch') || errMsg.includes('network')) {
         toast.error('No connection — reconnect and try again');
       } else {
-        toast.error('Error scheduling visit');
+        toast.error('Failed to schedule visit');
       }
-      console.error(err);
+      // Log error code only, not the full payload containing user.id
+      console.error('scheduleVisit error:', err instanceof Error ? err.message : errMsg);
     } finally {
       setSchedulingTeacherId(null);
     }
