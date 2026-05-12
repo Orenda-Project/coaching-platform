@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingDown, TrendingUp, BarChart3 } from 'lucide-react';
 
 interface DCTeacher {
@@ -143,67 +144,71 @@ export default function DCDashboard({ teachers, onScheduleVisit, loading }: Prop
         </Card>
       </div>
 
-      <div className="space-y-6">
-        {groupedTeachers.map((group) => (
-          <div key={group.tier.label} className="space-y-2">
-            <div className={`px-4 py-2 rounded-lg ${group.tier.headerBg}`}>
-              <h3 className={`font-semibold text-sm ${group.tier.headerText}`}>{group.tier.label}</h3>
-              <p className={`text-xs ${group.tier.headerText} opacity-80`}>{group.tier.description} · {group.teachers.length} teacher{group.teachers.length !== 1 ? 's' : ''}</p>
-            </div>
+      <Tabs defaultValue="tier1" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          {groupedTeachers.map((group, idx) => (
+            <TabsTrigger key={group.tier.label} value={`tier${idx + 1}`} className="gap-2">
+              {group.tier.label} <Badge variant="secondary" className="ml-1">{group.teachers.length}</Badge>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {groupedTeachers.map((group, idx) => (
+          <TabsContent key={group.tier.label} value={`tier${idx + 1}`} className="space-y-2 mt-4">
             {group.teachers.map((teacher) => (
-          <div key={teacher.user_id} className={`border rounded-lg p-4 ${getScoreBg(teacher.overall_percentage)}`}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-foreground truncate">{teacher.teacher_name}</h3>
-                  <Badge variant="outline" className={`shrink-0 ${getScoreColor(teacher.overall_percentage)}`}>
-                    {teacher.overall_percentage.toFixed(1)}%
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{teacher.school}</p>
-                <p className="text-xs text-muted-foreground">Grade {teacher.grade} · {teacher.subject} · Last assessed: {new Date(teacher.created_date).toLocaleDateString()}</p>
-              </div>
-
-              <div className="flex gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setExpanded(expanded === teacher.user_id ? null : teacher.user_id)}
-                >
-                  {expanded === teacher.user_id ? 'Hide' : 'View'} Indicators
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => onScheduleVisit(teacher)}
-                >
-                  Schedule Visit
-                </Button>
-              </div>
-            </div>
-
-            {/* Indicators Grid */}
-            {expanded === teacher.user_id && (
-              <div className="mt-4 pt-4 border-t grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {INDICATORS.map((indicator) => {
-                  const value = teacher[indicator.key as keyof DCTeacher] as number;
-                  const percentage = (value / 4) * 100;
-                  return (
-                    <div key={indicator.key} className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <label className="text-xs font-medium text-foreground">{indicator.label}</label>
-                        <span className="text-xs font-bold">{value.toFixed(1)}</span>
-                      </div>
-                      <Progress value={percentage} className="h-1.5" />
+              <div key={teacher.user_id} className={`border rounded-lg p-4 ${getScoreBg(teacher.overall_percentage)}`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-foreground truncate">{teacher.teacher_name}</h3>
+                      <Badge variant="outline" className={`shrink-0 ${getScoreColor(teacher.overall_percentage)}`}>
+                        {teacher.overall_percentage.toFixed(1)}%
+                      </Badge>
                     </div>
-                  );
-                })}
+                    <p className="text-sm text-muted-foreground">{teacher.school}</p>
+                    <p className="text-xs text-muted-foreground">Grade {teacher.grade} · {teacher.subject} · Last assessed: {new Date(teacher.created_date).toLocaleDateString()}</p>
+                  </div>
+
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setExpanded(expanded === teacher.user_id ? null : teacher.user_id)}
+                    >
+                      {expanded === teacher.user_id ? 'Hide' : 'View'} Indicators
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => onScheduleVisit(teacher)}
+                    >
+                      Schedule Visit
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Indicators Grid */}
+                {expanded === teacher.user_id && (
+                  <div className="mt-4 pt-4 border-t grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {INDICATORS.map((indicator) => {
+                      const value = teacher[indicator.key as keyof DCTeacher] as number;
+                      const percentage = (value / 4) * 100;
+                      return (
+                        <div key={indicator.key} className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <label className="text-xs font-medium text-foreground">{indicator.label}</label>
+                            <span className="text-xs font-bold">{value.toFixed(1)}</span>
+                          </div>
+                          <Progress value={percentage} className="h-1.5" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
             ))}
-          </div>
+          </TabsContent>
         ))}
-      </div>
+      </Tabs>
     </div>
   );
 }
