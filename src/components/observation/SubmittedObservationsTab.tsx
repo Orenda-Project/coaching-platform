@@ -214,6 +214,44 @@ export function SubmittedObservationsTab({ observations }: Props) {
                   </Badge>
                 </div>
 
+                {/* Neo Feedback */}
+                {selectedObs.neo_results && selectedObs.neo_results.observer_feedback && (
+                  <div className="border-t pt-4 space-y-3">
+                    <h3 className="text-sm font-semibold text-foreground">Neo Coaching Feedback</h3>
+
+                    {typeof selectedObs.neo_results.observer_feedback === 'object' && selectedObs.neo_results.observer_feedback !== null && (
+                      <>
+                        {(selectedObs.neo_results.observer_feedback as any).strengths && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-green-700">Strengths</p>
+                            <div className="space-y-1.5">
+                              {((selectedObs.neo_results.observer_feedback as any).strengths || []).map((strength: string, idx: number) => (
+                                <div key={idx} className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-900">
+                                  {strength}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {(selectedObs.neo_results.observer_feedback as any).next_steps && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-blue-700">Next Steps for Growth</p>
+                            <div className="space-y-1.5">
+                              {((selectedObs.neo_results.observer_feedback as any).next_steps || []).map((step: any, idx: number) => (
+                                <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-900">
+                                  <p className="font-medium">{step.growth_area}</p>
+                                  <p className="text-xs mt-1">{step.specific_behavior}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
                 {/* Close Button */}
                 <div className="border-t pt-4">
                   <Button
