@@ -19,7 +19,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see the "Next" button
     And I can see a progress bar showing 0% completion
 
-  @positive
+  @chunk @positive
   Scenario: Navigate through all 18 questions sequentially
     When I select option "B" for question 1
     And I click the "Next" button
@@ -28,7 +28,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see the second baseline question
     And the progress bar updates to show 5% completion
 
-  @positive
+  @chunk @positive
   Scenario: Go back to previous question and view previous answer (read-only before submission)
     Given I have answered questions 1 through 3
     When I click the "Previous" button
@@ -224,7 +224,7 @@ Feature: Baseline Assessment (18 MCQ)
 
   # ── EDGE CASE SCENARIOS ──────────────────────────────────────────────────────
 
-  @negative
+  @chunk @negative
   Scenario: User identity changes between page loads during baseline
     Given I am on question 5 of the baseline
     When another user logs in on the same device
@@ -232,7 +232,7 @@ Feature: Baseline Assessment (18 MCQ)
     And when the previous user logs back in, they can resume from question 6
     And the new user must start from question 1
 
-  @negative
+  @chunk @negative
   Scenario: Rapid clicking of Next button doesn't create duplicate submissions
     Given I am on question 2
     When I rapidly click the "Next" button multiple times
