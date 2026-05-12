@@ -22,6 +22,8 @@ const STATUS_BADGE: Record<ObservationStatus, string> = {
   Approved: 'text-emerald-700 border-emerald-200 bg-emerald-50',
 };
 
+const DISPLAYED_STATUSES: ObservationStatus[] = ['Scheduled', 'Draft', 'Submitted'];
+
 export function ObservationsOverviewTab({ observations }: Props) {
   const completed = observations.filter(
     o => o.status === 'Submitted' || o.status === 'Approved',
@@ -117,7 +119,7 @@ export function ObservationsOverviewTab({ observations }: Props) {
         </CardHeader>
         <CardContent className="px-4 pb-4">
           <div className="grid grid-cols-2 gap-2">
-            {(Object.entries(statusCounts) as [ObservationStatus, number][]).map(([status, count]) => (
+            {DISPLAYED_STATUSES.map((status) => (
               <div
                 key={status}
                 className="flex items-center justify-between rounded-md px-3 py-2 bg-muted/30"
@@ -125,7 +127,7 @@ export function ObservationsOverviewTab({ observations }: Props) {
                 <Badge variant="outline" className={`text-xs ${STATUS_BADGE[status]}`}>
                   {status}
                 </Badge>
-                <span className="font-bold text-foreground">{count}</span>
+                <span className="font-bold text-foreground">{statusCounts[status]}</span>
               </div>
             ))}
           </div>
