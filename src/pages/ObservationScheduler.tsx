@@ -135,6 +135,7 @@ export default function ObservationScheduler() {
             <SmartScheduleTab
               onNewObservation={(obs) => {
                 setQuickObs(obs);
+                loadObservations();
                 setActiveTab('draft');
               }}
             />
