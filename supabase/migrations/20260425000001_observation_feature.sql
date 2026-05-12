@@ -53,19 +53,23 @@ ALTER TABLE public.cot_observations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hots_rubric_dimensions ENABLE ROW LEVEL SECURITY;
 
 -- Coaches: full access to their own observations
+DROP POLICY IF EXISTS "Coaches can select own observations" ON public.cot_observations;
 CREATE POLICY "Coaches can select own observations"
   ON public.cot_observations FOR SELECT
   USING (auth.uid() = observer_id);
 
+DROP POLICY IF EXISTS "Coaches can insert own observations" ON public.cot_observations;
 CREATE POLICY "Coaches can insert own observations"
   ON public.cot_observations FOR INSERT
   WITH CHECK (auth.uid() = observer_id);
 
+DROP POLICY IF EXISTS "Coaches can update own observations" ON public.cot_observations;
 CREATE POLICY "Coaches can update own observations"
   ON public.cot_observations FOR UPDATE
   USING (auth.uid() = observer_id);
 
 -- HOTS dimensions are readable by all authenticated users
+DROP POLICY IF EXISTS "Authenticated users can read hots dimensions" ON public.hots_rubric_dimensions;
 CREATE POLICY "Authenticated users can read hots dimensions"
   ON public.hots_rubric_dimensions FOR SELECT
   USING (auth.uid() IS NOT NULL);
