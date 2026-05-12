@@ -72,7 +72,7 @@ FAIL    → at least one ❌ MISSING or ❌ VIOLATION
 ## IDD Validation Report
 
 **Feature:** `{feature_filename}`
-**Mode:** `chunk` | `full`
+**Mode:** `{chunk|full}`
 **Scenarios Validated:** {N}
 
 ### Scenario Findings
@@ -83,8 +83,10 @@ FAIL    → at least one ❌ MISSING or ❌ VIOLATION
 
 ### Verdict
 
-**PASS** | **PARTIAL** | **FAIL**
+PASS
 ```
+
+**Verdict line is plain text — no bold, no asterisks. Write exactly: `PASS`, `PARTIAL`, or `FAIL`.**
 
 ## Quick Reference: Column Rules
 
@@ -149,7 +151,7 @@ Before outputting report, verify:
 - [ ] Evidence follows column rules (file:path | function:name | line:N)
 - [ ] Severity: dash for COVERED, plain-language for others
 - [ ] Impact: Safe for COVERED, severity level for others
-- [ ] Verdict is PASS/PARTIAL/FAIL (exactly one)
+- [ ] Verdict is plain `PASS` / `PARTIAL` / `FAIL` — no bold markers, no asterisks
 - [ ] No content after Verdict line
 - [ ] No intermediate skill results in output
 

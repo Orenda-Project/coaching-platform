@@ -193,24 +193,26 @@ def build_report(
     pr_title: str,
     run_url: str,
 ) -> str:
-    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
     has_chunk = any('@chunk' in text for _, text in validation_texts)
+
+    # Derive a short feature label for the header line
+    feature_labels = ', '.join(f'`{name}`' for name, _ in validation_texts)
+    chunk_note = '`@chunk` = deep validation · no `@chunk` = all scenarios · human QA still required'
 
     lines = [
         '<!-- github-actions-intent-validation-report -->',
-        '## IDD Validation Report',
+        '## 🤖 GitHub Actions — Intent Validation Report',
         '',
-        f'**PR:** #{pr_number} — {pr_title}',
-        f'**Run:** {run_url}',
-        f'**Timestamp:** {timestamp}',
+        '## 🔍 Intent Validation',
+        '',
+        f'PR #{pr_number} · {pr_title} · Features {feature_labels} · {timestamp} · [logs]({run_url})',
+        '',
+        chunk_note,
+        '',
     ]
-    if has_chunk:
-        lines.append('\n> ⚡ **Chunk mode detected** — partial validation run')
-    lines.append('')
 
     for feature_name, output in validation_texts:
-        lines.append(f'### Feature: `{feature_name}`')
-        lines.append('')
         lines.append(output.strip())
         lines.append('')
 
