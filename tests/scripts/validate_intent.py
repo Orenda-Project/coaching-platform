@@ -158,6 +158,14 @@ def build_validation_prompt(feature_name: str, entry_path: str, test_map_path: s
     return prompt, mode
 
 
+def _extract_report(raw_output: str) -> str:
+    marker = '## IDD Validation Report'
+    idx = raw_output.find(marker)
+    if idx != -1:
+        return raw_output[idx:].strip()
+    return raw_output.strip()
+
+
 def validate_with_agent(feature_name: str, entry_path: str, test_map_path: str) -> str:
     prompt, mode = build_validation_prompt(feature_name, entry_path, test_map_path)
 
@@ -179,7 +187,7 @@ def validate_with_agent(feature_name: str, entry_path: str, test_map_path: str) 
         if result.returncode != 0:
             err = result.stderr.strip()
             return f'**ERROR validating `{feature_name}`:**\n```\n{err}\n```'
-        return result.stdout
+        return _extract_report(result.stdout)
     except subprocess.TimeoutExpired:
         return f'**TIMEOUT validating `{feature_name}` (>600s)**'
     except Exception as e:
