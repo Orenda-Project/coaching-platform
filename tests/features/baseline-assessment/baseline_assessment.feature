@@ -10,7 +10,8 @@ Feature: Baseline Assessment (18 MCQ)
 
   # ── POSITIVE SCENARIOS ───────────────────────────────────────────────────────
 
-  Scenario: Successfully view all 18 baseline questions
+  @chunk
+  Scenario: Successfully view all 18 baseline questions 
     Then I can see the Baseline Assessment heading
     And I can see "Question 1 of 18" at the top
     And I can see the first baseline question about SCARF model
