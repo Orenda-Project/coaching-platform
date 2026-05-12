@@ -75,8 +75,8 @@ describe('ScheduleVisitModal', () => {
     expect(confirmButton).toBeDisabled();
 
     // Fill purpose
-    const purposeSelect = screen.getByLabelText(/Purpose of Visit/i) as HTMLSelectElement;
-    fireEvent.change(purposeSelect, { target: { value: 'Classroom Observation' } });
+    const purposeInput = screen.getByPlaceholderText(/e.g., Classroom Observation/i) as HTMLInputElement;
+    fireEvent.change(purposeInput, { target: { value: 'Classroom Observation' } });
     expect(confirmButton).not.toBeDisabled();
   });
 
@@ -94,8 +94,8 @@ describe('ScheduleVisitModal', () => {
     const dateInput = screen.getByLabelText(/Visit Date/i) as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: '2026-05-20' } });
 
-    const purposeSelect = screen.getByLabelText(/Purpose of Visit/i) as HTMLSelectElement;
-    fireEvent.change(purposeSelect, { target: { value: 'Lesson Plan Review' } });
+    const purposeInput = screen.getByPlaceholderText(/e.g., Classroom Observation/i) as HTMLInputElement;
+    fireEvent.change(purposeInput, { target: { value: 'Lesson Plan Review' } });
 
     const topicInput = screen.getByPlaceholderText(/e.g., Fractions/i) as HTMLInputElement;
     fireEvent.change(topicInput, { target: { value: 'Fractions in Division' } });
@@ -124,8 +124,8 @@ describe('ScheduleVisitModal', () => {
     const dateInput = screen.getByLabelText(/Visit Date/i) as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: '2026-05-20' } });
 
-    const purposeSelect = screen.getByLabelText(/Purpose of Visit/i) as HTMLSelectElement;
-    fireEvent.change(purposeSelect, { target: { value: 'Coaching Follow-up' } });
+    const purposeInput = screen.getByPlaceholderText(/e.g., Classroom Observation/i) as HTMLInputElement;
+    fireEvent.change(purposeInput, { target: { value: 'Coaching Follow-up' } });
 
     const confirmButton = screen.getByRole('button', { name: /Confirm Visit/i });
     fireEvent.click(confirmButton);
