@@ -199,7 +199,9 @@ export function SubmittedObservationsTab({ observations }: Props) {
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-medium text-muted-foreground mb-1">Total Score</p>
-                      <p className="text-2xl font-bold text-foreground">{selectedObs.total_score}</p>
+                      <p className="text-2xl font-bold text-foreground">
+                        {selectedObs.neo_results?.overall_score ?? selectedObs.total_score}
+                      </p>
                     </div>
                   </div>
                 </div>
