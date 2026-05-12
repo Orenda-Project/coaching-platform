@@ -7,9 +7,13 @@ description: Use when producing final IDD validation output - create markdown ta
 
 ## Overview
 
-Transform scenario findings into a **final report** for CI/CD pipeline and QA review. Output ONLY the defined schema — no intermediate skill results.
+Transform scenario findings into a **final report** for CI/CD pipeline and QA review.
 
-**Core principle:** Schema is a contract. Violate it = tool breaks.
+⛔ **THIS IS THE ONLY OUTPUT.** No preamble, no step summaries, no skill output before this report.
+⛔ **Do not write anything before the `## IDD Validation Report` heading.**
+⛔ **Do not write anything after the Verdict line.**
+
+**Core principle:** Schema is a contract. Violate it = CI pipeline breaks.
 
 ## When to Use
 
