@@ -5,7 +5,8 @@ on:
   pull_request:
     types: [labeled, unlabeled, synchronize, opened, reopened]
     branches:
-      - develop
+      - main
+      - staging
     paths-ignore:
       - 'docs/**'
 
