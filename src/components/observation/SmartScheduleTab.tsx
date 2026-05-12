@@ -322,9 +322,9 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
             <button
               key={sector.sector}
               onClick={() => setCoachSubRegion(sector.sector)}
-              className="px-4 py-2 rounded-md bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors font-medium"
+              className="px-4 py-2 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors font-medium border border-blue-200"
             >
-              {sector.sector} ({sector.count})
+              {sector.sector}
             </button>
           ))}
         </div>
