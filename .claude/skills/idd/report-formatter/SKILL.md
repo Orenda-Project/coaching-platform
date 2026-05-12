@@ -51,8 +51,12 @@ One row per scenario (ALL scenarios, none omitted):
 ```markdown
 | Scenario | Status | Evidence | Severity | Impact |
 |----------|--------|----------|----------|--------|
-| {scenario name} | ✅/⚠️/❌ | file:... | (description) | Safe/Critical/High/Medium/Low |
+| {scenario name} | ✅ | file:... | — | Safe |
+| {scenario name} | ⚠️ | file:... | (plain-language explanation) | Medium |
+| {scenario name} | ❌ | no evidence | (plain-language explanation) | High |
 ```
+
+**Status column contains ONLY the emoji — no text after it.**
 
 ### Step 4: Assign Verdict
 
@@ -89,12 +93,12 @@ FAIL    → at least one ❌ MISSING or ❌ VIOLATION
 - No paraphrasing or abbreviation
 
 ### Status Column
-- ✅ COVERED — scenario fully implemented
-- ⚠️ PARTIAL — partially implemented, some steps missing
-- ❌ MISSING — no implementation found
-- ❌ VIOLATION — forbidden behavior exists (@negative only)
+- `✅` — scenario fully implemented (COVERED)
+- `⚠️` — partially implemented, some steps missing (PARTIAL)
+- `❌` — no implementation found (MISSING)
+- `❌` — forbidden behavior exists, @negative only (VIOLATION)
 
-**Use ONLY these four symbols. No variations.**
+**Use ONLY the emoji symbol alone. No text label after it. No variations.**
 
 ### Evidence Column
 
@@ -188,7 +192,7 @@ Before outputting report, verify:
 | Scenario | Status | Evidence | Severity | Impact |
 |----------|--------|----------|----------|--------|
 | Sign in with valid credentials and single profile | ✅ | file: apps/auth/views.py \| function: authenticate_user \| line: 42 | — | Safe |
-| Sign in with invalid password is rejected | ❌ | file: apps/auth/views.py \| function: authenticate_user \| line: 55 — password compared as plaintext instead of hashed | Code accepts plaintext password match, bypassing secure comparison. Users can log in with plaintext password if database also contains plaintext. | Critical |
+| Sign in with invalid password is rejected | ❌ | file: apps/auth/views.py \| function: authenticate_user \| line: 55 — password compared as plaintext instead of hashed | Code accepts plaintext match, bypassing secure comparison | Critical |
 
 ### Verdict
 
