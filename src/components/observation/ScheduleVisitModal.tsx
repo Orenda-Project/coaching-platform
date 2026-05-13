@@ -99,10 +99,11 @@ export function ScheduleVisitModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Date picker */}
             <div>
-              <label className="text-sm font-medium text-foreground block mb-1.5">
+              <label htmlFor="visit-date" className="text-sm font-medium text-foreground block mb-1.5">
                 Visit Date <span className="text-red-500">*</span>
               </label>
               <input
+                id="visit-date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
@@ -115,10 +116,11 @@ export function ScheduleVisitModal({
 
             {/* Purpose text input */}
             <div>
-              <label className="text-sm font-medium text-foreground block mb-1.5">
+              <label htmlFor="visit-purpose" className="text-sm font-medium text-foreground block mb-1.5">
                 Purpose of Visit <span className="text-red-500">*</span>
               </label>
               <input
+                id="visit-purpose"
                 type="text"
                 value={visitPurpose}
                 onChange={(e) => setVisitPurpose(e.target.value)}
@@ -129,10 +131,11 @@ export function ScheduleVisitModal({
 
             {/* Lesson topic text input */}
             <div>
-              <label className="text-sm font-medium text-foreground block mb-1.5">
+              <label htmlFor="lesson-topic" className="text-sm font-medium text-foreground block mb-1.5">
                 Lesson Topic to Observe
               </label>
               <input
+                id="lesson-topic"
                 type="text"
                 value={lessonTopic}
                 onChange={(e) => setLessonTopic(e.target.value)}
