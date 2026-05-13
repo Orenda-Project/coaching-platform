@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Clock, CheckCircle2, BarChart2, ArrowLeft, CalendarDays } from 'lucide-react';
 import { getPendingAudios, removeFromQueue, lockForUpload, unlockUpload } from '@/lib/audioQueue';
+import { listObservationsForObserver } from '@/data/observations';
 import { toast } from 'sonner';
 import { DraftObservationsTab } from '@/components/observation/DraftObservationsTab';
 import { SubmittedObservationsTab } from '@/components/observation/SubmittedObservationsTab';
@@ -25,14 +26,11 @@ export default function ObservationScheduler() {
 
   const loadObservations = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await (supabase as any)
-      .from('cot_observations')
-      .select('*')
-      .eq('observer_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setObservations(data as CotObservation[]);
+    try {
+      const data = await listObservationsForObserver(user.id);
+      setObservations(data);
+    } catch (err) {
+      console.error('Failed to load observations:', err);
     }
     setLoading(false);
   }, [user]);

@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import type { CotObservation, NeoResults } from '@/types/observation';
 import { saveAudioToQueue, getPendingAudio, removeFromQueue, lockForUpload, unlockUpload, saveSavedAudio, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
+import { markObservationDraft } from '@/data/observations';
 
 interface Props {
   observation: CotObservation;
@@ -351,6 +352,12 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
     try {
+      // Acquire upload lock to prevent concurrent uploads
+      if (!lockForUpload(observation.id)) {
+        toast.error('Upload already in progress');
+        return;
+      }
+
       setIsUploading(true);
       console.log('uploadAudio called with blob size:', blob.size, 'mimeType:', mimeType);
       console.log('observation.id:', observation.id);
@@ -362,6 +369,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       console.log('FormData created. Checking token...');
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) {
+        unlockUpload(observation.id);
         toast.error('Not authenticated');
         setPhase('idle');
         setIsUploading(false);
@@ -410,6 +418,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       pollNeoStatus();
     } catch (err) {
       setIsUploading(false);
+      unlockUpload(observation.id);
       const isNetworkError = !navigator.onLine || err instanceof TypeError;
 
       if (isNetworkError) {
@@ -422,11 +431,9 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           observer_id: observation.observer_id,
         });
 
-        // Save observation as Draft
-        await (supabase as any).from('cot_observations').update({
-          status: 'Draft',
-          updated_at: new Date().toISOString(),
-        }).eq('id', observation.id);
+        // Save audio locally and mark observation as Draft
+        await saveSavedAudio(observation.id, blob, mimeType);
+        await markObservationDraft(observation.id);
 
         onSaved({ ...observation, status: 'Draft' });
         setPhase('queued');

@@ -16,6 +16,10 @@ interface SavedAudioRecord {
 const DB_NAME = 'coaching_audio_queue';
 const STORE_NAME = 'pending_uploads';
 const SAVED_AUDIO_STORE = 'saved_audio';
+
+// In-memory lock set to prevent concurrent uploads of the same observation within this tab.
+// NOTE: This is per-tab only and does not prevent duplicates across multiple browser tabs.
+// For cross-tab safety, consider using Web Locks API or an IndexedDB-backed sentinel.
 const uploadingNow = new Set<string>();
 
 function openDB(): Promise<IDBDatabase> {
@@ -46,8 +50,8 @@ export async function saveAudioToQueue(record: PendingAudioRecord): Promise<void
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
-  } catch {
-    console.error('Failed to save audio to queue:', Error);
+  } catch (e) {
+    console.error('Failed to save audio to queue:', e);
   }
 }
 
@@ -60,8 +64,8 @@ export async function getPendingAudios(): Promise<PendingAudioRecord[]> {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve((request.result as PendingAudioRecord[]) || []);
     });
-  } catch {
-    console.error('Failed to get pending audios:', Error);
+  } catch (e) {
+    console.error('Failed to get pending audios:', e);
     return [];
   }
 }
@@ -75,8 +79,8 @@ export async function getPendingAudio(observation_id: string): Promise<PendingAu
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result as PendingAudioRecord | undefined);
     });
-  } catch {
-    console.error('Failed to get pending audio:', Error);
+  } catch (e) {
+    console.error('Failed to get pending audio:', e);
     return undefined;
   }
 }
@@ -90,8 +94,8 @@ export async function removeFromQueue(observation_id: string): Promise<void> {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
-  } catch {
-    console.error('Failed to remove from queue:', Error);
+  } catch (e) {
+    console.error('Failed to remove from queue:', e);
   }
 }
 
@@ -119,8 +123,8 @@ export async function saveSavedAudio(observation_id: string, blob: Blob, mime_ty
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
-  } catch {
-    console.error('Failed to save audio:', Error);
+  } catch (e) {
+    console.error('Failed to save audio:', e);
   }
 }
 
@@ -136,8 +140,8 @@ export async function getSavedAudio(observation_id: string): Promise<{ blob: Blo
         resolve(result ? { blob: result.blob, mime_type: result.mime_type } : undefined);
       };
     });
-  } catch {
-    console.error('Failed to get saved audio:', Error);
+  } catch (e) {
+    console.error('Failed to get saved audio:', e);
     return undefined;
   }
 }
@@ -151,7 +155,7 @@ export async function deleteSavedAudio(observation_id: string): Promise<void> {
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
     });
-  } catch {
-    console.error('Failed to delete saved audio:', Error);
+  } catch (e) {
+    console.error('Failed to delete saved audio:', e);
   }
 }

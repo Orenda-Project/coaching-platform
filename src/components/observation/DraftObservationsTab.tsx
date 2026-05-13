@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { NeoAnalysis } from './NeoAnalysis';
 import type { CotObservation } from '@/types/observation';
 import { getPendingAudios, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
+import { updateObservationStatus } from '@/data/observations';
 
 interface Props {
   observations: CotObservation[];
@@ -98,21 +99,9 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
       }
 
       // Update observation status
-      const { error } = await (supabase as any)
-        .from('cot_observations')
-        .update({
-          status: 'Submitted',
-          submitted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', obs.id);
+      await updateObservationStatus(obs.id, 'Submitted');
 
       setSubmitting(null);
-
-      if (error) {
-        toast.error('Failed to submit observation');
-        return;
-      }
 
       toast.success('Observation submitted successfully!');
       setExpanded(null);
