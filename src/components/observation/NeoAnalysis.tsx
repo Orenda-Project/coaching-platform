@@ -566,7 +566,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       setError(message);
       setPhase('queued');
     }
-  }, [observation.id, observation.observer_id]);
+  }, [observation.id, observation.observer_id, pollNeoStatus]);
 
   // Listen for online event when queued
   useEffect(() => {
