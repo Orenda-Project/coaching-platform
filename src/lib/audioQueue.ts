@@ -6,6 +6,13 @@ interface PendingAudioRecord {
   observer_id: string;
 }
 
+interface SavedAudioRecord {
+  observation_id: string;
+  blob: Blob;
+  mime_type: string;
+  saved_at: string;
+}
+
 const DB_NAME = 'coaching_audio_queue';
 const STORE_NAME = 'pending_uploads';
 const SAVED_AUDIO_STORE = 'saved_audio';
@@ -125,7 +132,7 @@ export async function getSavedAudio(observation_id: string): Promise<{ blob: Blo
       const request = store.get(observation_id);
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
-        const result = request.result as any;
+        const result = request.result as SavedAudioRecord | undefined;
         resolve(result ? { blob: result.blob, mime_type: result.mime_type } : undefined);
       };
     });
