@@ -34,7 +34,13 @@ Last updated: 2026-04-23
 - Relying on timing assumptions (race conditions between writes)
 - Mixed upsert/insert patterns (use one approach consistently)
 
+## Prop Memoization & Async State (2026-05-13)
+- **useMemo with array dependency:** If a component uses `useMemo(() => shuffle(options), [options])` and the parent re-renders with a new array reference (even if items are the same), the shuffle re-runs. This can cause UI flashing or options jumping positions mid-interaction. Parent must memoize the options array, or component should key on stable data (e.g., option IDs).
+- **Default prop with async data:** A boolean prop like `contentCompleted = false` should not be used when the parent has async-derived state. Renders before the parent loads the state will show the wrong UI (locked when it shouldn't be). Parent should show a loading state instead of rendering the child.
+
 ## Questions to ask
 - "If this table was written by mistake, how would we detect & revert?"
 - "What happens if the DB write succeeds but the response fails?"
 - "Can this user see another user's data if auth is bypassed?"
+- "Does the parent memoize array/object props that are used as dependencies?"
+- "If a boolean prop is async-derived, is there a loading state before the child renders?"

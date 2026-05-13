@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { shuffle } from "@/lib/shuffle";
 
 export interface ScenarioOption {
   id: string;
@@ -31,10 +33,17 @@ export default function ScenarioCard({
   locked,
   isSubmitting = false,
 }: ScenarioCardProps) {
+  // Randomize option positions using Fisher-Yates shuffle.
+  // Shuffle is keyed to options array reference. Parent must memoize options
+  // to avoid re-shuffling on every parent render. Without memoization, users
+  // may see options jump positions mid-interaction, which is a UX issue.
+  // See docs/memory/review-findings.md for note on memoization requirement.
+  const displayedOptions = useMemo(() => shuffle(options), [options]);
+
   return (
     <Card className="border-secondary/30 bg-secondary/5">
       <CardHeader>
-        <CardTitle className="text-xl">Scenario</CardTitle>
+        <CardTitle className="text-xl">Practice Section</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Situation */}
@@ -56,7 +65,7 @@ export default function ScenarioCard({
             How do you respond?
           </p>
           <RadioGroup value={selectedLetter ?? ""} onValueChange={onSelect}>
-            {options.map((option) => (
+            {displayedOptions.map((option) => (
               <div
                 key={option.id}
                 className={cn(
