@@ -67,7 +67,7 @@ async function createJiraTicket(args) {
     description: args.description || "",
     assignee: "Jalal Khan",
     additional_properties: {
-      components: [{ id: "10105" }],          // Engineering
+      components: [{ id: "10590" }],          // Team Coaching
       customfield_10014: "MC20-9877",          // Epic
       customfield_10026: 3                     // Work Days
     }

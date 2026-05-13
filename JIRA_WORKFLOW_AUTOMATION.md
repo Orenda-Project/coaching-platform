@@ -15,7 +15,7 @@ All new tickets in **MC20 (Mission Control 2.0)** project should be created with
   "summary": "[Feature Title]",
   "assignee": "Jalal Khan",
   "additional_properties": {
-    "components": [{"id": "10105"}],
+    "components": [{"id": "10590"}],
     "customfield_10014": "MC20-9877",
     "customfield_10026": 3
   }
@@ -26,7 +26,7 @@ All new tickets in **MC20 (Mission Control 2.0)** project should be created with
 - **Project:** MC20 (Mission Control 2.0)
 - **Type:** Story (issue type)
 - **Assignee:** Jalal Khan (jalal.khan@taleemabad.com)
-- **Component:** Engineering (ID: `10105`)
+- **Component:** Team Coaching (ID: `10590`)
 - **Epic:** MC20-9877 (customfield_10014)
 - **Work Days:** 3 (customfield_10026)
 

@@ -167,7 +167,7 @@ Every ticket created via `/jira-ticket` includes:
 | Project | MC20 | Mission Control 2.0 |
 | Type | Story | Feature work |
 | Assignee | Jalal Khan | Owner/Reviewer |
-| Component | Engineering | Team responsibility |
+| Component | Team Coaching | Team responsibility |
 | Epic | MC20-9877 | Strategic initiative |
 | Work Days | 3 | Time estimate |
 | Initial Status | In Progress | Immediate activation |

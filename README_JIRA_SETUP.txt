@@ -75,7 +75,7 @@ Every new ticket gets:
   Project ID: MC20
   Issue Type: Story
   Assignee: Jalal Khan (jalal.khan@taleemabad.com)
-  Component: Engineering (ID: 10105)
+  Component: Team Coaching (ID: 10590)
   Epic Link: MC20-9877 (customfield_10014)
   Work Days: 3 (customfield_10026)
 

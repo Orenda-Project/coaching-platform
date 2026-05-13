@@ -36,7 +36,7 @@ Fully automates Jira ticket creation with:
 ### 1. Create Jira Ticket (MC20 Project)
 - **Type:** Story
 - **Assignee:** Jalal Khan
-- **Component:** Engineering (ID: 10105)
+- **Component:** Team Coaching (ID: 10590)
 - **Epic:** MC20-9877
 - **Work Days:** 3
 

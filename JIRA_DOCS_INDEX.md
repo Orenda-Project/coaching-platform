@@ -135,7 +135,7 @@ New Team Members
 - **Project:** MC20 (Mission Control 2.0)
 - **Type:** Story
 - **Assignee:** Jalal Khan (jalal.khan@taleemabad.com)
-- **Component:** Engineering (ID: 10105)
+- **Component:** Team Coaching (ID: 10590)
 - **Epic:** MC20-9877 (Product & Engineering)
 - **Work Days:** 3
 
