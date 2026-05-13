@@ -19,7 +19,7 @@ import {
 import { toast } from 'sonner';
 import { NeoAnalysis } from './NeoAnalysis';
 import type { CotObservation } from '@/types/observation';
-import { getPendingAudios } from '@/lib/audioQueue';
+import { getPendingAudios, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
 
 interface Props {
   observations: CotObservation[];
@@ -66,25 +66,61 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
 
   const handleSubmit = async (obs: CotObservation) => {
     setSubmitting(obs.id);
-    const { error } = await (supabase as any)
-      .from('cot_observations')
-      .update({
-        status: 'Submitted',
-        submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', obs.id);
 
-    setSubmitting(null);
+    try {
+      // Check for saved audio and upload to Neo if found
+      const savedAudio = await getSavedAudio(obs.id);
+      if (savedAudio) {
+        const token = (await supabase.auth.getSession()).data.session?.access_token;
+        if (token) {
+          const formData = new FormData();
+          formData.append('file', savedAudio.blob);
+          formData.append('observation_id', obs.id);
 
-    if (error) {
-      toast.error('Failed to submit observation');
-      return;
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`,
+            {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            }
+          );
+
+          if (response.ok) {
+            await deleteSavedAudio(obs.id);
+            toast.success('Audio uploaded to Neo for analysis');
+          } else {
+            toast.error('Failed to upload audio to Neo');
+            setSubmitting(null);
+            return;
+          }
+        }
+      }
+
+      // Update observation status
+      const { error } = await (supabase as any)
+        .from('cot_observations')
+        .update({
+          status: 'Submitted',
+          submitted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', obs.id);
+
+      setSubmitting(null);
+
+      if (error) {
+        toast.error('Failed to submit observation');
+        return;
+      }
+
+      toast.success('Observation submitted successfully!');
+      setExpanded(null);
+      onRefresh();
+    } catch (err) {
+      setSubmitting(null);
+      toast.error('Error submitting observation');
     }
-
-    toast.success('Observation submitted successfully!');
-    setExpanded(null);
-    onRefresh();
   };
 
   if (drafts.length === 0) {

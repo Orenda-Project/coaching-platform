@@ -8,11 +8,12 @@ interface PendingAudioRecord {
 
 const DB_NAME = 'coaching_audio_queue';
 const STORE_NAME = 'pending_uploads';
+const SAVED_AUDIO_STORE = 'saved_audio';
 const uploadingNow = new Set<string>();
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, 2);
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
@@ -21,6 +22,9 @@ function openDB(): Promise<IDBDatabase> {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'observation_id' });
+      }
+      if (!db.objectStoreNames.contains(SAVED_AUDIO_STORE)) {
+        db.createObjectStore(SAVED_AUDIO_STORE, { keyPath: 'observation_id' });
       }
     };
   });
@@ -92,4 +96,55 @@ export function lockForUpload(obs_id: string): boolean {
 
 export function unlockUpload(obs_id: string): void {
   uploadingNow.delete(obs_id);
+}
+
+export async function saveSavedAudio(observation_id: string, blob: Blob, mime_type: string = 'audio/webm'): Promise<void> {
+  try {
+    const db = await openDB();
+    const store = db.transaction(SAVED_AUDIO_STORE, 'readwrite').objectStore(SAVED_AUDIO_STORE);
+    return new Promise((resolve, reject) => {
+      const request = store.put({
+        observation_id,
+        blob,
+        mime_type,
+        saved_at: new Date().toISOString(),
+      });
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  } catch {
+    console.error('Failed to save audio:', Error);
+  }
+}
+
+export async function getSavedAudio(observation_id: string): Promise<{ blob: Blob; mime_type: string } | undefined> {
+  try {
+    const db = await openDB();
+    const store = db.transaction(SAVED_AUDIO_STORE, 'readonly').objectStore(SAVED_AUDIO_STORE);
+    return new Promise((resolve, reject) => {
+      const request = store.get(observation_id);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const result = request.result as any;
+        resolve(result ? { blob: result.blob, mime_type: result.mime_type } : undefined);
+      };
+    });
+  } catch {
+    console.error('Failed to get saved audio:', Error);
+    return undefined;
+  }
+}
+
+export async function deleteSavedAudio(observation_id: string): Promise<void> {
+  try {
+    const db = await openDB();
+    const store = db.transaction(SAVED_AUDIO_STORE, 'readwrite').objectStore(SAVED_AUDIO_STORE);
+    return new Promise((resolve, reject) => {
+      const request = store.delete(observation_id);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  } catch {
+    console.error('Failed to delete saved audio:', Error);
+  }
 }

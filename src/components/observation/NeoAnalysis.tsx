@@ -13,17 +13,21 @@ import {
   CheckCircle2,
   Brain,
   WifiOff,
+  Pause,
+  Play,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CotObservation, NeoResults } from '@/types/observation';
-import { saveAudioToQueue, getPendingAudio, removeFromQueue, lockForUpload, unlockUpload } from '@/lib/audioQueue';
+import { saveAudioToQueue, getPendingAudio, removeFromQueue, lockForUpload, unlockUpload, saveSavedAudio, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
 
 interface Props {
   observation: CotObservation;
   onSaved: (obs: CotObservation) => void;
 }
 
-type NeoPhase = 'idle' | 'recording' | 'uploading' | 'queued' | 'processing' | 'completed' | 'failed';
+type NeoPhase = 'idle' | 'recording' | 'saved' | 'uploading' | 'queued' | 'processing' | 'completed' | 'failed';
 type Language = 'en' | 'ur';
 
 const translations: Record<Language, Record<string, string>> = {
@@ -84,15 +88,18 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pollProgress, setPollProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [translatedFeedback, setTranslatedFeedback] = useState<any>(null);
   const [translating, setTranslating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [savedAudio, setSavedAudio] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
   const pollIntervalRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement>(null);
 
   // Translation function
   const translateText = async (text: string): Promise<string> => {
@@ -140,6 +147,16 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   useEffect(() => {
     getPendingAudio(observation.id).then(record => {
       if (record) setPhase('queued');
+    });
+  }, [observation.id]);
+
+  // Load saved audio on mount
+  useEffect(() => {
+    getSavedAudio(observation.id).then(result => {
+      if (result) {
+        setSavedAudio(result.blob);
+        setPhase('saved');
+      }
     });
   }, [observation.id]);
 
@@ -232,67 +249,96 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
-  const saveDraftWithoutNeo = async () => {
-    if (audioChunksRef.current.length === 0) {
-      toast.error('No audio recorded');
+  const saveAudioLocally = async () => {
+    if (!mediaRecorderRef.current || phase !== 'recording') {
+      toast.error('No recording in progress');
       return;
     }
 
-    // Stop recording if still going
-    if (mediaRecorderRef.current && phase === 'recording') {
-      mediaRecorderRef.current.stop();
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-    }
-
-    // Save observation as Draft without Neo processing
-    try {
-      await (supabase as any).from('cot_observations').update({
-        status: 'Draft',
-        updated_at: new Date().toISOString(),
-      }).eq('id', observation.id);
-
-      onSaved({ ...observation, status: 'Draft' });
-      setPhase('idle');
-      setRecordingTime(0);
-      audioChunksRef.current = [];
-      setIsPaused(false);
-      toast.success('Saved as draft — you can record Neo debrief later');
-    } catch (err) {
-      toast.error('Failed to save draft');
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && phase === 'recording') {
-      console.log('Stopping recording...');
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-      setIsPaused(false);
-      mediaRecorderRef.current.stop();
-
-      // Wait a moment for the final dataavailable event to be processed
-      setTimeout(() => {
-        console.log(`Stop recording confirmed. Chunks: ${audioChunksRef.current.length}`);
+    // Stop the recording and wait for data
+    return new Promise<void>((resolve) => {
+      const handleStop = async () => {
         if (audioChunksRef.current.length === 0) {
-          console.error('No audio chunks recorded!');
-          toast.error('No audio recorded. Please try again.');
-          setPhase('idle');
+          toast.error('No audio recorded');
+          resolve();
           return;
         }
 
-        console.log(`Uploading ${audioChunksRef.current.length} chunks`);
-        setPhase('uploading');
+        // Create audio blob and save to IndexedDB
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await saveSavedAudio(observation.id, audioBlob, 'audio/webm');
+        setSavedAudio(audioBlob);
+        setPhase('saved');
+        toast.success('Audio saved — review and submit with observation');
+        resolve();
+      };
 
-        const mimeType = 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        console.log(`Blob created: ${audioBlob.size} bytes`);
-        const audioFile = new File([audioBlob], `coaching-recording-${Date.now()}.webm`, { type: mimeType });
-        uploadAudio(audioFile, mimeType);
-      }, 200);
+      // Stop recording timer
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+
+      // Set up one-time stop listener
+      mediaRecorderRef.current!.addEventListener('stop', handleStop, { once: true });
+
+      // Stop the recorder
+      mediaRecorderRef.current!.stop();
+    });
+  };
+
+  const deleteRecording = async () => {
+    await deleteSavedAudio(observation.id);
+    setSavedAudio(null);
+    setRecordingTime(0);
+    audioChunksRef.current = [];
+    setPhase('idle');
+    toast.info('Recording deleted');
+  };
+
+  const reRecordAudio = () => {
+    setSavedAudio(null);
+    setRecordingTime(0);
+    audioChunksRef.current = [];
+    setPhase('idle');
+  };
+
+  const stopRecording = async () => {
+    if (!mediaRecorderRef.current || phase !== 'recording') {
+      return;
     }
+
+    return new Promise<void>((resolve) => {
+      const handleStop = async () => {
+        if (audioChunksRef.current.length === 0) {
+          toast.error('No audio recorded');
+          setPhase('idle');
+          resolve();
+          return;
+        }
+
+        // Create audio blob and save to IndexedDB
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await saveSavedAudio(observation.id, audioBlob, 'audio/webm');
+        setSavedAudio(audioBlob);
+        setPhase('saved');
+        toast.success('Recording stopped — ready to upload');
+        resolve();
+      };
+
+      // Stop recording timer
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+
+      // Set up one-time stop listener
+      mediaRecorderRef.current!.addEventListener('stop', handleStop, { once: true });
+
+      // Stop the recorder
+      setIsPaused(false);
+      mediaRecorderRef.current!.stop();
+    });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -305,6 +351,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
     try {
+      setIsUploading(true);
       console.log('uploadAudio called with blob size:', blob.size, 'mimeType:', mimeType);
       console.log('observation.id:', observation.id);
 
@@ -317,6 +364,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       if (!token) {
         toast.error('Not authenticated');
         setPhase('idle');
+        setIsUploading(false);
         return;
       }
 
@@ -349,6 +397,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       await removeFromQueue(observation.id);
       unlockUpload(observation.id);
 
+      // Clean up saved audio if this was uploaded from saved phase
+      await deleteSavedAudio(observation.id);
+
+      setIsUploading(false);
+      setSavedAudio(null);
       setPhase('processing');
       setPollProgress(0);
       setError(null);
@@ -356,6 +409,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       // Start polling
       pollNeoStatus();
     } catch (err) {
+      setIsUploading(false);
       const isNetworkError = !navigator.onLine || err instanceof TypeError;
 
       if (isNetworkError) {
@@ -382,7 +436,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         const message = err instanceof Error ? err.message : 'Upload failed';
         toast.error(message);
         setError(message);
-        setPhase('idle');
+        setPhase('saved');
       }
     }
   };
@@ -589,21 +643,91 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     const mins = Math.floor(recordingTime / 60);
     const secs = recordingTime % 60;
     return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-foreground">
-          <div className={`w-2 h-2 rounded-full ${isPaused ? '' : 'animate-pulse'}`} style={{ backgroundColor: isPaused ? '#fbbf24' : '#ef4444' }} />
-          {isPaused ? 'Paused' : t('Recording')} — {mins}:{secs.toString().padStart(2, '0')}
+      <Card className="bg-slate-50 border-slate-200">
+        <CardContent className="pt-5 pb-5 px-5">
+          <div className="flex flex-col items-center space-y-5">
+            {/* Status with indicator */}
+            <div className="flex items-center gap-2">
+              <div className={`w-2.5 h-2.5 rounded-full ${isPaused ? '' : 'animate-pulse'}`} style={{ backgroundColor: isPaused ? '#f59e0b' : '#dc2626' }} />
+              <span className="text-sm font-medium text-foreground">
+                {isPaused ? 'Paused' : 'Recording'} — {mins}:{secs.toString().padStart(2, '0')}
+              </span>
+            </div>
+
+            {/* Icon buttons */}
+            <div className="flex items-center justify-center gap-6">
+              <button
+                onClick={togglePause}
+                className="p-2 rounded-full hover:bg-slate-200 transition-colors"
+                title={isPaused ? 'Resume' : 'Pause'}
+              >
+                {isPaused ? (
+                  <Play className="w-5 h-5 text-slate-700" fill="currentColor" />
+                ) : (
+                  <Pause className="w-5 h-5 text-slate-700" fill="currentColor" />
+                )}
+              </button>
+
+              <button
+                onClick={stopRecording}
+                className="p-2.5 rounded-full bg-slate-400 hover:bg-slate-500 transition-colors"
+                title="Stop"
+              >
+                <Square className="w-5 h-5 text-white" fill="currentColor" />
+              </button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Saved phase (audio saved locally, waiting to submit)
+  if (phase === 'saved' && savedAudio) {
+    const audioUrl = URL.createObjectURL(savedAudio);
+    return (
+      <div className="space-y-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm font-medium text-blue-900">Audio saved</p>
+          <p className="text-xs text-blue-700 mt-1">Review and upload for Neo debrief analysis</p>
         </div>
-        <Button onClick={stopRecording} variant="destructive" className="w-full gap-2">
-          <Square className="w-4 h-4" /> {t('Stop & Upload')}
+
+        {/* Audio player */}
+        <audio
+          ref={audioPlayerRef}
+          controls
+          className="w-full"
+          src={audioUrl}
+          onLoadedMetadata={() => {
+            if (audioPlayerRef.current) {
+              const mins = Math.floor(audioPlayerRef.current.duration / 60);
+              const secs = Math.floor(audioPlayerRef.current.duration % 60);
+              console.log(`Audio duration: ${mins}:${secs.toString().padStart(2, '0')}`);
+            }
+          }}
+        />
+
+        {/* Upload button */}
+        <Button onClick={() => uploadAudio(savedAudio, 'audio/webm')} disabled={isUploading} className="w-full py-6">
+          {isUploading ? 'Uploading...' : 'Upload for Debrief'}
         </Button>
-        <div className="flex gap-2">
-          <Button onClick={togglePause} variant="outline" className="flex-1">
-            {isPaused ? t('Resume') : t('Pause')}
-          </Button>
-          <Button onClick={saveDraftWithoutNeo} variant="outline" className="flex-1">
-            {t('Save as Draft')}
-          </Button>
+
+        {/* Icon buttons */}
+        <div className="flex items-center justify-center gap-6">
+          <button
+            onClick={reRecordAudio}
+            className="p-3 rounded-full hover:bg-muted transition-colors"
+            title="Re-record"
+          >
+            <RotateCcw className="w-6 h-6 text-foreground" />
+          </button>
+          <button
+            onClick={deleteRecording}
+            className="p-3 rounded-full hover:bg-red-50 transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="w-6 h-6 text-destructive" />
+          </button>
         </div>
       </div>
     );
