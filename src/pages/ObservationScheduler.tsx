@@ -14,6 +14,7 @@ import { SubmittedObservationsTab } from '@/components/observation/SubmittedObse
 import { ObservationsOverviewTab } from '@/components/observation/ObservationsOverviewTab';
 import SmartScheduleTab from '@/components/observation/SmartScheduleTab';
 import { QuickObservationPanel } from '@/components/observation/QuickObservationPanel';
+import ReportIssueButton from '@/components/observation/ReportIssueButton';
 import type { CotObservation } from '@/types/observation';
 
 export default function ObservationScheduler() {
@@ -206,6 +207,8 @@ export default function ObservationScheduler() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <ReportIssueButton />
     </div>
   );
 }
