@@ -37,3 +37,10 @@ Last updated: 2026-04-28
 - **Cooldown self-cleanup via useEffect:** Timer inside useEffect must check expiry on every tick AND clear interval before nulling state (prevents 1Hz re-render stalls). Sync `setNow` together with `setCooldownUntil` to avoid first-tick flicker.
 - **Cumulative scrollback pattern:** Hide greet phase actions once user advances, but re-render greet greeting + "Yes" echo on later phases to preserve conversation thread (role="log" aria-live="polite" for a11y).
 - **Fire-and-forget analytics vs. awaited submission:** Analytics (useAnalytics) ignores errors; user submissions (useFeedback) await and handle toast errors. Different contract, same pattern signature.
+
+## Training Flow Improvements (2026-05-13)
+- **Answer randomization with Fisher-Yates shuffle:** Create utility in `src/lib/shuffle.ts`, import via `useMemo` to randomize on every render. Use exact import pattern to avoid stale array references.
+- **Practice section locking:** Domain logic in `src/domain/trainingRules.ts` with `canAccessPracticeSection(contentCompleted)` returns boolean. Lock message via `getPracticeLockMessage()`. Add "locked" phase to ScenarioFlow to prevent access until TrainingContentViewer's `contentCompleted = true`.
+- **Renaming "Scenario" to "Practice Section":** Update CardTitle in ScenarioCard, all user-facing text labels (headers, progress counters, breakdown labels). Keep internal variable names unchanged for minimal diff.
+- **Phase extension pattern:** Add new phases to component (e.g., "locked") and handle in renderContent switch. Each phase renders conditionally based on state checks (e.g., `!canAccessPracticeSection(contentCompleted)`).
+- **Testing randomization:** Tests must render multiple times and collect orders, not test implementation details. Balance option text lengths at seed data level, not in component. Use `Array.from(document.querySelectorAll(...))` for DOM queries when testing-library selectors don't work.
