@@ -47,6 +47,9 @@ const translations: Record<Language, Record<string, string>> = {
     'Next Steps for Growth': '→ Next Steps for Growth',
     'Analysis Failed': 'Analysis Failed',
     'Try Again': 'Try Again',
+    'Pause': 'Pause',
+    'Resume': 'Resume',
+    'Save as Draft': 'Save as Draft',
   },
   ur: {
     'Coach Debrief': 'کوچ کا جائزہ',
@@ -68,6 +71,9 @@ const translations: Record<Language, Record<string, string>> = {
     'Next Steps for Growth': '→ ترقی کے اگلے قدم',
     'Analysis Failed': 'تجزیہ ناکام',
     'Try Again': 'دوبارہ کوشش کریں',
+    'Pause': 'توقف',
+    'Resume': 'جاری رکھیں',
+    'Save as Draft': 'ڈرافٹ کے طور پر محفوظ کریں',
   },
 };
 
@@ -81,6 +87,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [translatedFeedback, setTranslatedFeedback] = useState<any>(null);
   const [translating, setTranslating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
@@ -204,9 +211,66 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
+  const togglePause = () => {
+    if (!mediaRecorderRef.current || phase !== 'recording') return;
+
+    if (isPaused) {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+      if (recordingIntervalRef.current === null) {
+        recordingIntervalRef.current = window.setInterval(() => {
+          setRecordingTime((t) => t + 1);
+        }, 1000);
+      }
+    } else {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+      if (recordingIntervalRef.current !== null) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+    }
+  };
+
+  const saveDraftWithoutNeo = async () => {
+    if (audioChunksRef.current.length === 0) {
+      toast.error('No audio recorded');
+      return;
+    }
+
+    // Stop recording if still going
+    if (mediaRecorderRef.current && phase === 'recording') {
+      mediaRecorderRef.current.stop();
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    }
+
+    // Save observation as Draft without Neo processing
+    try {
+      await (supabase as any).from('cot_observations').update({
+        status: 'Draft',
+        updated_at: new Date().toISOString(),
+      }).eq('id', observation.id);
+
+      onSaved({ ...observation, status: 'Draft' });
+      setPhase('idle');
+      setRecordingTime(0);
+      audioChunksRef.current = [];
+      setIsPaused(false);
+      toast.success('Saved as draft — you can record Neo debrief later');
+    } catch (err) {
+      toast.error('Failed to save draft');
+    }
+  };
+
   const stopRecording = () => {
     if (mediaRecorderRef.current && phase === 'recording') {
       console.log('Stopping recording...');
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+      setIsPaused(false);
       mediaRecorderRef.current.stop();
 
       // Wait a moment for the final dataavailable event to be processed
@@ -527,12 +591,20 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-foreground">
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-          {t('Recording')} — {mins}:{secs.toString().padStart(2, '0')}
+          <div className={`w-2 h-2 rounded-full ${isPaused ? '' : 'animate-pulse'}`} style={{ backgroundColor: isPaused ? '#fbbf24' : '#ef4444' }} />
+          {isPaused ? 'Paused' : t('Recording')} — {mins}:{secs.toString().padStart(2, '0')}
         </div>
         <Button onClick={stopRecording} variant="destructive" className="w-full gap-2">
           <Square className="w-4 h-4" /> {t('Stop & Upload')}
         </Button>
+        <div className="flex gap-2">
+          <Button onClick={togglePause} variant="outline" className="flex-1">
+            {isPaused ? t('Resume') : t('Pause')}
+          </Button>
+          <Button onClick={saveDraftWithoutNeo} variant="outline" className="flex-1">
+            {t('Save as Draft')}
+          </Button>
+        </div>
       </div>
     );
   }
