@@ -6,6 +6,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Clock, CheckCircle2, BarChart2, ArrowLeft, CalendarDays } from 'lucide-react';
+import { getPendingAudios, removeFromQueue, lockForUpload, unlockUpload } from '@/lib/audioQueue';
+import { listObservationsForObserver } from '@/data/observations';
+import { toast } from 'sonner';
 import { DraftObservationsTab } from '@/components/observation/DraftObservationsTab';
 import { SubmittedObservationsTab } from '@/components/observation/SubmittedObservationsTab';
 import { ObservationsOverviewTab } from '@/components/observation/ObservationsOverviewTab';
@@ -24,14 +27,11 @@ export default function ObservationScheduler() {
 
   const loadObservations = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await (supabase as any)
-      .from('cot_observations')
-      .select('*')
-      .eq('observer_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setObservations(data as CotObservation[]);
+    try {
+      const data = await listObservationsForObserver(user.id);
+      setObservations(data);
+    } catch (err) {
+      console.error('Failed to load observations:', err);
     }
     setLoading(false);
   }, [user]);
@@ -39,6 +39,55 @@ export default function ObservationScheduler() {
   useEffect(() => {
     loadObservations();
   }, [loadObservations]);
+
+  // Sync pending offline audios
+  useEffect(() => {
+    const syncPendingAudios = async () => {
+      if (!user || !navigator.onLine) return;
+
+      const pending = await getPendingAudios();
+      if (pending.length === 0) return;
+
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      if (!token) return;
+
+      for (const record of pending) {
+        if (!lockForUpload(record.observation_id)) continue; // Already uploading
+
+        try {
+          const formData = new FormData();
+          formData.append('file', record.blob);
+          formData.append('observation_id', record.observation_id);
+
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`,
+            {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            }
+          );
+
+          if (response.ok) {
+            await removeFromQueue(record.observation_id);
+            unlockUpload(record.observation_id);
+            toast.success('Offline recording uploaded — Neo is analyzing');
+            loadObservations();
+          } else {
+            unlockUpload(record.observation_id);
+          }
+        } catch {
+          unlockUpload(record.observation_id);
+        }
+      }
+    };
+
+    syncPendingAudios();
+
+    const handleOnline = () => syncPendingAudios();
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [user, loadObservations]);
 
   const draftCount = observations.filter(o => o.status === 'Draft').length;
   const submittedCount = observations.filter(o => o.status === 'Submitted' || o.status === 'Approved').length;
@@ -136,6 +185,7 @@ export default function ObservationScheduler() {
             <SmartScheduleTab
               onNewObservation={(obs) => {
                 setQuickObs(obs);
+                loadObservations();
                 setActiveTab('draft');
               }}
             />
