@@ -182,4 +182,186 @@ describe("ScenarioCard - Phase 1: Answer Randomization (COACH-XXXX)", () => {
     // Selection state is managed by parent via selectedLetter prop,
     // not by the component, so randomization does not affect it
   });
+
+  describe("Phase 2: Practice Section Locked State (COACH-XXXX)", () => {
+    it("should disable all radios when locked is true", () => {
+      const mockOnSelect = vi.fn();
+      const mockOnSubmit = vi.fn();
+
+      render(
+        <ScenarioCard
+          situation="Test situation"
+          question="What should you do?"
+          options={mockOptions}
+          selectedLetter={null}
+          onSelect={mockOnSelect}
+          onSubmit={mockOnSubmit}
+          locked={true}
+          isSubmitting={false}
+        />
+      );
+
+      // All radio buttons should be disabled
+      const radios = screen.getAllByRole("radio");
+      radios.forEach((radio) => {
+        expect(radio).toBeDisabled();
+      });
+    });
+
+    it("should apply opacity-60 cursor-not-allowed to options when locked", () => {
+      const mockOnSelect = vi.fn();
+      const mockOnSubmit = vi.fn();
+
+      const { container } = render(
+        <ScenarioCard
+          situation="Test situation"
+          question="What should you do?"
+          options={mockOptions}
+          selectedLetter={null}
+          onSelect={mockOnSelect}
+          onSubmit={mockOnSubmit}
+          locked={true}
+          isSubmitting={false}
+        />
+      );
+
+      // Find option containers
+      const optionContainers = container.querySelectorAll(
+        "[class*='flex items-start space-x-3']"
+      );
+      optionContainers.forEach((container) => {
+        const classes = container.className;
+        expect(classes).toContain("opacity-60");
+        expect(classes).toContain("cursor-not-allowed");
+      });
+    });
+
+    it("should enable all radios when locked is false", () => {
+      const mockOnSelect = vi.fn();
+      const mockOnSubmit = vi.fn();
+
+      render(
+        <ScenarioCard
+          situation="Test situation"
+          question="What should you do?"
+          options={mockOptions}
+          selectedLetter={null}
+          onSelect={mockOnSelect}
+          onSubmit={mockOnSubmit}
+          locked={false}
+          isSubmitting={false}
+        />
+      );
+
+      // All radio buttons should be enabled
+      const radios = screen.getAllByRole("radio");
+      radios.forEach((radio) => {
+        expect(radio).not.toBeDisabled();
+      });
+    });
+
+    it("should disable submit button when locked", () => {
+      const mockOnSelect = vi.fn();
+      const mockOnSubmit = vi.fn();
+
+      render(
+        <ScenarioCard
+          situation="Test situation"
+          question="What should you do?"
+          options={mockOptions}
+          selectedLetter="A"
+          onSelect={mockOnSelect}
+          onSubmit={mockOnSubmit}
+          locked={true}
+          isSubmitting={false}
+        />
+      );
+
+      const submitButton = screen.getByRole("button", {
+        name: /Submit Answer/,
+      });
+      expect(submitButton).toBeDisabled();
+    });
+
+    it("should enable submit button only when option selected and not locked", () => {
+      const mockOnSelect = vi.fn();
+      const mockOnSubmit = vi.fn();
+
+      const { rerender } = render(
+        <ScenarioCard
+          situation="Test situation"
+          question="What should you do?"
+          options={mockOptions}
+          selectedLetter={null}
+          onSelect={mockOnSelect}
+          onSubmit={mockOnSubmit}
+          locked={false}
+          isSubmitting={false}
+        />
+      );
+
+      // No selection, should be disabled
+      let submitButton = screen.getByRole("button", {
+        name: /Submit Answer/,
+      });
+      expect(submitButton).toBeDisabled();
+
+      // With selection
+      rerender(
+        <ScenarioCard
+          situation="Test situation"
+          question="What should you do?"
+          options={mockOptions}
+          selectedLetter="B"
+          onSelect={mockOnSelect}
+          onSubmit={mockOnSubmit}
+          locked={false}
+          isSubmitting={false}
+        />
+      );
+
+      submitButton = screen.getByRole("button", { name: /Submit Answer/ });
+      expect(submitButton).not.toBeDisabled();
+    });
+
+    it("should show 'Submitting...' text when isSubmitting is true", () => {
+      const mockOnSelect = vi.fn();
+      const mockOnSubmit = vi.fn();
+
+      render(
+        <ScenarioCard
+          situation="Test situation"
+          question="What should you do?"
+          options={mockOptions}
+          selectedLetter="A"
+          onSelect={mockOnSelect}
+          onSubmit={mockOnSubmit}
+          locked={false}
+          isSubmitting={true}
+        />
+      );
+
+      expect(screen.getByText("Submitting...")).toBeInTheDocument();
+    });
+
+    it("should display 'Submit Answer' text when not submitting", () => {
+      const mockOnSelect = vi.fn();
+      const mockOnSubmit = vi.fn();
+
+      render(
+        <ScenarioCard
+          situation="Test situation"
+          question="What should you do?"
+          options={mockOptions}
+          selectedLetter="A"
+          onSelect={mockOnSelect}
+          onSubmit={mockOnSubmit}
+          locked={false}
+          isSubmitting={false}
+        />
+      );
+
+      expect(screen.getByText("Submit Answer")).toBeInTheDocument();
+    });
+  });
 });
