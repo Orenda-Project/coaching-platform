@@ -20,18 +20,26 @@ interface SlidesPlayerProps {
 }
 
 const SLIDE_LOCK_DURATION = 15; // seconds
+const ENVIRONMENT = import.meta.env.VITE_ENVIRONMENT || "production";
+const IS_DEV_OR_STAGING = ENVIRONMENT === "development" || ENVIRONMENT === "staging";
 
 export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesPlayerProps) {
   const [current, setCurrent] = useState(0);
-  const [countdown, setCountdown] = useState(SLIDE_LOCK_DURATION);
+  const [countdown, setCountdown] = useState(IS_DEV_OR_STAGING ? 0 : SLIDE_LOCK_DURATION);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const slide = slides[current];
   const progress = ((current + 1) / slides.length) * 100;
   const isLast = current === slides.length - 1;
-  const isNextDisabled = countdown > 0;
+  const isNextDisabled = !IS_DEV_OR_STAGING && countdown > 0;
 
   useEffect(() => {
+    // Skip timer for development and staging environments
+    if (IS_DEV_OR_STAGING) {
+      setCountdown(0);
+      return;
+    }
+
     setCountdown(SLIDE_LOCK_DURATION);
 
     if (intervalRef.current) clearInterval(intervalRef.current);
