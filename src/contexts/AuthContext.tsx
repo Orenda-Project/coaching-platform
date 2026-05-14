@@ -85,22 +85,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Step 2: Create the profile row (no longer handled by trigger)
     // The RLS policy allows users to insert their own profile row
+    // Use the user's ID directly (auth.uid() is available in RLS context)
     if (signUpData.user?.id) {
-      const { error: profileError } = await supabase
+      const { error: profileError, data: profileData } = await supabase
         .from('profiles')
         .insert({
           id: signUpData.user.id,
           phone,
           full_name: fullName || null,
-        });
+        })
+        .select();
 
       if (profileError) {
         console.error('Profile creation error:', {
           message: profileError.message,
+          code: (profileError as any).code,
           details: (profileError as any).details,
+          insertedData: profileData,
         });
         return { error: profileError };
       }
+
+      console.log('Profile created successfully:', profileData);
     }
 
     return { error: null };
