@@ -23,6 +23,12 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
 
+  // Environment-based slide lock duration
+  // Production: 15 seconds, Dev/Staging: 0 (disabled for testing)
+  const slideLockDuration = import.meta.env.VITE_SLIDE_LOCK_DURATION
+    ? parseInt(import.meta.env.VITE_SLIDE_LOCK_DURATION, 10)
+    : 0;
+
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
@@ -52,7 +58,9 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
 
   const handleSlideLoad = () => {
     if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
-    slideTimerRef.current = setTimeout(() => setContentCompleted(true), 15000);
+    if (slideLockDuration > 0) {
+      slideTimerRef.current = setTimeout(() => setContentCompleted(true), slideLockDuration);
+    }
   };
 
   const handleVideoTimeUpdate = () => {
@@ -190,9 +198,9 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
                   onLoad={handleSlideLoad}
                 />
               </div>
-              {!contentCompleted && (
+              {!contentCompleted && slideLockDuration > 0 && (
                 <p className="text-sm text-muted-foreground mt-2 text-center">
-                  View the slides for at least 15 seconds to unlock the quiz.
+                  View the slides for at least {slideLockDuration / 1000} seconds to unlock the quiz.
                 </p>
               )}
             </div>
