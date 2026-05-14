@@ -72,11 +72,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { phone, full_name: fullName },
       },
     });
-    if (!error) {
-      // Trigger will create profile with full_name from user_metadata
-      await new Promise((r) => setTimeout(r, 500));
+
+    if (error) {
+      console.error('Signup error:', {
+        message: error.message,
+        status: error.status,
+        details: (error as any).details,
+      });
+      return { error };
     }
-    return { error };
+
+    // Trigger will create profile with phone and full_name from user_metadata
+    // Wait for profile to be created
+    await new Promise((r) => setTimeout(r, 500));
+
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
