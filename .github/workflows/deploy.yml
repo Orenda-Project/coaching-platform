@@ -33,7 +33,7 @@ jobs:
       - name: Apply Supabase migrations to staging
         run: |
           npx supabase@latest link --project-ref ${{ secrets.SUPABASE_PROJECT_ID_STAGING }} --yes
-          npx supabase@latest db push
+          npx supabase@latest db push --include-all
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       - name: Deploy to Railway Staging
@@ -57,7 +57,7 @@ jobs:
       - name: Apply Supabase migrations to production
         run: |
           npx supabase@latest link --project-ref ${{ secrets.SUPABASE_PROJECT_ID_PRODUCTION }} --yes
-          npx supabase@latest db push
+          npx supabase@latest db push --include-all
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       - name: Deploy to Railway Production
