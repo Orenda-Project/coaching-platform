@@ -19,7 +19,6 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
   const [selectedFormat, setSelectedFormat] = useState<string | null>("slides");
   const [loading, setLoading] = useState(true);
   const [contentCompleted, setContentCompleted] = useState(false);
-  const slideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
 
@@ -51,8 +50,7 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
   const handleVideoEnded = () => setContentCompleted(true);
 
   const handleSlideLoad = () => {
-    if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
-    slideTimerRef.current = setTimeout(() => setContentCompleted(true), 30000);
+    // Slides handler - no auto-complete timer
   };
 
   const handleVideoTimeUpdate = () => {
@@ -190,11 +188,6 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
                   onLoad={handleSlideLoad}
                 />
               </div>
-              {!contentCompleted && (
-                <p className="text-sm text-muted-foreground mt-2 text-center">
-                  View the slides for at least 30 seconds to unlock the quiz.
-                </p>
-              )}
             </div>
           )}
         </CardContent>
