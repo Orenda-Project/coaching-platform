@@ -1,9 +1,26 @@
 ---
-description: Fix a bug with regression coverage. Reproduces the bug as a failing test FIRST, then fixes it, then verifies coverage didn't drop. Wraps the existing /coaching-bugfix workflow.
+description: Fix a bug using root-cause analysis and the mandatory SDLC workflow.
 argument-hint: <bug description or error message>
 ---
 
 # /fix $ARGUMENTS
+
+Use the mandatory SDLC workflow from `.claude/rules/sdlc-workflow.md`.
+
+Before editing files:
+
+1. Reproduce or explain how to reproduce the issue.
+2. Identify root cause.
+3. Explain why it happened.
+4. Explain fix approach.
+5. Identify affected files.
+6. Explain test coverage.
+7. Explain prevention strategy.
+8. Wait for approval before implementation unless the user explicitly asks to implement directly.
+
+All work must be done in a feature branch. Create PR to staging. Never merge without user permission.
+
+---
 
 Fix this bug: **$ARGUMENTS**
 
