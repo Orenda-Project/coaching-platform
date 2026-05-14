@@ -64,54 +64,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, phone: string, fullName?: string) => {
-    const { data: signUpData, error } = await supabase.auth.signUp({
+    // Step 1: Create the auth user
+    const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { phone, full_name: fullName },
       },
     });
 
-    if (error) {
+    if (authError) {
       console.error('Signup error:', {
-        message: error.message,
-        status: error.status,
-        details: (error as any).details,
+        message: authError.message,
+        status: authError.status,
+        details: (authError as any).details,
       });
-      return { error };
+      return { error: authError };
     }
 
-    // Trigger creates an empty profile. Now update it with phone and full_name
+    // Step 2: Create the profile row (no longer handled by trigger)
+    // The RLS policy allows users to insert their own profile row
     if (signUpData.user?.id) {
-      const updateError = await updateProfileAfterSignup(
-        signUpData.user.id,
-        phone,
-        fullName
-      );
-      if (updateError) {
-        console.error('Profile update error:', updateError);
-        return { error: updateError };
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: signUpData.user.id,
+          phone,
+          full_name: fullName || null,
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', {
+          message: profileError.message,
+          details: (profileError as any).details,
+        });
+        return { error: profileError };
       }
     }
 
     return { error: null };
-  };
-
-  const updateProfileAfterSignup = async (
-    userId: string,
-    phone: string,
-    fullName?: string
-  ): Promise<AuthError | null> => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        phone,
-        full_name: fullName || null,
-      })
-      .eq('id', userId);
-
-    return error;
   };
 
   const signIn = async (email: string, password: string) => {
