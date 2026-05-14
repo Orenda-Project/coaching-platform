@@ -1,6 +1,39 @@
 # Coaching Platform — Taleemabad MVP Prototype
 # Built: 2026-04-08 | Stack: React + TypeScript + Supabase + Tailwind
 
+## Mandatory SDLC Behavior
+
+For every feature, bug fix, refactor, architecture change, API change, database change, UI change, test change, or deployment-related change, follow the SDLC workflow defined in:
+
+`.claude/rules/sdlc-workflow.md`
+
+Before editing code:
+
+1. Classify the task as FEATURE, BUG_FIX, REFACTOR, ARCHITECTURE, TESTING, or DEPLOYMENT.
+2. Provide the required SDLC response format.
+3. Explain affected files and risks.
+4. Wait for user approval before making code changes unless the user explicitly says to implement directly.
+
+## Branch Workflow (Hard Rule)
+
+- All work must be done in feature branches (`feature/<descriptive-name>`)
+- Create PRs to staging — never merge without user permission
+- Never push directly to main or staging
+- Never force-push to main or staging
+
+## Workflow Commands
+
+Use these commands when appropriate:
+
+- `/feature` for new feature work
+- `/fix` for bug fixes
+- `/review` for code review
+- `/pr` for pull request preparation
+- `/postmortem` for issue analysis after a bug or incident
+- `/sdlc-workflow` for explicit SDLC analysis on any task
+
+---
+
 ## Autonomous Workflow System (Auto-runs every session)
 
 This project uses a deterministic workflow routing system. See `AUTONOMOUS_WORKFLOW_SYSTEM.md` for full details.
