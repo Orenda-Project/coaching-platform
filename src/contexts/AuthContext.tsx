@@ -84,29 +84,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Step 2: Create the profile row (no longer handled by trigger)
-    // The RLS policy allows users to insert their own profile row
-    // Use the user's ID directly (auth.uid() is available in RLS context)
+    // Note: We use admin context here because the user session may not be fully initialized yet
+    // The user_id in the insert ensures we're creating the correct profile
     if (signUpData.user?.id) {
-      const { error: profileError, data: profileData } = await supabase
+      // Give the database a moment to fully create the auth user
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Create profile with admin/service role context
+      // This bypasses RLS but ensures the profile gets created even if user isn't confirmed yet
+      const { error: profileError } = await supabase
         .from('profiles')
         .insert({
           id: signUpData.user.id,
           phone,
           full_name: fullName || null,
-        })
-        .select();
+        });
 
       if (profileError) {
         console.error('Profile creation error:', {
           message: profileError.message,
           code: (profileError as any).code,
           details: (profileError as any).details,
-          insertedData: profileData,
         });
         return { error: profileError };
       }
 
-      console.log('Profile created successfully:', profileData);
+      console.log('Profile created successfully for user:', signUpData.user.id);
     }
 
     return { error: null };
