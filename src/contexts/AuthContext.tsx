@@ -106,6 +106,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           code: (profileError as any).code,
           details: (profileError as any).details,
         });
+
+        // Handle specific database errors
+        const code = (profileError as any).code;
+        if (code === '23505') {
+          // Duplicate key violation
+          const message = profileError.message || '';
+          if (message.includes('phone')) {
+            const userFriendlyError = new Error('This phone number is already registered. Please use a different phone number.');
+            return { error: userFriendlyError };
+          }
+          if (message.includes('profiles_pkey') || message.includes('id')) {
+            // This shouldn't happen but handle gracefully
+            const userFriendlyError = new Error('An account with this information already exists. Please try again.');
+            return { error: userFriendlyError };
+          }
+        }
+
         return { error: profileError };
       }
 
