@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,10 +14,13 @@ import {
   Send,
   PenSquare,
   Trash2,
+  WifiOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NeoAnalysis } from './NeoAnalysis';
 import type { CotObservation } from '@/types/observation';
+import { getPendingAudios, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
+import { updateObservationStatus } from '@/data/observations';
 
 interface Props {
   observations: CotObservation[];
@@ -30,6 +33,13 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
   const [localOverrides, setLocalOverrides] = useState<Record<string, CotObservation>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingAudioIds, setPendingAudioIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    getPendingAudios().then(records => {
+      setPendingAudioIds(new Set(records.map(r => r.observation_id)));
+    });
+  }, []);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -57,25 +67,49 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
 
   const handleSubmit = async (obs: CotObservation) => {
     setSubmitting(obs.id);
-    const { error } = await (supabase as any)
-      .from('cot_observations')
-      .update({
-        status: 'Submitted',
-        submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', obs.id);
 
-    setSubmitting(null);
+    try {
+      // Check for saved audio and upload to Neo if found
+      const savedAudio = await getSavedAudio(obs.id);
+      if (savedAudio) {
+        const token = (await supabase.auth.getSession()).data.session?.access_token;
+        if (token) {
+          const formData = new FormData();
+          formData.append('file', savedAudio.blob);
+          formData.append('observation_id', obs.id);
 
-    if (error) {
-      toast.error('Failed to submit observation');
-      return;
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`,
+            {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            }
+          );
+
+          if (response.ok) {
+            await deleteSavedAudio(obs.id);
+            toast.success('Audio uploaded to Neo for analysis');
+          } else {
+            toast.error('Failed to upload audio to Neo');
+            setSubmitting(null);
+            return;
+          }
+        }
+      }
+
+      // Update observation status
+      await updateObservationStatus(obs.id, 'Submitted');
+
+      setSubmitting(null);
+
+      toast.success('Observation submitted successfully!');
+      setExpanded(null);
+      onRefresh();
+    } catch (err) {
+      setSubmitting(null);
+      toast.error('Error submitting observation');
     }
-
-    toast.success('Observation submitted successfully!');
-    setExpanded(null);
-    onRefresh();
   };
 
   if (drafts.length === 0) {
@@ -137,6 +171,14 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
                           className="text-xs text-blue-700 border-blue-200 bg-blue-50"
                         >
                           Debrief Processing…
+                        </Badge>
+                      )}
+                      {pendingAudioIds.has(obs.id) && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs text-amber-700 border-amber-200 bg-amber-50 flex items-center gap-1"
+                        >
+                          <WifiOff className="w-3 h-3" /> Audio Queued
                         </Badge>
                       )}
                     </div>

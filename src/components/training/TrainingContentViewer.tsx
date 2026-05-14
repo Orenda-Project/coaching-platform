@@ -45,7 +45,7 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
 
   const formatConfig: Record<string, { icon: typeof FileText; label: string }> = {
     slides: { icon: Layers, label: "Slides" },
-    scenario: { icon: GitBranch, label: "Scenario" },
+    scenario: { icon: GitBranch, label: "Practice Section" },
   };
 
   const handleVideoEnded = () => setContentCompleted(true);
@@ -96,22 +96,34 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
           <div className="grid grid-cols-2 gap-3">
             {Object.entries(formatConfig).map(([key, { icon: Icon, label }]) => {
               const available = availableFormats.includes(key);
+              // Practice Section is locked until slides are completed
+              const isScenarioLocked = key === "scenario" && !contentCompleted && availableFormats.includes("slides");
+              const canClick = available && !isScenarioLocked;
+
               return (
-                <button
-                  key={key}
-                  disabled={!available}
-                  onClick={() => { setSelectedFormat(key); setContentCompleted(false); }}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
-                    selectedFormat === key
-                      ? "border-primary bg-primary/10"
-                      : available
-                      ? "border-border hover:border-primary hover:bg-accent/50"
-                      : "border-border opacity-40 cursor-not-allowed"
-                  }`}
-                >
-                  <Icon className="w-8 h-8 text-primary" />
-                  <span className="text-sm font-medium text-foreground">{label}</span>
-                </button>
+                <div key={key} className="relative">
+                  <button
+                    disabled={!canClick}
+                    onClick={() => { setSelectedFormat(key); setContentCompleted(false); }}
+                    className={`w-full flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
+                      selectedFormat === key
+                        ? "border-primary bg-primary/10"
+                        : canClick
+                        ? "border-border hover:border-primary hover:bg-accent/50"
+                        : "border-border opacity-40 cursor-not-allowed"
+                    }`}
+                  >
+                    <Icon className="w-8 h-8 text-primary" />
+                    <span className="text-sm font-medium text-foreground">{label}</span>
+                  </button>
+                  {isScenarioLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/20 backdrop-blur-sm">
+                      <span className="text-xs font-semibold text-warning text-center px-2">
+                        Complete Slides First
+                      </span>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -139,7 +151,11 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
               title={trainingTitle}
               description=""
               steps={parsedContent.steps as ScenarioStep[]}
-              onCompleted={() => setContentCompleted(true)}
+              onCompleted={() => {
+                // Do NOT mark training complete from scenario alone.
+                // Training is marked complete only when slides/video is finished.
+                // Scenario is practice, not a completion gate.
+              }}
               completed={contentCompleted}
             />
           ) : selectedContent.format_type === "video" ? (

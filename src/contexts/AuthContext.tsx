@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
+type SignUpError = AuthError | Error | null;
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, phone: string, fullName?: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, phone: string, fullName?: string) => Promise<{ error: SignUpError }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -64,19 +65,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, phone: string, fullName?: string) => {
-    const { data: signUpData, error } = await supabase.auth.signUp({
+    // Step 1: Create the auth user
+    const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { phone, full_name: fullName },
       },
     });
-    if (!error) {
-      // Trigger will create profile with full_name from user_metadata
-      await new Promise((r) => setTimeout(r, 500));
+
+    if (authError) {
+      console.error('Signup error:', {
+        message: authError.message,
+        status: authError.status,
+        details: (authError as any).details,
+      });
+      return { error: authError };
     }
-    return { error };
+
+    // Step 2: Create the profile row (no longer handled by trigger)
+    // The RLS policy allows users to insert their own profile row
+    if (signUpData.user?.id) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: signUpData.user.id,
+          phone,
+          full_name: fullName || null,
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', {
+          message: profileError.message,
+          details: (profileError as any).details,
+        });
+        return { error: profileError };
+      }
+    }
+
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {

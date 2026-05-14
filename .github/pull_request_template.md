@@ -71,9 +71,8 @@ Closes: [JIRA-XXXX or GitHub Issue #XXX]
 - Blocked by: [Issue/PR]
 
 ## 👀 Reviewers
-<!-- Tag the reviewer(s) -->
-@jalal.khan
-@hammad.sarfraz
+<!-- Optional: Tag reviewers if needed for code review -->
+<!-- @jalal.khan @hammad.sarfraz -->
 
 ## ⚠️ Notes for Reviewers
 <!-- Any specific areas to focus on or known issues -->

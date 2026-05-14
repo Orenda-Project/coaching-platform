@@ -45,3 +45,10 @@ Last updated: 2026-04-23
 - Root cause: Code sends persona='E' but production Supabase had old constraint (A-D only); migration 20260427000002 existed in code but was not auto-applied to production DB initially
 - Fix applied: Migration 20260427000002_add_persona_e.sql was manually applied to production; constraint now allows 'E'
 - Prevention: Database migrations should be auto-applied by CI/CD on deploy; if not, manually apply via Supabase SQL console immediately after code deploy that requires new schema
+
+**Signup fails with "Database error saving new user" — RESOLVED**
+- Symptom: POST /signup returns 'Database error saving new user' on staging; user is not created
+- Root cause: handle_new_user trigger was reading phone from auth.users.phone column (NULL), not from auth metadata where client passes it. Trigger: COALESCE(NEW.phone, NEW.email) fell back to email, but the insert failed due to unexpected DB error
+- Fix: Updated trigger to read phone from metadata: COALESCE(NEW.raw_user_meta_data->>'phone', NEW.email) — matching the pattern already used for full_name
+- Migration: 20260514000005_fix_profile_trigger_phone_metadata.sql must be applied to databases
+- Prevention: Triggers reading auth metadata must explicitly reference raw_user_meta_data field, not user table columns. Document which fields are in metadata vs user table
