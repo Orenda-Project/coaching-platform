@@ -82,11 +82,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error };
     }
 
-    // Trigger will create profile with phone and full_name from user_metadata
-    // Wait for profile to be created
-    await new Promise((r) => setTimeout(r, 500));
+    // Trigger creates an empty profile. Now update it with phone and full_name
+    if (signUpData.user?.id) {
+      const updateError = await updateProfileAfterSignup(
+        signUpData.user.id,
+        phone,
+        fullName
+      );
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        return { error: updateError };
+      }
+    }
 
     return { error: null };
+  };
+
+  const updateProfileAfterSignup = async (
+    userId: string,
+    phone: string,
+    fullName?: string
+  ): Promise<AuthError | null> => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        phone,
+        full_name: fullName || null,
+      })
+      .eq('id', userId);
+
+    return error;
   };
 
   const signIn = async (email: string, password: string) => {
