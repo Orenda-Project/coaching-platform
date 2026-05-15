@@ -22,6 +22,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { useCoachRole } from "@/hooks/useCoachRole";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { Tables } from "@/integrations/supabase/types";
 import {
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { isAdmin } = useAdminRole();
+  const { isCoach } = useCoachRole();
   const { track } = useAnalytics();
   const [modules, setModules] = useState<Module[]>([]);
   const [trainings, setTrainings] = useState<Training[]>([]);
@@ -94,10 +96,13 @@ export default function Dashboard() {
     const allModules: Module[] = (modulesData as Module[]) || [];
     const allTrainings = trainingsData || [];
 
+    // Coaches (vacation engagement): Show all modules, same as Persona E
     // Persona E: Show all modules
     // Other personas: Show Module 1 (mandatory) + modules matching weak_modules from baseline
     let assignedModules = allModules;
-    if (profile.persona !== "E") {
+    if (isCoach || profile.persona === "E") {
+      assignedModules = allModules;
+    } else {
       const weakModules = profile.weak_modules || [];
       assignedModules = allModules.filter(
         (m) =>
