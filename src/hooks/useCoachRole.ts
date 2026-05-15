@@ -19,11 +19,17 @@ export function useCoachRole() {
       .eq("user_id", user.id)
       .eq("role", "coach")
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          // Migration 20260515000004 may not be applied yet
+          // Error: "invalid input value for enum app_role: 'coach'"
+          console.warn('Coach role check failed (migration may not be applied):', error.message);
+        }
         setIsCoach(!!data);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.warn('Coach role query error:', err.message);
         setLoading(false);
       });
   }, [user]);
