@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useCoachRole } from "@/hooks/useCoachRole";
-import { useCoachVacationMode } from "@/hooks/useCoachVacationMode";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { Tables } from "@/integrations/supabase/types";
 import {
@@ -50,7 +49,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { isAdmin } = useAdminRole();
   const { isCoach } = useCoachRole();
-  const { isVacationModeActive } = useCoachVacationMode();
   const { track } = useAnalytics();
   const [modules, setModules] = useState<Module[]>([]);
   const [trainings, setTrainings] = useState<Training[]>([]);
@@ -98,19 +96,16 @@ export default function Dashboard() {
     const allModules: Module[] = (modulesData as Module[]) || [];
     const allTrainings = trainingsData || [];
 
-    // Coaches (vacation engagement):
-    //   - If vacation_mode_active = true: show all modules (same as Persona E)
-    //   - If vacation_mode_active = false: show persona-based filtering (Module 1 + weak_modules)
-    // Persona E: Always show all modules
-    // Other personas: Show Module 1 (mandatory) + modules matching weak_modules from baseline
+    // Module visibility logic:
+    // - Coaches: Always show all modules (regardless of persona or vacation mode)
+    // - Persona E: Always show all modules
+    // - Other personas: Show Module 1 (mandatory) + modules matching weak_modules from baseline
     let assignedModules = allModules;
-    if (profile.persona === "E") {
-      assignedModules = allModules;
-    } else if (isCoach && isVacationModeActive) {
-      // Coach during vacation mode: show all modules
+    if (isCoach || profile.persona === "E") {
+      // Coaches and Persona E see all modules
       assignedModules = allModules;
     } else {
-      // Everyone else (including coaches after vacation): show persona-based filtering
+      // Everyone else: show persona-based filtering (Module 1 + weak_modules)
       const weakModules = profile.weak_modules || [];
       assignedModules = allModules.filter(
         (m) =>
