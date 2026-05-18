@@ -12,16 +12,23 @@ import {
   AlertCircle,
   CheckCircle2,
   Brain,
+  WifiOff,
+  Pause,
+  Play,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CotObservation, NeoResults } from '@/types/observation';
+import { saveAudioToQueue, getPendingAudio, removeFromQueue, lockForUpload, unlockUpload, saveSavedAudio, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
+import { markObservationDraft } from '@/data/observations';
 
 interface Props {
   observation: CotObservation;
   onSaved: (obs: CotObservation) => void;
 }
 
-type NeoPhase = 'idle' | 'recording' | 'uploading' | 'processing' | 'completed' | 'failed';
+type NeoPhase = 'idle' | 'recording' | 'saved' | 'uploading' | 'queued' | 'processing' | 'completed' | 'failed';
 type Language = 'en' | 'ur';
 
 const translations: Record<Language, Record<string, string>> = {
@@ -34,6 +41,8 @@ const translations: Record<Language, Record<string, string>> = {
     'Stop & Upload': 'Stop & Upload',
     'Uploading audio': 'Uploading audio...',
     'Neo is analyzing': 'Neo is analyzing your debrief (min 2 minutes)...',
+    'Audio Saved Offline': 'Audio saved — waiting for connection',
+    'Offline Sync Message': 'Neo analysis will start automatically when you\'re back online',
     'Debrief Analysis Complete': 'Debrief Analysis Complete',
     'Overall Score': 'Overall Score',
     'Section Scores': 'Section Scores',
@@ -43,6 +52,9 @@ const translations: Record<Language, Record<string, string>> = {
     'Next Steps for Growth': '→ Next Steps for Growth',
     'Analysis Failed': 'Analysis Failed',
     'Try Again': 'Try Again',
+    'Pause': 'Pause',
+    'Resume': 'Resume',
+    'Save as Draft': 'Save as Draft',
   },
   ur: {
     'Coach Debrief': 'کوچ کا جائزہ',
@@ -53,6 +65,8 @@ const translations: Record<Language, Record<string, string>> = {
     'Stop & Upload': 'روکیں اور اپ لوڈ کریں',
     'Uploading audio': 'آڈیو اپ لوڈ کیا جا رہا ہے...',
     'Neo is analyzing': 'Neo آپ کے جائزے کا تجزیہ کر رہا ہے (کم از کم 2 منٹ)...',
+    'Audio Saved Offline': 'آڈیو محفوظ ہوگیا — انتظار میں کنکشن کے لیے',
+    'Offline Sync Message': 'Neo تجزیہ خودکار طور پر شروع ہوگا جب آپ آن لائن واپس آجائیں',
     'Debrief Analysis Complete': 'جائزہ کا تجزیہ مکمل ہو گیا',
     'Overall Score': 'کل اسکور',
     'Section Scores': 'سیکشن کے اسکور',
@@ -62,6 +76,9 @@ const translations: Record<Language, Record<string, string>> = {
     'Next Steps for Growth': '→ ترقی کے اگلے قدم',
     'Analysis Failed': 'تجزیہ ناکام',
     'Try Again': 'دوبارہ کوشش کریں',
+    'Pause': 'توقف',
+    'Resume': 'جاری رکھیں',
+    'Save as Draft': 'ڈرافٹ کے طور پر محفوظ کریں',
   },
 };
 
@@ -72,14 +89,18 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [pollProgress, setPollProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [translatedFeedback, setTranslatedFeedback] = useState<any>(null);
   const [translating, setTranslating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [savedAudio, setSavedAudio] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
   const pollIntervalRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement>(null);
 
   // Translation function
   const translateText = async (text: string): Promise<string> => {
@@ -123,6 +144,23 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
+  // Check for pending audio on mount
+  useEffect(() => {
+    getPendingAudio(observation.id).then(record => {
+      if (record) setPhase('queued');
+    });
+  }, [observation.id]);
+
+  // Load saved audio on mount
+  useEffect(() => {
+    getSavedAudio(observation.id).then(result => {
+      if (result) {
+        setSavedAudio(result.blob);
+        setPhase('saved');
+      }
+    });
+  }, [observation.id]);
+
   // Update from observation real-time
   useEffect(() => {
     if (observation.neo_status === 'completed') {
@@ -142,7 +180,9 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       console.log('Microphone access granted. Stream:', stream);
 
-      const mediaRecorder = new MediaRecorder(stream);
+      // Use WebM - it's widely supported and Neo accepts it
+      const mimeType = 'audio/webm';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       console.log('MediaRecorder created');
@@ -189,30 +229,117 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && phase === 'recording') {
-      console.log('Stopping recording...');
-      mediaRecorderRef.current.stop();
+  const togglePause = () => {
+    if (!mediaRecorderRef.current || phase !== 'recording') return;
 
-      // Wait a moment for the final dataavailable event to be processed
-      setTimeout(() => {
-        console.log(`Stop recording confirmed. Chunks: ${audioChunksRef.current.length}`);
+    if (isPaused) {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+      if (recordingIntervalRef.current === null) {
+        recordingIntervalRef.current = window.setInterval(() => {
+          setRecordingTime((t) => t + 1);
+        }, 1000);
+      }
+    } else {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+      if (recordingIntervalRef.current !== null) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+    }
+  };
+
+  const saveAudioLocally = async () => {
+    if (!mediaRecorderRef.current || phase !== 'recording') {
+      toast.error('No recording in progress');
+      return;
+    }
+
+    // Stop the recording and wait for data
+    return new Promise<void>((resolve) => {
+      const handleStop = async () => {
         if (audioChunksRef.current.length === 0) {
-          console.error('No audio chunks recorded!');
-          toast.error('No audio recorded. Please try again.');
-          setPhase('idle');
+          toast.error('No audio recorded');
+          resolve();
           return;
         }
 
-        console.log(`Uploading ${audioChunksRef.current.length} chunks`);
-        setPhase('uploading');
+        // Create audio blob and save to IndexedDB
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        console.log(`Blob created: ${audioBlob.size} bytes`);
-        // Create a File with .webm extension - properly formatted from single stop() event
-        const audioFile = new File([audioBlob], `coaching-recording-${Date.now()}.webm`, { type: 'audio/webm' });
-        uploadAudio(audioFile, 'audio/webm');
-      }, 200);
+        await saveSavedAudio(observation.id, audioBlob, 'audio/webm');
+        setSavedAudio(audioBlob);
+        setPhase('saved');
+        toast.success('Audio saved — review and submit with observation');
+        resolve();
+      };
+
+      // Stop recording timer
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+
+      // Set up one-time stop listener
+      mediaRecorderRef.current!.addEventListener('stop', handleStop, { once: true });
+
+      // Stop the recorder
+      mediaRecorderRef.current!.stop();
+    });
+  };
+
+  const deleteRecording = async () => {
+    await deleteSavedAudio(observation.id);
+    setSavedAudio(null);
+    setRecordingTime(0);
+    audioChunksRef.current = [];
+    setPhase('idle');
+    toast.info('Recording deleted');
+  };
+
+  const reRecordAudio = () => {
+    setSavedAudio(null);
+    setRecordingTime(0);
+    audioChunksRef.current = [];
+    setPhase('idle');
+  };
+
+  const stopRecording = async () => {
+    if (!mediaRecorderRef.current || phase !== 'recording') {
+      return;
     }
+
+    return new Promise<void>((resolve) => {
+      const handleStop = async () => {
+        if (audioChunksRef.current.length === 0) {
+          toast.error('No audio recorded');
+          setPhase('idle');
+          resolve();
+          return;
+        }
+
+        // Create audio blob and save to IndexedDB
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await saveSavedAudio(observation.id, audioBlob, 'audio/webm');
+        setSavedAudio(audioBlob);
+        setPhase('saved');
+        toast.success('Recording stopped — ready to upload');
+        resolve();
+      };
+
+      // Stop recording timer
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+
+      // Set up one-time stop listener
+      mediaRecorderRef.current!.addEventListener('stop', handleStop, { once: true });
+
+      // Stop the recorder
+      setIsPaused(false);
+      mediaRecorderRef.current!.stop();
+    });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,6 +352,13 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
     try {
+      // Acquire upload lock to prevent concurrent uploads
+      if (!lockForUpload(observation.id)) {
+        toast.error('Upload already in progress');
+        return;
+      }
+
+      setIsUploading(true);
       console.log('uploadAudio called with blob size:', blob.size, 'mimeType:', mimeType);
       console.log('observation.id:', observation.id);
 
@@ -235,8 +369,10 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       console.log('FormData created. Checking token...');
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) {
+        unlockUpload(observation.id);
         toast.error('Not authenticated');
         setPhase('idle');
+        setIsUploading(false);
         return;
       }
 
@@ -264,6 +400,16 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       }
 
       const data = await response.json();
+
+      // Clean up from queue if this was a queued upload
+      await removeFromQueue(observation.id);
+      unlockUpload(observation.id);
+
+      // Clean up saved audio if this was uploaded from saved phase
+      await deleteSavedAudio(observation.id);
+
+      setIsUploading(false);
+      setSavedAudio(null);
       setPhase('processing');
       setPollProgress(0);
       setError(null);
@@ -271,10 +417,34 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       // Start polling
       pollNeoStatus();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Upload failed';
-      toast.error(message);
-      setError(message);
-      setPhase('idle');
+      setIsUploading(false);
+      unlockUpload(observation.id);
+      const isNetworkError = !navigator.onLine || err instanceof TypeError;
+
+      if (isNetworkError) {
+        // Save to offline queue
+        await saveAudioToQueue({
+          observation_id: observation.id,
+          blob,
+          mime_type: mimeType,
+          queued_at: new Date().toISOString(),
+          observer_id: observation.observer_id,
+        });
+
+        // Save audio locally and mark observation as Draft
+        await saveSavedAudio(observation.id, blob, mimeType);
+        await markObservationDraft(observation.id);
+
+        onSaved({ ...observation, status: 'Draft' });
+        setPhase('queued');
+        setError(null);
+        toast.info('Audio saved offline — will upload when connection returns');
+      } else {
+        const message = err instanceof Error ? err.message : 'Upload failed';
+        toast.error(message);
+        setError(message);
+        setPhase('saved');
+      }
     }
   };
 
@@ -288,7 +458,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
     console.log('Starting Neo status polling with observation_id:', observation.id);
     let pollCount = 0;
-    const maxPolls = 15; // ~120 seconds
+    const maxPolls = 100; // ~800 seconds for longer audio processing
 
     pollIntervalRef.current = window.setInterval(async () => {
       pollCount++;
@@ -360,6 +530,61 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }, 8000);
   };
 
+  const attemptQueuedUpload = useCallback(async () => {
+    const record = await getPendingAudio(observation.id);
+    if (!record) return;
+    if (!lockForUpload(observation.id)) return; // Already uploading
+
+    setPhase('uploading');
+    // Re-fetch token to ensure it's fresh
+    const token = (await supabase.auth.getSession()).data.session?.access_token;
+    if (!token) {
+      unlockUpload(observation.id);
+      toast.error('Not authenticated');
+      return;
+    }
+    const mimeType = record.mime_type;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', record.blob);
+      formData.append('observation_id', observation.id);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData }
+      );
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Upload failed: ${response.status}`);
+      }
+
+      await removeFromQueue(observation.id);
+      unlockUpload(observation.id);
+      setPhase('processing');
+      setPollProgress(0);
+      setError(null);
+      pollNeoStatus();
+    } catch (err) {
+      unlockUpload(observation.id);
+      const message = err instanceof Error ? err.message : 'Upload failed';
+      toast.error(message);
+      setError(message);
+      setPhase('queued');
+    }
+  }, [observation.id, pollNeoStatus]);
+
+  // Listen for online event when queued
+  useEffect(() => {
+    if (phase !== 'queued') return;
+    const handleOnline = () => {
+      attemptQueuedUpload();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [phase, attemptQueuedUpload]);
+
   const retry = () => {
     setPhase('idle');
     setError(null);
@@ -425,14 +650,92 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     const mins = Math.floor(recordingTime / 60);
     const secs = recordingTime % 60;
     return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-sm text-foreground">
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-          {t('Recording')} — {mins}:{secs.toString().padStart(2, '0')}
+      <Card className="bg-slate-50 border-slate-200">
+        <CardContent className="pt-5 pb-5 px-5">
+          <div className="flex flex-col items-center space-y-5">
+            {/* Status with indicator */}
+            <div className="flex items-center gap-2">
+              <div className={`w-2.5 h-2.5 rounded-full ${isPaused ? '' : 'animate-pulse'}`} style={{ backgroundColor: isPaused ? '#f59e0b' : '#dc2626' }} />
+              <span className="text-sm font-medium text-foreground">
+                {isPaused ? 'Paused' : 'Recording'} — {mins}:{secs.toString().padStart(2, '0')}
+              </span>
+            </div>
+
+            {/* Icon buttons */}
+            <div className="flex items-center justify-center gap-6">
+              <button
+                onClick={togglePause}
+                className="p-2 rounded-full hover:bg-slate-200 transition-colors"
+                title={isPaused ? 'Resume' : 'Pause'}
+              >
+                {isPaused ? (
+                  <Play className="w-5 h-5 text-slate-700" fill="currentColor" />
+                ) : (
+                  <Pause className="w-5 h-5 text-slate-700" fill="currentColor" />
+                )}
+              </button>
+
+              <button
+                onClick={stopRecording}
+                className="p-2.5 rounded-full bg-slate-400 hover:bg-slate-500 transition-colors"
+                title="Stop"
+              >
+                <Square className="w-5 h-5 text-white" fill="currentColor" />
+              </button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Saved phase (audio saved locally, waiting to submit)
+  if (phase === 'saved' && savedAudio) {
+    const audioUrl = URL.createObjectURL(savedAudio);
+    return (
+      <div className="space-y-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm font-medium text-blue-900">Audio saved</p>
+          <p className="text-xs text-blue-700 mt-1">Review and upload for Neo debrief analysis</p>
         </div>
-        <Button onClick={stopRecording} variant="destructive" className="w-full gap-2">
-          <Square className="w-4 h-4" /> {t('Stop & Upload')}
+
+        {/* Audio player */}
+        <audio
+          ref={audioPlayerRef}
+          controls
+          className="w-full"
+          src={audioUrl}
+          onLoadedMetadata={() => {
+            if (audioPlayerRef.current) {
+              const mins = Math.floor(audioPlayerRef.current.duration / 60);
+              const secs = Math.floor(audioPlayerRef.current.duration % 60);
+              console.log(`Audio duration: ${mins}:${secs.toString().padStart(2, '0')}`);
+            }
+          }}
+        />
+
+        {/* Upload button */}
+        <Button onClick={() => uploadAudio(savedAudio, 'audio/webm')} disabled={isUploading} className="w-full py-6">
+          {isUploading ? 'Uploading...' : 'Upload for Debrief'}
         </Button>
+
+        {/* Icon buttons */}
+        <div className="flex items-center justify-center gap-6">
+          <button
+            onClick={reRecordAudio}
+            className="p-3 rounded-full hover:bg-muted transition-colors"
+            title="Re-record"
+          >
+            <RotateCcw className="w-6 h-6 text-foreground" />
+          </button>
+          <button
+            onClick={deleteRecording}
+            className="p-3 rounded-full hover:bg-red-50 transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="w-6 h-6 text-destructive" />
+          </button>
+        </div>
       </div>
     );
   }
@@ -443,6 +746,21 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       <div className="space-y-2">
         <p className="text-xs text-muted-foreground">{t('Uploading audio')}</p>
         <Progress value={uploadProgress} className="h-2" />
+      </div>
+    );
+  }
+
+  // Queued phase (offline)
+  if (phase === 'queued') {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <WifiOff className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-amber-900">{t('Audio Saved Offline')}</p>
+            <p className="text-xs text-amber-700 mt-1">{t('Offline Sync Message')}</p>
+          </div>
+        </div>
       </div>
     );
   }

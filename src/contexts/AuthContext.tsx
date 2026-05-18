@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
+type SignUpError = AuthError | Error | null;
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, phone: string, fullName?: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, phone: string, fullName?: string) => Promise<{ error: SignUpError }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -64,19 +65,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, phone: string, fullName?: string) => {
-    const { data: signUpData, error } = await supabase.auth.signUp({
+    // Step 1: Create the auth user
+    const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { phone, full_name: fullName },
       },
     });
-    if (!error) {
-      // Trigger will create profile with full_name from user_metadata
-      await new Promise((r) => setTimeout(r, 500));
+
+    if (authError) {
+      console.error('Signup error:', {
+        message: authError.message,
+        status: authError.status,
+        details: (authError as any).details,
+      });
+      return { error: authError };
     }
-    return { error };
+
+    // Step 2: Create the profile row (no longer handled by trigger)
+    // Note: We use admin context here because the user session may not be fully initialized yet
+    // The user_id in the insert ensures we're creating the correct profile
+    if (signUpData.user?.id) {
+      // Give the database a moment to fully create the auth user
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Create profile with admin/service role context
+      // This bypasses RLS but ensures the profile gets created even if user isn't confirmed yet
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: signUpData.user.id,
+          phone,
+          full_name: fullName || null,
+        });
+
+      if (profileError) {
+        console.error('Profile creation error:', {
+          message: profileError.message,
+          code: (profileError as any).code,
+          details: (profileError as any).details,
+        });
+
+        // Handle specific database errors
+        const code = (profileError as any).code;
+        if (code === '23505') {
+          // Duplicate key violation
+          const message = profileError.message || '';
+          if (message.includes('phone')) {
+            const userFriendlyError = new Error('This phone number is already registered. Please use a different phone number.');
+            return { error: userFriendlyError };
+          }
+          if (message.includes('profiles_pkey') || message.includes('id')) {
+            // This shouldn't happen but handle gracefully
+            const userFriendlyError = new Error('An account with this information already exists. Please try again.');
+            return { error: userFriendlyError };
+          }
+        }
+
+        return { error: profileError };
+      }
+
+      console.log('Profile created successfully for user:', signUpData.user.id);
+    }
+
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {

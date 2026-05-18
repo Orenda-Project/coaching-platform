@@ -4,36 +4,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingDown, TrendingUp, BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
-
-interface DCTeacher {
-  user_id: string;
-  teacher_name: string;
-  school: string;
-  sector: string;
-  overall_percentage: number;
-  total_score: number;
-  created_date: string;
-  grade: string;
-  subject: string;
-  accurate_lesson_planning: number;
-  timely_lesson_delivery: number;
-  subject_command: number;
-  effective_pedagogy: number;
-  effective_resource_use: number;
-  activity_based_learning: number;
-  student_participation: number;
-  critical_thinking: number;
-  inclusive_practices: number;
-  technology_integration: number;
-  technology_handling: number;
-  verbal_communication: number;
-  non_verbal_communication: number;
-}
+import { BarChart3, AlertCircle, RefreshCw } from 'lucide-react';
+import { ScheduleVisitModal } from './ScheduleVisitModal';
+import type { DCTeacher } from '@/types/teacher';
+import type { ScheduleVisitFormData } from '@/types/observation';
 
 interface Props {
   teachers: DCTeacher[];
-  onScheduleVisit: (teacher: DCTeacher) => void;
+  onScheduleVisit: (teacher: DCTeacher, formData: ScheduleVisitFormData) => void;
+  coachName: string;
+  subRegion: string;
   loading: boolean;
   isOffline?: boolean;
   lastSynced?: string | null;
@@ -95,8 +75,9 @@ function isCacheStale(timestamp: string | null): boolean {
   return age > ttl;
 }
 
-export default function DCDashboard({ teachers, onScheduleVisit, loading, isOffline, lastSynced, onRetry }: Props) {
+export default function DCDashboard({ teachers, onScheduleVisit, coachName, subRegion, loading, isOffline, lastSynced, onRetry }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [pendingTeacher, setPendingTeacher] = useState<DCTeacher | null>(null);
 
   const groupedTeachers = useMemo(() => {
     const sorted = [...teachers].sort((a, b) => a.overall_percentage - b.overall_percentage);
@@ -223,7 +204,7 @@ export default function DCDashboard({ teachers, onScheduleVisit, loading, isOffl
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => onScheduleVisit(teacher)}
+                      onClick={() => setPendingTeacher(teacher)}
                     >
                       Schedule Visit
                     </Button>
@@ -253,6 +234,20 @@ export default function DCDashboard({ teachers, onScheduleVisit, loading, isOffl
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Schedule Visit Modal */}
+      {pendingTeacher && (
+        <ScheduleVisitModal
+          teacher={pendingTeacher}
+          coachName={coachName}
+          subRegion={subRegion}
+          onConfirm={(formData) => {
+            onScheduleVisit(pendingTeacher, formData);
+            setPendingTeacher(null);
+          }}
+          onClose={() => setPendingTeacher(null)}
+        />
+      )}
     </div>
   );
 }

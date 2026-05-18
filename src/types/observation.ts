@@ -68,6 +68,7 @@ export interface CotObservation {
   status: ObservationStatus;
   submitted_at?: string | null;
   approved_at?: string | null;
+  visit_purpose?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -95,4 +96,10 @@ export interface ScheduleFormData {
   grade: string;
   topic: string;
   date: string;
+}
+
+export interface ScheduleVisitFormData {
+  date: string;
+  visit_purpose: string;
+  lesson_topic?: string;
 }

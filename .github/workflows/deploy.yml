@@ -30,12 +30,14 @@ jobs:
           node-version: '20'
       - run: npm ci
       - run: npm run build
-      - name: Deploy to Railway Staging
+      - name: Apply Supabase migrations to staging
         run: |
-          npm install -g @railway/cli
-          railway up --detach --service ${{ secrets.RAILWAY_SERVICE_STAGING }} --environment staging
+          npx supabase@latest link --project-ref ${{ secrets.SUPABASE_PROJECT_ID_STAGING }} --yes
+          npx supabase@latest db push --include-all
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      # Railway deployment is handled via git push auto-deploy
+      # No need to manually trigger it here
 
   deploy-production:
     if: github.ref == 'refs/heads/main'
@@ -48,9 +50,11 @@ jobs:
           node-version: '20'
       - run: npm ci
       - run: npm run build
-      - name: Deploy to Railway Production
+      - name: Apply Supabase migrations to production
         run: |
-          npm install -g @railway/cli
-          railway up --detach --service ${{ secrets.RAILWAY_SERVICE_PRODUCTION }} --environment production
+          npx supabase@latest link --project-ref ${{ secrets.SUPABASE_PROJECT_ID_PRODUCTION }} --yes
+          npx supabase@latest db push --include-all
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PRODUCTION }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      # Railway deployment is handled via git push auto-deploy
+      # No need to manually trigger it here

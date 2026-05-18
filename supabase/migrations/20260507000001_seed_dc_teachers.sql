@@ -1,4 +1,4 @@
-﻿-- Seed initial DC teachers from BigQuery (ICT region)
+-- Seed initial DC teachers from BigQuery (ICT region)
 -- Run this migration to populate teacher_dc_scores table with sample data
 
 INSERT INTO public.teacher_dc_scores (
