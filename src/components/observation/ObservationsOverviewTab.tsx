@@ -142,6 +142,7 @@ export function ObservationsOverviewTab({ observations }: Props) {
         <CardContent className="px-4 pb-4">
           <div className="space-y-0">
             {observations.map((obs, idx) => {
+              const isFico = obs.framework === 'FICO';
               const prof = obs.total_score > 0 ? getProficiencyLevel(obs.total_score) : null;
               return (
                 <div
@@ -161,7 +162,7 @@ export function ObservationsOverviewTab({ observations }: Props) {
                   <div className="flex items-center gap-2 shrink-0">
                     {prof && (
                       <span className={`text-xs font-medium ${prof.color}`}>
-                        {obs.total_score}/80
+                        {obs.total_score}/{isFico ? '100' : '80'}
                       </span>
                     )}
                     <Badge

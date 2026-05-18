@@ -118,7 +118,7 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
         <PenSquare className="w-10 h-10 text-muted-foreground mb-3" />
         <h3 className="font-semibold text-foreground mb-1">No draft observations</h3>
         <p className="text-sm text-muted-foreground">
-          Start an observation from the &ldquo;Schedule &amp; Observe&rdquo; tab to see it here
+          Start an observation from the &ldquo;Smart Plan&rdquo; tab to see it here
         </p>
       </div>
     );
