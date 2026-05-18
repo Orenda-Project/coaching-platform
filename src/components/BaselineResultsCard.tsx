@@ -94,7 +94,7 @@ export function BaselineResultsCard({
         <p className="text-sm text-muted-foreground">
           Based on your baseline score of <span className="font-semibold text-foreground">{baselineScore}%</span>, we've identified your coaching strengths and areas for growth.
         </p>
-
+//test
         <div>
           <h3 className="font-semibold text-sm mb-2 text-foreground">Your Strengths</h3>
           <ul className="space-y-1">
