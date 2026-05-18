@@ -116,7 +116,7 @@ export default function ObservationScheduler() {
               <span className="text-xs text-muted-foreground">Observation Scheduler</span>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/certificate')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
           </Button>
         </div>
