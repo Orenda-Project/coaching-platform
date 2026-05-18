@@ -19,7 +19,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see the "Next" button
     And I can see a progress bar showing 0% completion
 
-  @@chunk positive
+  @chunk @positive
   Scenario: Navigate through all 18 questions sequentially
     When I select option "B" for question 1
     And I click the "Next" button
@@ -36,7 +36,7 @@ Feature: Baseline Assessment (18 MCQ)
     And my previous answer for question 2 is still selected
     And I can proceed forward to question 3 again
 
-  @chubk @positive
+  @chunk @positive
   Scenario: Successfully submit baseline with all 18 questions answered (all correct)
     Given I answer all 18 questions correctly
     When I click the "Submit" button on question 18
@@ -45,7 +45,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am redirected to the training dashboard
     And Module 1 is now unlocked
 
- @chunk  @positive
+  @chunk @positive
   Scenario: Successfully submit baseline with all 18 questions answered (mixed correct/incorrect)
     Given I answer 16 questions correctly and 2 questions incorrectly
     When I click the "Submit" button on question 18
@@ -54,7 +54,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am redirected to the training dashboard
     And Module 1 is now unlocked
 
-  @chunl @positive
+  @chunk @positive
   Scenario: Successfully submit baseline with all 18 questions answered (all incorrect)
     Given I select all incorrect answers for all 18 questions
     When I click the "Submit" button on question 18

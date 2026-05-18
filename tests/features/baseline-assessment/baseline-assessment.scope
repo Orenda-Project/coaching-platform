@@ -1,0 +1,7 @@
+# Baseline Assessment feature scope
+src/pages/Assessment.tsx
+src/components/BaselineResultsCard.tsx
+src/pages/Dashboard.tsx
+src/domain/persona.ts
+src/domain/thresholds.ts
+src/contexts/AuthContext.tsx
