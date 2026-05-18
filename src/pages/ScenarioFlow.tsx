@@ -9,8 +9,9 @@ import RevealSlides, { Slide } from "@/components/scenario/RevealSlides";
 import ExpandableDepth from "@/components/scenario/ExpandableDepth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import { GraduationCap, ArrowLeft, CheckCircle2, XCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { canAccessPracticeSection, getPracticeLockMessage } from "@/domain/trainingRules";
 
 type Phase =
   | "loading"
@@ -18,7 +19,8 @@ type Phase =
   | "feedback"
   | "reveal"
   | "depth"
-  | "summary";
+  | "summary"
+  | "locked";
 
 interface ScenarioOption {
   id: string;
@@ -44,7 +46,18 @@ interface Scenario {
   options: ScenarioOption[];
 }
 
-export default function ScenarioFlow() {
+interface ScenarioFlowProps {
+  /**
+   * Whether the user has completed viewing all training content (slides/video).
+   * Default: false (practice section locked).
+   * Parent must pass this synchronously to avoid flashing the lock state.
+   * If this is derived from async data, parent should show a loading state
+   * instead of rendering ScenarioFlow.
+   */
+  contentCompleted?: boolean;
+}
+
+export default function ScenarioFlow({ contentCompleted = false }: ScenarioFlowProps) {
   const { trainingId } = useParams<{ trainingId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -70,6 +83,12 @@ export default function ScenarioFlow() {
 
     const loadScenarios = async () => {
       try {
+        // Check if practice section is locked
+        if (!canAccessPracticeSection(contentCompleted)) {
+          setPhase("locked");
+          return;
+        }
+
         // Fetch scenarios
         const { data: scenarioData, error: scenarioError } = await supabase
           .from("scenarios")
@@ -134,7 +153,7 @@ export default function ScenarioFlow() {
     };
 
     loadScenarios();
-  }, [trainingId, user, track]);
+  }, [trainingId, user, track, contentCompleted]);
 
   if (phase === "loading" || scenarios.length === 0) {
     return (
@@ -284,7 +303,7 @@ export default function ScenarioFlow() {
       </div>
       {phase !== "summary" && (
         <div className="px-4 pb-3 text-xs text-muted-foreground">
-          Scenario {currentIndex + 1} of {totalScenarios}
+          Practice {currentIndex + 1} of {totalScenarios}
         </div>
       )}
     </div>
@@ -398,10 +417,10 @@ export default function ScenarioFlow() {
                   </p>
                 </div>
 
-                {/* Scenario Breakdown */}
+                {/* Practice Breakdown */}
                 <div className="border-t pt-4">
                   <h3 className="font-semibold mb-3 text-sm">
-                    Scenario Breakdown
+                    Practice Breakdown
                   </h3>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {scenarios.map((scenario, idx) => {
@@ -417,7 +436,7 @@ export default function ScenarioFlow() {
                             <XCircle className="h-4 w-4 text-red-600" />
                           )}
                           <span className="flex-1">
-                            Scenario {idx + 1}: {scenario.situation.substring(0, 50)}
+                            Practice {idx + 1}: {scenario.situation.substring(0, 50)}
                             ...
                           </span>
                           <span className="text-xs text-muted-foreground">
@@ -451,6 +470,38 @@ export default function ScenarioFlow() {
                     Redo Scenarios
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case "locked":
+        return (
+          <div className={containerClass}>
+            <Card className="border-yellow-500/30 bg-yellow-500/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl text-yellow-700">
+                  <Lock className="h-5 w-5" />
+                  Practice Section Locked
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <p className="text-yellow-900 font-medium mb-2">
+                    {getPracticeLockMessage()}
+                  </p>
+                  <p className="text-sm text-yellow-800">
+                    Complete all training slides and videos first to unlock the practice scenarios.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => navigate("/dashboard")}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
               </CardContent>
             </Card>
           </div>

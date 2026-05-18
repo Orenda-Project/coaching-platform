@@ -1,4 +1,6 @@
--- Fix: Update handle_new_user trigger to capture full_name and phone from auth user metadata
+-- Fix: Update handle_new_user trigger to read phone from auth metadata
+-- Root cause: Client passes phone in auth metadata, but trigger was reading from auth.users.phone column
+-- This migration updates the trigger to read phone from metadata like full_name
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN

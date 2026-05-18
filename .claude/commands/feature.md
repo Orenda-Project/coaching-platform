@@ -1,9 +1,24 @@
 ---
-description: Implement a feature end-to-end with the four-agent pipeline (feature-developer → test-engineer → test-harness-engineer if needed → pr-reviewer). Output is PR-ready. Wraps the existing /coaching-dev workflow.
+description: Develop a new feature using the mandatory SDLC workflow and four-agent pipeline.
 argument-hint: <feature description>
 ---
 
 # /feature $ARGUMENTS
+
+Use the mandatory SDLC workflow from `.claude/rules/sdlc-workflow.md`.
+
+Before editing files:
+
+1. Analyze requirements.
+2. Identify affected files.
+3. Explain implementation plan.
+4. Explain API, DB, security, deployment, and rollback impact.
+5. Provide testing strategy.
+6. Wait for approval before implementation unless the user explicitly asks to implement directly.
+
+All work must be done in a feature branch. Create PR to staging. Never merge without user permission.
+
+---
 
 Run the full four-agent pipeline for: **$ARGUMENTS**
 

@@ -19,7 +19,11 @@ interface SlidesPlayerProps {
   completed: boolean;
 }
 
-const SLIDE_LOCK_DURATION = 15; // seconds
+// Environment-based slide lock duration in seconds
+// Production: 15 seconds, Dev/Staging: 0 (disabled for testing)
+const SLIDE_LOCK_DURATION = import.meta.env.VITE_SLIDE_LOCK_DURATION
+  ? parseInt(import.meta.env.VITE_SLIDE_LOCK_DURATION, 10) / 1000
+  : 0;
 
 export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesPlayerProps) {
   const [current, setCurrent] = useState(0);
@@ -149,7 +153,7 @@ export default function SlidesPlayer({ slides, onCompleted, completed }: SlidesP
           disabled={isNextDisabled}
           className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isNextDisabled
+          {isNextDisabled && SLIDE_LOCK_DURATION > 0
             ? `Read slide first (${countdown}s)`
             : isLast
               ? (completed ? "Completed ✓" : "Finish Slides")
