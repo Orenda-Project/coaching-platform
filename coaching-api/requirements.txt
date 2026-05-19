@@ -11,3 +11,5 @@ pytest-asyncio==0.21.1
 httpx==0.25.2
 aiofiles==23.2.1
 python-multipart==0.0.6
+supabase==2.0.2
+typer==0.12.0
