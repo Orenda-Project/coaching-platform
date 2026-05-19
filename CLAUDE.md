@@ -81,7 +81,11 @@ Never write: code, transcripts, stacks. Save: pattern/rule only.
 **See:** `DEVELOPMENT_STANDARDS.md` (complete standards)
 
 ## Key Business Rules (Never Break)
-- Baseline: 60% to pass. <60% = fail, retry. Persona: A(≥75%) B(70%) C(65%) D(60%)
+- **Baseline Assessment & Gating (CRITICAL):**
+  - Scoring: 60% to pass. <60% = fail, retry. Persona: A(≥75%) B(70%) C(65%) D(60%)
+  - **Gating Logic:** New users see ONLY baseline assessment (training modules hidden/disabled until completed)
+  - **Access Control:** After baseline completion, baseline is hidden permanently (cannot re-access or re-attempt)
+  - **Unlock:** Training modules unlock only after baseline_completed = true
 - Module quiz: 80% to pass. Max 3 attempts. Fail = retry same module.
 - Endline: 70% to pass. Gate: ALL modules must be passed first (server-verified).
 - Content gate: Video 90% watched OR slides 30s before quiz unlocks.
