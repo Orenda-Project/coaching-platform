@@ -1,0 +1,13 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/api/export/health"
+healthcheckTimeout = 5
+
+[env]
+DATABASE_URL = "${{ Postgres.DATABASE_URL }}"
+API_VERSION = "1.0"
+ENVIRONMENT = "production"
+LOG_LEVEL = "info"
