@@ -63,7 +63,7 @@ export default function Dashboard() {
       return;
     }
     if (profile) loadData();
-  }, [profile, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [profile, navigate, isCoach]); // Re-run when isCoach is detected
 
   // Track tab visibility changes on dashboard
   useEffect(() => {
