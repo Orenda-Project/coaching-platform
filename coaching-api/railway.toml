@@ -2,7 +2,7 @@
 builder = "dockerfile"
 
 [deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+# startCommand is defined in Dockerfile CMD
 # Health check disabled — enable once app stability is verified
 # healthcheckPath = "/api/export/health"
 # healthcheckTimeout = 5

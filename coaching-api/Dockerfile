@@ -22,5 +22,5 @@ RUN mkdir -p migrations/versions
 # HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 #     CMD curl -f http://localhost:8000/api/export/health || exit 1
 
-# Run application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run application (Railway injects PORT env var, default to 8000)
+CMD sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}'
