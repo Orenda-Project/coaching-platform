@@ -855,10 +855,20 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   }
 
   // Uploading phase
-  if (phase === 'uploading') {
+  if (phase === 'uploading' && savedAudio) {
+    const audioUrl = URL.createObjectURL(savedAudio);
     return (
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">{t('Uploading audio')}</p>
+      <div className="space-y-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm font-medium text-blue-900">{t('Uploading audio')}</p>
+        </div>
+
+        <audio ref={audioPlayerRef} controls className="w-full" src={audioUrl} />
+
+        <Button disabled className="w-full py-6">
+          ⏳ {t('Uploading audio')}...
+        </Button>
+
         <Progress value={uploadProgress} className="h-2" />
       </div>
     );
