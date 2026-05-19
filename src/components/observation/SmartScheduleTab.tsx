@@ -128,10 +128,15 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     try {
       setError(null);
 
-      const { data, error: queryError } = await typedSupabase
+      let query = typedSupabase
         .from('teacher_dc_scores')
-        .select('*')
-        .eq('region', coachSubRegion)
+        .select('*');
+
+      if (coachSubRegion) {
+        query = query.eq('region', coachSubRegion);
+      }
+
+      const { data, error: queryError } = await query
         .order('total_score', { ascending: true });
 
       clearTimeout(timeoutId);
@@ -225,10 +230,8 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   }, [coachSubRegion, readCache, writeCache]);
 
   useEffect(() => {
-    if (coachSubRegion) {
-      loadData();
-    }
-  }, [coachSubRegion, loadData]);
+    loadData();
+  }, [loadData]);
 
   const handleScheduleVisit = useCallback(async (teacher: DCTeacher, formData: ScheduleVisitFormData) => {
     if (!user) {
