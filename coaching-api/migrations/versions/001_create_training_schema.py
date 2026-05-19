@@ -51,7 +51,7 @@ def upgrade() -> None:
         sa.Column("format_type", sa.String(), nullable=True),
         sa.Column("content_url", sa.String(), nullable=True),
         sa.Column("duration_minutes", sa.Integer(), nullable=True),
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("extra_data", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["training_id"], ["trainings.id"]),
         sa.PrimaryKeyConstraint("id"),

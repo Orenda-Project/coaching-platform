@@ -3,15 +3,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 from app.config import settings
 
-# Synchronous engine for Alembic migrations
+# Synchronous engine for Alembic migrations (use psycopg3)
+db_url = settings.database_url.replace("postgresql://", "postgresql+psycopg://")
 engine = create_engine(
-    settings.database_url,
-    echo=False,
-)
-
-# Async engine for API (optional, for future async support)
-async_engine = create_async_engine(
-    settings.database_url.replace("postgresql://", "postgresql+asyncpg://"),
+    db_url,
     echo=False,
 )
 

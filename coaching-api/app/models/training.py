@@ -77,7 +77,7 @@ class TrainingContent(Base):
     format_type = Column(String)  # 'slides', 'video', 'scenario'
     content_url = Column(String)
     duration_minutes = Column(Integer)
-    metadata = Column(JSON)
+    extra_data = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     training = relationship("Training", back_populates="content")
