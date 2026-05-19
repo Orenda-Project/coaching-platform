@@ -7,7 +7,7 @@ from app.database import Base
 class Module(Base):
     """Training module."""
 
-    __tablename__ = "modules"
+    __tablename__ = "export_modules"
 
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
@@ -36,10 +36,10 @@ class Module(Base):
 class Training(Base):
     """Training unit (formerly called modules in UI)."""
 
-    __tablename__ = "trainings"
+    __tablename__ = "export_trainings"
 
     id = Column(String, primary_key=True)
-    module_id = Column(String, ForeignKey("modules.id"), nullable=False)
+    module_id = Column(String, ForeignKey("export_modules.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text)
     order_number = Column(Integer)
@@ -70,10 +70,10 @@ class Training(Base):
 class TrainingContent(Base):
     """Video, slides, or other content for a training."""
 
-    __tablename__ = "training_content"
+    __tablename__ = "export_training_content"
 
     id = Column(String, primary_key=True)
-    training_id = Column(String, ForeignKey("trainings.id"), nullable=False)
+    training_id = Column(String, ForeignKey("export_trainings.id"), nullable=False)
     format_type = Column(String)  # 'slides', 'video', 'scenario'
     content_url = Column(String)
     duration_minutes = Column(Integer)
@@ -105,10 +105,10 @@ class TrainingContent(Base):
 class Question(Base):
     """Quiz question for a training."""
 
-    __tablename__ = "questions"
+    __tablename__ = "export_questions"
 
     id = Column(String, primary_key=True)
-    training_id = Column(String, ForeignKey("trainings.id"), nullable=False)
+    training_id = Column(String, ForeignKey("export_trainings.id"), nullable=False)
     question_type = Column(String)  # 'mcq', 'open'
     question_text = Column(Text, nullable=False)
     order_number = Column(Integer)
@@ -131,10 +131,10 @@ class Question(Base):
 class Option(Base):
     """Answer option for a multiple-choice question."""
 
-    __tablename__ = "options"
+    __tablename__ = "export_options"
 
     id = Column(String, primary_key=True)
-    question_id = Column(String, ForeignKey("questions.id"), nullable=False)
+    question_id = Column(String, ForeignKey("export_questions.id"), nullable=False)
     option_text = Column(Text, nullable=False)
     is_correct = Column(Boolean, default=False)
     order_number = Column(Integer)
@@ -154,10 +154,10 @@ class Option(Base):
 class Scenario(Base):
     """Scenario-based learning content."""
 
-    __tablename__ = "scenarios"
+    __tablename__ = "export_scenarios"
 
     id = Column(String, primary_key=True)
-    training_id = Column(String, ForeignKey("trainings.id"), nullable=False)
+    training_id = Column(String, ForeignKey("export_trainings.id"), nullable=False)
     situation = Column(Text)
     question = Column(Text)
     difficulty = Column(String)  # 'easy', 'medium', 'hard'
@@ -179,10 +179,10 @@ class Scenario(Base):
 class ScenarioOption(Base):
     """Option for a scenario."""
 
-    __tablename__ = "scenario_options"
+    __tablename__ = "export_scenario_options"
 
     id = Column(String, primary_key=True)
-    scenario_id = Column(String, ForeignKey("scenarios.id"), nullable=False)
+    scenario_id = Column(String, ForeignKey("export_scenarios.id"), nullable=False)
     letter = Column(String)  # 'a', 'b', 'c', 'd'
     option_text = Column(Text)
     is_correct = Column(Boolean, default=False)
