@@ -31,6 +31,41 @@ interface Props {
 type NeoPhase = 'idle' | 'recording' | 'saved' | 'uploading' | 'queued' | 'processing' | 'completed' | 'failed';
 type Language = 'en' | 'ur';
 
+// Detect actual audio format from file signature
+async function detectAudioFormat(blob: Blob): Promise<string> {
+  const headerBuffer = await blob.slice(0, 12).arrayBuffer();
+  const view = new Uint8Array(headerBuffer);
+
+  // WebM: 1A 45 DF A3
+  if (view[0] === 0x1a && view[1] === 0x45 && view[2] === 0xdf && view[3] === 0xa3) {
+    return 'audio/webm';
+  }
+
+  // OGG: 4F 67 67 53
+  if (view[0] === 0x4f && view[1] === 0x67 && view[2] === 0x67 && view[3] === 0x53) {
+    return 'audio/ogg';
+  }
+
+  // WAV: 52 49 46 46 (RIFF)
+  if (view[0] === 0x52 && view[1] === 0x49 && view[2] === 0x46 && view[3] === 0x46) {
+    return 'audio/wav';
+  }
+
+  // MP3: FF FB or FF FA
+  if ((view[0] === 0xff && (view[1] === 0xfb || view[1] === 0xfa)) ||
+      (view[0] === 0x49 && view[1] === 0x44 && view[2] === 0x33)) {
+    return 'audio/mpeg';
+  }
+
+  // M4A/AAC: ftyp at offset 4
+  if (view[4] === 0x66 && view[5] === 0x74 && view[6] === 0x79 && view[7] === 0x70) {
+    return 'audio/mp4';
+  }
+
+  // Default fallback
+  return 'audio/webm';
+}
+
 const translations: Record<Language, Record<string, string>> = {
   en: {
     'Coach Debrief': 'Coach Debrief',
@@ -176,16 +211,21 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const startRecording = async () => {
     try {
+      // Check if browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Microphone recording not supported on this browser. Please use Chrome, Firefox, or Safari.');
+      }
+
       console.log('Starting recording - requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       console.log('Microphone access granted. Stream:', stream);
 
-      // Use WebM - it's widely supported and Neo accepts it
-      const mimeType = 'audio/webm';
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      // Let browser choose the format - it will pick the best supported one
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       console.log('MediaRecorder created');
+      console.log('MediaRecorder.mimeType:', mediaRecorder.mimeType);
 
       mediaRecorder.ondataavailable = (event) => {
         console.log(`dataavailable event fired: ${event.data.size} bytes`);
@@ -211,21 +251,35 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         if (recordingIntervalRef.current) {
           clearInterval(recordingIntervalRef.current);
         }
-        // Stop tracks after a small delay to ensure final dataavailable event is processed
-        setTimeout(() => {
-          stream.getTracks().forEach((track) => {
-            console.log(`Stopping audio track: ${track.kind}`);
-            track.stop();
-          });
-        }, 100);
+        // Stop tracks immediately - don't wait
+        stream.getTracks().forEach((track) => {
+          console.log(`Stopping audio track: ${track.kind}`);
+          track.stop();
+        });
       };
 
       console.log('Calling mediaRecorder.start()...');
       mediaRecorder.start(); // No timeslice = one complete audio blob on stop()
     } catch (err) {
       console.error('Microphone error:', err);
-      toast.error('Could not access microphone');
-      setError(err instanceof Error ? err.message : 'Microphone access denied');
+
+      let errorMsg = 'Could not access microphone';
+
+      // Provide specific error messages based on error type
+      if (err instanceof DOMException) {
+        if (err.name === 'NotAllowedError') {
+          errorMsg = 'Microphone permission denied. Please allow microphone access in browser settings and try again.';
+        } else if (err.name === 'NotFoundError') {
+          errorMsg = 'No microphone found. Please connect a microphone and try again.';
+        } else if (err.name === 'NotReadableError') {
+          errorMsg = 'Microphone is in use by another application. Please close other apps using the microphone.';
+        }
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+
+      toast.error(errorMsg);
+      setError(errorMsg);
     }
   };
 
@@ -265,9 +319,12 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           return;
         }
 
-        // Create audio blob and save to IndexedDB
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await saveSavedAudio(observation.id, audioBlob, 'audio/webm');
+        const rawMimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const mimeType = rawMimeType.split(';')[0]; // Remove codec metadata (e.g. "audio/webm;codecs=opus" -> "audio/webm")
+        console.log('saveAudioLocally - mediaRecorder.mimeType:', mediaRecorderRef.current?.mimeType);
+        console.log('saveAudioLocally - cleaned mimeType:', mimeType);
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        await saveSavedAudio(observation.id, audioBlob, mimeType);
         setSavedAudio(audioBlob);
         setPhase('saved');
         toast.success('Audio saved — review and submit with observation');
@@ -309,35 +366,43 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       return;
     }
 
+    // Stop recording timer
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+
+    setIsPaused(false);
+
     return new Promise<void>((resolve) => {
       const handleStop = async () => {
-        if (audioChunksRef.current.length === 0) {
-          toast.error('No audio recorded');
-          setPhase('idle');
-          resolve();
-          return;
-        }
+        try {
+          if (audioChunksRef.current.length === 0) {
+            toast.error('No audio recorded');
+            setPhase('idle');
+            resolve();
+            return;
+          }
 
-        // Create audio blob and save to IndexedDB
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await saveSavedAudio(observation.id, audioBlob, 'audio/webm');
-        setSavedAudio(audioBlob);
-        setPhase('saved');
-        toast.success('Recording stopped — ready to upload');
+          const rawMimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+          const mimeType = rawMimeType.split(';')[0]; // Remove codec metadata (e.g. "audio/webm;codecs=opus" -> "audio/webm")
+          console.log('stopRecording - mediaRecorder.mimeType:', mediaRecorderRef.current?.mimeType);
+          console.log('stopRecording - cleaned mimeType:', mimeType);
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          console.log('Created blob:', audioBlob.size, 'bytes, MIME:', mimeType);
+
+          await saveSavedAudio(observation.id, audioBlob, mimeType);
+          setSavedAudio(audioBlob);
+          setPhase('saved');
+          toast.success('Recording stopped — ready to upload');
+        } catch (err) {
+          console.error('Error saving recording:', err);
+          toast.error('Error saving recording');
+        }
         resolve();
       };
 
-      // Stop recording timer
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-        recordingIntervalRef.current = null;
-      }
-
-      // Set up one-time stop listener
       mediaRecorderRef.current!.addEventListener('stop', handleStop, { once: true });
-
-      // Stop the recorder
-      setIsPaused(false);
       mediaRecorderRef.current!.stop();
     });
   };
@@ -359,14 +424,24 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       }
 
       setIsUploading(true);
-      console.log('uploadAudio called with blob size:', blob.size, 'mimeType:', mimeType);
+      console.log('========== UPLOAD DEBUG START ==========');
+      console.log('uploadAudio called with blob size:', blob.size);
       console.log('observation.id:', observation.id);
+      console.log('blob.type:', blob.type);
+
+      // Strip codec info from MIME type (e.g. "audio/webm;codecs=opus" -> "audio/webm")
+      let cleanMimeType = blob.type.split(';')[0] || 'audio/webm';
+      console.log('Cleaned MIME type:', cleanMimeType);
 
       const formData = new FormData();
       formData.append('file', blob);
       formData.append('observation_id', observation.id);
 
-      console.log('FormData created. Checking token...');
+      console.log('FormData created:');
+      console.log('  - file: size=' + blob.size + ' bytes');
+      console.log('  - observation_id:', observation.id);
+      console.log('  - sending with MIME type:', cleanMimeType);
+      console.log('Checking token...');
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) {
         unlockUpload(observation.id);
@@ -390,16 +465,49 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
       console.log('Upload response received');
       console.log('Response status:', response.status, response.statusText);
+      console.log('Response headers:', {
+        'content-type': response.headers.get('content-type'),
+        'content-length': response.headers.get('content-length'),
+      });
 
       if (!response.ok) {
-        console.error('Upload response NOT OK');
-        console.error('Blob size:', blob.size);
-        const err = await response.json().catch(() => ({}));
-        console.error('Error from server:', err);
-        throw new Error(err.error || `Upload failed: ${response.status}`);
+        console.error('❌ Upload response NOT OK');
+        console.error('Status:', response.status, response.statusText);
+        console.error('Blob size:', blob.size, 'bytes');
+        console.error('Blob type:', blob.type);
+        console.error('Cleaned MIME type sent:', cleanMimeType);
+        let err;
+        try {
+          const text = await response.text();
+          console.error('Response body raw:', text);
+          console.error('Response body length:', text.length);
+          err = JSON.parse(text);
+        } catch (e) {
+          console.error('Could not parse response:', response.statusText);
+          console.error('Parse error:', e);
+          err = {};
+        }
+        console.error('Parsed error object:', err);
+        console.log('========== UPLOAD DEBUG END (FAILED) ==========');
+
+        // Handle specific error codes
+        let errorMsg = err.error || `Upload failed: ${response.status}`;
+        if (response.status === 404 && blob.size > 10 * 1024 * 1024) {
+          // 404 + large file = likely audio limit exceeded
+          errorMsg = 'Audio file too large. Please record a shorter debrief (under 5 minutes recommended).';
+        } else if (response.status === 413 || response.status === 429) {
+          errorMsg = 'Audio limit exceeded. Please record a shorter debrief (under 5 minutes recommended).';
+        } else if (response.status === 404) {
+          errorMsg = 'Upload service unavailable. Please try again in a moment, or record a shorter debrief.';
+        }
+
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
+      console.log('✅ Upload successful');
+      console.log('Response data:', data);
+      console.log('========== UPLOAD DEBUG END (SUCCESS) ==========');
 
       // Clean up from queue if this was a queued upload
       await removeFromQueue(observation.id);
@@ -649,17 +757,23 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   if (phase === 'recording') {
     const mins = Math.floor(recordingTime / 60);
     const secs = recordingTime % 60;
+    const isLong = recordingTime > 300; // 5 min warning
     return (
-      <Card className="bg-slate-50 border-slate-200">
+      <Card className={`${isLong ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
         <CardContent className="pt-5 pb-5 px-5">
           <div className="flex flex-col items-center space-y-5">
             {/* Status with indicator */}
             <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full ${isPaused ? '' : 'animate-pulse'}`} style={{ backgroundColor: isPaused ? '#f59e0b' : '#dc2626' }} />
-              <span className="text-sm font-medium text-foreground">
+              <div className={`w-2.5 h-2.5 rounded-full ${isPaused ? '' : 'animate-pulse'}`} style={{ backgroundColor: isLong ? '#f59e0b' : isPaused ? '#f59e0b' : '#dc2626' }} />
+              <span className={`text-sm font-medium ${isLong ? 'text-amber-700' : 'text-foreground'}`}>
                 {isPaused ? 'Paused' : 'Recording'} — {mins}:{secs.toString().padStart(2, '0')}
               </span>
             </div>
+            {isLong && (
+              <p className="text-xs text-amber-700 text-center">
+                ⚠️ Long recording (5+ min). Consider stopping and uploading to avoid upload issues.
+              </p>
+            )}
 
             {/* Icon buttons */}
             <div className="flex items-center justify-center gap-6">
@@ -715,7 +829,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         />
 
         {/* Upload button */}
-        <Button onClick={() => uploadAudio(savedAudio, 'audio/webm')} disabled={isUploading} className="w-full py-6">
+        <Button onClick={() => uploadAudio(savedAudio, (mediaRecorderRef.current as any)?._mimeType || 'audio/webm')} disabled={isUploading} className="w-full py-6">
           {isUploading ? 'Uploading...' : 'Upload for Debrief'}
         </Button>
 
