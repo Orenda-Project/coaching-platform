@@ -225,8 +225,10 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   }, [coachSubRegion, readCache, writeCache]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (coachSubRegion) {
+      loadData();
+    }
+  }, [coachSubRegion, loadData]);
 
   const handleScheduleVisit = useCallback(async (teacher: DCTeacher, formData: ScheduleVisitFormData) => {
     if (!user) {
