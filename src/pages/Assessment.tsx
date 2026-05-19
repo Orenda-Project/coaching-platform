@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { assignPersona, ENDLINE_PASS_PCT as ENDLINE_PASS_THRESHOLD } from "@/domain";
-//@test
+//test
 type Question = Tables<"questions">;
 type Option = Tables<"options">;
 

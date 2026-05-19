@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { GraduationCap, Eye, EyeOff } from "lucide-react";
-/* //test for validation */
+//test
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
