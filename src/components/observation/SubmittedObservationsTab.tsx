@@ -223,11 +223,11 @@ export function SubmittedObservationsTab({ observations }: Props) {
 
                     {typeof selectedObs.neo_results.observer_feedback === 'object' && selectedObs.neo_results.observer_feedback !== null && (
                       <>
-                        {(selectedObs.neo_results.observer_feedback as any).strengths && (
+                        {(selectedObs.neo_results.observer_feedback as Record<string, unknown>).strengths && (
                           <div className="space-y-2">
                             <p className="text-xs font-medium text-green-700">Strengths</p>
                             <div className="space-y-1.5">
-                              {((selectedObs.neo_results.observer_feedback as any).strengths || []).map((strength: string, idx: number) => (
+                              {(((selectedObs.neo_results.observer_feedback as Record<string, unknown>).strengths as string[]) || []).map((strength: string, idx: number) => (
                                 <div key={idx} className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-900">
                                   {strength}
                                 </div>
@@ -236,11 +236,11 @@ export function SubmittedObservationsTab({ observations }: Props) {
                           </div>
                         )}
 
-                        {(selectedObs.neo_results.observer_feedback as any).next_steps && (
+                        {(selectedObs.neo_results.observer_feedback as Record<string, unknown>).next_steps && (
                           <div className="space-y-2">
                             <p className="text-xs font-medium text-blue-700">Next Steps for Growth</p>
                             <div className="space-y-1.5">
-                              {((selectedObs.neo_results.observer_feedback as any).next_steps || []).map((step: any, idx: number) => (
+                              {(((selectedObs.neo_results.observer_feedback as Record<string, unknown>).next_steps as Record<string, unknown>[]) || []).map((step: Record<string, unknown>, idx: number) => (
                                 <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-900">
                                   <p className="font-medium">{step.growth_area}</p>
                                   <p className="text-xs mt-1">{step.specific_behavior}</p>

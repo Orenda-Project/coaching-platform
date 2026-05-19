@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { CotObservation } from '@/types/observation';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 // TODO: Regenerate types in src/types/observation.ts to include cot_observations table
 const typedSupabase = supabase as any;
 

@@ -430,7 +430,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       console.log('blob.type:', blob.type);
 
       // Strip codec info from MIME type (e.g. "audio/webm;codecs=opus" -> "audio/webm")
-      let cleanMimeType = blob.type.split(';')[0] || 'audio/webm';
+      const cleanMimeType = blob.type.split(';')[0] || 'audio/webm';
       console.log('Cleaned MIME type:', cleanMimeType);
 
       const formData = new FormData();
@@ -556,7 +556,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
-  const pollNeoStatus = async () => {
+  const pollNeoStatus = useCallback(async () => {
     console.log('pollNeoStatus called');
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) {
@@ -607,7 +607,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           setPhase('completed');
           toast.success('Debrief analysis complete!');
           // Refresh observation data
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           const { data: updated } = await (supabase as any)
             .from('cot_observations')
             .select('*')
@@ -636,7 +636,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         }
       }
     }, 8000);
-  };
+  }, [observation.id, onSaved]);
 
   const attemptQueuedUpload = useCallback(async () => {
     const record = await getPendingAudio(observation.id);
