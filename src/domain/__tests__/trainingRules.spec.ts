@@ -15,7 +15,7 @@ describe("Training Domain Rules", () => {
     it("should return true when slides are completed", () => {
       expect(canAccessPracticeSection(true)).toBe(true);
     });
-
+//test
     it("should enforce binary state (not percentage or partial completion)", () => {
       expect(canAccessPracticeSection(false)).toBe(false);
       expect(canAccessPracticeSection(true)).toBe(true);

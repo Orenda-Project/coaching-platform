@@ -84,23 +84,27 @@ def build_idd_prompt(
     scope_files_list_text = '\n'.join(scope_files_list)
     return f"""You are the IDD QA Validation Agent. Execute the following pipeline exactly.
 
+## CRITICAL OUTPUT RULE
+
+⛔ DO NOT OUTPUT ANYTHING until all 6 skills have completed.
+⛔ DO NOT print skill steps, intermediate findings, tables, or analysis.
+⛔ Your ENTIRE response must be ONLY the final markdown report from report-formatter.
+⛔ No preamble. No "Step 1:", "Step 2:", no skill summaries. Nothing before the report.
+
+If you output anything other than the final report, the CI pipeline will break.
+
 ## Instructions
 
-Execute these 6 IDD skills IN ORDER. For each skill:
-1. Read the SKILL.md file at the path given below
-2. Execute the skill fully before moving to the next
-3. Apply all rules from .claude/rules/idd/ (qa-enforcement.md, behavior-analysis.md, scope-boundary.md) throughout
+Execute these 6 IDD skills silently IN ORDER. All reasoning is internal — never printed:
+1. Read and execute (silently): .claude/skills/idd/gherkin-parser/SKILL.md
+2. Read and execute (silently): .claude/skills/idd/scope-resolver/SKILL.md
+3. Read and execute (silently): .claude/skills/idd/code-mapper/SKILL.md
+4. Read and execute (silently): .claude/skills/idd/behavior-analyzer/SKILL.md
+5. Read and execute (silently): .claude/skills/idd/scenario-validator/SKILL.md
+6. Read and execute: .claude/skills/idd/report-formatter/SKILL.md → OUTPUT THIS ONLY
 
-Skills to execute (in this exact order):
-1. Read and execute: .claude/skills/idd/gherkin-parser/SKILL.md
-2. Read and execute: .claude/skills/idd/scope-resolver/SKILL.md
-3. Read and execute: .claude/skills/idd/code-mapper/SKILL.md
-4. Read and execute: .claude/skills/idd/behavior-analyzer/SKILL.md
-5. Read and execute: .claude/skills/idd/scenario-validator/SKILL.md
-6. Read and execute: .claude/skills/idd/report-formatter/SKILL.md
-
-Complete each skill fully before starting the next.
-Output ONLY the final report-formatter result. No intermediate output.
+Apply all rules from .claude/rules/idd/ throughout (internally).
+Your response = the report-formatter output and nothing else.
 
 ## Feature File
 
@@ -154,6 +158,14 @@ def build_validation_prompt(feature_name: str, entry_path: str, test_map_path: s
     return prompt, mode
 
 
+def _extract_report(raw_output: str) -> str:
+    marker = '## IDD Validation Report'
+    idx = raw_output.find(marker)
+    if idx != -1:
+        return raw_output[idx:].strip()
+    return raw_output.strip()
+
+
 def validate_with_agent(feature_name: str, entry_path: str, test_map_path: str) -> str:
     prompt, mode = build_validation_prompt(feature_name, entry_path, test_map_path)
 
@@ -175,7 +187,7 @@ def validate_with_agent(feature_name: str, entry_path: str, test_map_path: str) 
         if result.returncode != 0:
             err = result.stderr.strip()
             return f'**ERROR validating `{feature_name}`:**\n```\n{err}\n```'
-        return result.stdout
+        return _extract_report(result.stdout)
     except subprocess.TimeoutExpired:
         return f'**TIMEOUT validating `{feature_name}` (>600s)**'
     except Exception as e:
@@ -193,24 +205,26 @@ def build_report(
     pr_title: str,
     run_url: str,
 ) -> str:
-    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
     has_chunk = any('@chunk' in text for _, text in validation_texts)
+
+    # Derive a short feature label for the header line
+    feature_labels = ', '.join(f'`{name}`' for name, _ in validation_texts)
+    chunk_note = '`@chunk` = deep validation · no `@chunk` = all scenarios · human QA still required'
 
     lines = [
         '<!-- github-actions-intent-validation-report -->',
-        '## IDD Validation Report',
+        '## 🤖 GitHub Actions — Intent Validation Report',
         '',
-        f'**PR:** #{pr_number} — {pr_title}',
-        f'**Run:** {run_url}',
-        f'**Timestamp:** {timestamp}',
+        '## 🔍 Intent Validation',
+        '',
+        f'PR #{pr_number} · {pr_title} · Features {feature_labels} · {timestamp} · [logs]({run_url})',
+        '',
+        chunk_note,
+        '',
     ]
-    if has_chunk:
-        lines.append('\n> ⚡ **Chunk mode detected** — partial validation run')
-    lines.append('')
 
     for feature_name, output in validation_texts:
-        lines.append(f'### Feature: `{feature_name}`')
-        lines.append('')
         lines.append(output.strip())
         lines.append('')
 

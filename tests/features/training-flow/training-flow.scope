@@ -1,0 +1,17 @@
+src/pages/TrainingModule.tsx
+src/pages/Training.tsx
+src/components/TrainingModule/TrainingModule.tsx
+src/components/TrainingModule/SlideViewer.tsx
+src/components/TrainingModule/PracticeSection.tsx
+src/components/TrainingModule/CompletionStatus.tsx
+src/components/TrainingModule/Navigation.tsx
+src/hooks/useTraining.ts
+src/hooks/useTrainingProgress.ts
+src/services/api/training.ts
+src/services/api/modules.ts
+src/types/training.ts
+src/types/module.ts
+src/store/trainingStore.ts
+src/store/moduleStore.ts
+src/utils/trainingHelpers.ts
+src/db/queries/trainingQueries.ts

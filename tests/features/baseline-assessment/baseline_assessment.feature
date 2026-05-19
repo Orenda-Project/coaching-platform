@@ -19,7 +19,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see the "Next" button
     And I can see a progress bar showing 0% completion
 
-  @positive
+  @chunk @positive
   Scenario: Navigate through all 18 questions sequentially
     When I select option "B" for question 1
     And I click the "Next" button
@@ -28,7 +28,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see the second baseline question
     And the progress bar updates to show 5% completion
 
-  @positive
+  @chunk @positive
   Scenario: Go back to previous question and view previous answer (read-only before submission)
     Given I have answered questions 1 through 3
     When I click the "Previous" button
@@ -36,7 +36,7 @@ Feature: Baseline Assessment (18 MCQ)
     And my previous answer for question 2 is still selected
     And I can proceed forward to question 3 again
 
-  @positive
+  @chunk @positive
   Scenario: Successfully submit baseline with all 18 questions answered (all correct)
     Given I answer all 18 questions correctly
     When I click the "Submit" button on question 18
@@ -45,7 +45,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am redirected to the training dashboard
     And Module 1 is now unlocked
 
-  @positive
+  @chunk @positive
   Scenario: Successfully submit baseline with all 18 questions answered (mixed correct/incorrect)
     Given I answer 16 questions correctly and 2 questions incorrectly
     When I click the "Submit" button on question 18
@@ -54,7 +54,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am redirected to the training dashboard
     And Module 1 is now unlocked
 
-  @positive
+  @chunk @positive
   Scenario: Successfully submit baseline with all 18 questions answered (all incorrect)
     Given I select all incorrect answers for all 18 questions
     When I click the "Submit" button on question 18
@@ -63,7 +63,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I am redirected to the training dashboard
     And Module 1 is now unlocked (regardless of score)
 
-  @positive
+  @chunk @positive
   Scenario: Baseline assessment form shows all required fields
     Then I can see the Baseline Assessment heading
     And I can see the question text
@@ -73,7 +73,7 @@ Feature: Baseline Assessment (18 MCQ)
     And I can see the progress bar
     And I can see "Question X of 18" indicator
 
-  @positive
+  @chunk @positive
   Scenario: Loading state is shown while questions are loading
     When I first navigate to the Baseline Assessment
     Then I see a loading spinner
@@ -81,7 +81,7 @@ Feature: Baseline Assessment (18 MCQ)
     And after questions load, the spinner disappears
     And I can see the first baseline question
 
-  @positive
+  @chunk @positive
   Scenario: Loading state is shown while answer is being saved
     Given I am on any baseline question
     When I click the "Next" button
@@ -89,7 +89,7 @@ Feature: Baseline Assessment (18 MCQ)
     And the button is disabled until the save completes
     And then I proceed to the next question
 
-  @positive
+  @chunk @positive
   Scenario: Display timer showing estimated time (15-20 minutes)
     Then I can see a timer showing estimated time to complete
     And the timer is visible at the top of the page
