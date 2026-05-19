@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import TrainingContentViewer from "@/components/training/TrainingContentViewer";
 import { Tables } from "@/integrations/supabase/types";
+//test
 
 type Training = Tables<"trainings">;
 type Question = Tables<"questions">;
@@ -23,7 +24,6 @@ type Option = Tables<"options">;
 interface QuestionWithOptions extends Question {
   options: Option[];
 }
-/* //test */
 const QUIZ_PASS_THRESHOLD = 80;
 const MAX_ATTEMPTS = 3;
 

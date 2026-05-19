@@ -11,7 +11,7 @@
 // Source-of-truth references:
 //   - CLAUDE.md "Key Business Rules (Never Break)"
 //   - docs/memory/patterns.md "Business Rules (never break)"
-/* //test */
+//test
 
 /** Baseline assessment: minimum % to pass (also persona D floor). */
 export const BASELINE_PASS_PCT = 60;
