@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,31 +56,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    // Redirect to onboarding if not completed — region is the required onboarding field
-    if (profile && !profile.region) {
-      navigate("/onboarding");
-      return;
-    }
-    if (profile) loadData();
-  }, [profile, navigate, isCoach]); // Re-run when isCoach is detected
-
-  // Track tab visibility changes on dashboard
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      track({
-        event_type: document.hidden ? "tab_hidden" : "tab_visible",
-        metadata: { page: "dashboard" },
-      });
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [track]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user || !profile) return;
 
     const [
@@ -121,7 +97,31 @@ export default function Dashboard() {
     setTrainings(assignedTrainings);
     setProgress(progressData || []);
     setLoading(false);
-  };
+  }, [user, profile, isCoach]);
+
+  useEffect(() => {
+    // Redirect to onboarding if not completed — region is the required onboarding field
+    if (profile && !profile.region) {
+      navigate("/onboarding");
+      return;
+    }
+    if (profile) loadData();
+  }, [profile, navigate, isCoach, loadData]); // Re-run when isCoach is detected
+
+  // Track tab visibility changes on dashboard
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      track({
+        event_type: document.hidden ? "tab_hidden" : "tab_visible",
+        metadata: { page: "dashboard" },
+      });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [track]);
 
   const getModuleStatus = (
     trainingId: string,
