@@ -131,6 +131,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
       const { data, error: queryError } = await typedSupabase
         .from('teacher_dc_scores')
         .select('*')
+        .eq('region', coachSubRegion)
         .order('total_score', { ascending: true });
 
       clearTimeout(timeoutId);
