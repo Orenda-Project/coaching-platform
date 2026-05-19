@@ -3,8 +3,9 @@ builder = "dockerfile"
 
 [deploy]
 startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/api/export/health"
-healthcheckTimeout = 5
+# Health check disabled — enable once app stability is verified
+# healthcheckPath = "/api/export/health"
+# healthcheckTimeout = 5
 
 [env]
 DATABASE_URL = "${{ Postgres.DATABASE_URL }}"
