@@ -391,6 +391,12 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
     try {
+      if (!observation?.id) {
+        toast.error('No observation selected. Please schedule a visit first.');
+        setPhase('idle');
+        return;
+      }
+
       setIsUploading(true);
 
       // Strip codec info from MIME type (e.g. "audio/webm;codecs=opus" -> "audio/webm")
