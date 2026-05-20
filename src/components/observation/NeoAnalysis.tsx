@@ -12,15 +12,10 @@ import {
   AlertCircle,
   CheckCircle2,
   Brain,
-  WifiOff,
-  Pause,
-  Play,
-  RotateCcw,
-  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CotObservation, NeoResults } from '@/types/observation';
-import { saveAudioToQueue, getPendingAudio, removeFromQueue, lockForUpload, unlockUpload, saveSavedAudio, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
+import { saveSavedAudio, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
 import { markObservationDraft } from '@/data/observations';
 
 interface Props {
@@ -28,7 +23,7 @@ interface Props {
   onSaved: (obs: CotObservation) => void;
 }
 
-type NeoPhase = 'idle' | 'recording' | 'saved' | 'uploading' | 'queued' | 'processing' | 'completed' | 'failed';
+type NeoPhase = 'idle' | 'recording' | 'saved' | 'uploading' | 'processing' | 'completed' | 'failed';
 type Language = 'en' | 'ur';
 
 // Detect actual audio format from file signature
@@ -178,13 +173,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       setTranslating(false);
     }
   };
-
-  // Check for pending audio on mount
-  useEffect(() => {
-    getPendingAudio(observation.id).then(record => {
-      if (record) setPhase('queued');
-    });
-  }, [observation.id]);
 
   // Load saved audio on mount
   useEffect(() => {
@@ -527,32 +515,10 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     } catch (err) {
       setIsUploading(false);
       unlockUpload(observation.id);
-      const isNetworkError = !navigator.onLine || err instanceof TypeError;
-
-      if (isNetworkError) {
-        // Save to offline queue
-        await saveAudioToQueue({
-          observation_id: observation.id,
-          blob,
-          mime_type: mimeType,
-          queued_at: new Date().toISOString(),
-          observer_id: observation.observer_id,
-        });
-
-        // Save audio locally and mark observation as Draft
-        await saveSavedAudio(observation.id, blob, mimeType);
-        await markObservationDraft(observation.id);
-
-        onSaved({ ...observation, status: 'Draft' });
-        setPhase('queued');
-        setError(null);
-        toast.info('Audio saved offline — will upload when connection returns');
-      } else {
-        const message = err instanceof Error ? err.message : 'Upload failed';
-        toast.error(message);
-        setError(message);
-        setPhase('saved');
-      }
+      const message = err instanceof Error ? err.message : 'Upload failed';
+      toast.error(message);
+      setError(message);
+      setPhase(savedAudio ? 'saved' : 'idle');
     }
   };
 
@@ -638,60 +604,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }, 8000);
   }, [observation.id, onSaved]);
 
-  const attemptQueuedUpload = useCallback(async () => {
-    const record = await getPendingAudio(observation.id);
-    if (!record) return;
-    if (!lockForUpload(observation.id)) return; // Already uploading
-
-    setPhase('uploading');
-    // Re-fetch token to ensure it's fresh
-    const token = (await supabase.auth.getSession()).data.session?.access_token;
-    if (!token) {
-      unlockUpload(observation.id);
-      toast.error('Not authenticated');
-      return;
-    }
-    const mimeType = record.mime_type;
-
-    try {
-      const formData = new FormData();
-      formData.append('file', record.blob);
-      formData.append('observation_id', observation.id);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`,
-        { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData }
-      );
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `Upload failed: ${response.status}`);
-      }
-
-      await removeFromQueue(observation.id);
-      unlockUpload(observation.id);
-      setPhase('processing');
-      setPollProgress(0);
-      setError(null);
-      pollNeoStatus();
-    } catch (err) {
-      unlockUpload(observation.id);
-      const message = err instanceof Error ? err.message : 'Upload failed';
-      toast.error(message);
-      setError(message);
-      setPhase('queued');
-    }
-  }, [observation.id, pollNeoStatus]);
-
-  // Listen for online event when queued
-  useEffect(() => {
-    if (phase !== 'queued') return;
-    const handleOnline = () => {
-      attemptQueuedUpload();
-    };
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [phase, attemptQueuedUpload]);
 
   const retry = () => {
     setPhase('idle');
@@ -875,20 +787,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   }
 
   // Queued phase (offline)
-  if (phase === 'queued') {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-          <WifiOff className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-amber-900">{t('Audio Saved Offline')}</p>
-            <p className="text-xs text-amber-700 mt-1">{t('Offline Sync Message')}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Processing phase
   if (phase === 'processing') {
     return (
