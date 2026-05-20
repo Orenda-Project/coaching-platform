@@ -405,12 +405,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
     try {
-      // Acquire upload lock to prevent concurrent uploads
-      if (!lockForUpload(observation.id)) {
-        toast.error('Upload already in progress');
-        return;
-      }
-
       setIsUploading(true);
       console.log('========== UPLOAD DEBUG START ==========');
       console.log('uploadAudio called with blob size:', blob.size);
@@ -432,7 +426,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       console.log('Checking token...');
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) {
-        unlockUpload(observation.id);
         toast.error('Not authenticated');
         setPhase('idle');
         setIsUploading(false);
@@ -497,10 +490,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       console.log('Response data:', data);
       console.log('========== UPLOAD DEBUG END (SUCCESS) ==========');
 
-      // Clean up from queue if this was a queued upload
-      await removeFromQueue(observation.id);
-      unlockUpload(observation.id);
-
       // Clean up saved audio if this was uploaded from saved phase
       await deleteSavedAudio(observation.id);
 
@@ -514,7 +503,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       pollNeoStatus();
     } catch (err) {
       setIsUploading(false);
-      unlockUpload(observation.id);
       const message = err instanceof Error ? err.message : 'Upload failed';
       toast.error(message);
       setError(message);
