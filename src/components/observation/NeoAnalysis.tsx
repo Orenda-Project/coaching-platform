@@ -204,29 +204,20 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         throw new Error('Microphone recording not supported on this browser. Please use Chrome, Firefox, or Safari.');
       }
 
-      console.log('Starting recording - requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone access granted. Stream:', stream);
 
       // Let browser choose the format - it will pick the best supported one
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-      console.log('MediaRecorder created');
-      console.log('MediaRecorder.mimeType:', mediaRecorder.mimeType);
 
       mediaRecorder.ondataavailable = (event) => {
-        console.log(`dataavailable event fired: ${event.data.size} bytes`);
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
-          console.log(`Audio chunk captured: ${event.data.size} bytes, total chunks: ${audioChunksRef.current.length}`);
-        } else {
-          console.log('dataavailable event had 0 bytes');
         }
       };
 
       mediaRecorder.onstart = () => {
-        console.log('Recording started');
         setPhase('recording');
         setRecordingTime(0);
         recordingIntervalRef.current = window.setInterval(() => {
@@ -235,18 +226,14 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       };
 
       mediaRecorder.onstop = () => {
-        console.log(`Recording stopped. Total chunks collected: ${audioChunksRef.current.length}`);
         if (recordingIntervalRef.current) {
           clearInterval(recordingIntervalRef.current);
         }
         // Stop tracks immediately - don't wait
         stream.getTracks().forEach((track) => {
-          console.log(`Stopping audio track: ${track.kind}`);
           track.stop();
         });
       };
-
-      console.log('Calling mediaRecorder.start()...');
       mediaRecorder.start(); // No timeslice = one complete audio blob on stop()
     } catch (err) {
       console.error('Microphone error:', err);
@@ -309,8 +296,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
         const rawMimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
         const mimeType = rawMimeType.split(';')[0]; // Remove codec metadata (e.g. "audio/webm;codecs=opus" -> "audio/webm")
-        console.log('saveAudioLocally - mediaRecorder.mimeType:', mediaRecorderRef.current?.mimeType);
-        console.log('saveAudioLocally - cleaned mimeType:', mimeType);
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         await saveSavedAudio(observation.id, audioBlob, mimeType);
         setSavedAudio(audioBlob);
@@ -374,10 +359,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
           const rawMimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
           const mimeType = rawMimeType.split(';')[0]; // Remove codec metadata (e.g. "audio/webm;codecs=opus" -> "audio/webm")
-          console.log('stopRecording - mediaRecorder.mimeType:', mediaRecorderRef.current?.mimeType);
-          console.log('stopRecording - cleaned mimeType:', mimeType);
           const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-          console.log('Created blob:', audioBlob.size, 'bytes, MIME:', mimeType);
 
           await saveSavedAudio(observation.id, audioBlob, mimeType);
           setSavedAudio(audioBlob);
@@ -406,24 +388,14 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const uploadAudio = async (blob: Blob, mimeType: string) => {
     try {
       setIsUploading(true);
-      console.log('========== UPLOAD DEBUG START ==========');
-      console.log('uploadAudio called with blob size:', blob.size);
-      console.log('observation.id:', observation.id);
-      console.log('blob.type:', blob.type);
 
       // Strip codec info from MIME type (e.g. "audio/webm;codecs=opus" -> "audio/webm")
       const cleanMimeType = blob.type.split(';')[0] || 'audio/webm';
-      console.log('Cleaned MIME type:', cleanMimeType);
 
       const formData = new FormData();
       formData.append('file', blob);
       formData.append('observation_id', observation.id);
 
-      console.log('FormData created:');
-      console.log('  - file: size=' + blob.size + ' bytes');
-      console.log('  - observation_id:', observation.id);
-      console.log('  - sending with MIME type:', cleanMimeType);
-      console.log('Checking token...');
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) {
         toast.error('Not authenticated');
@@ -433,8 +405,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       }
 
       const uploadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`;
-      console.log('Sending POST to:', uploadUrl);
-      console.log('Authorization header present:', !!token);
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
@@ -444,32 +414,14 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         body: formData,
       });
 
-      console.log('Upload response received');
-      console.log('Response status:', response.status, response.statusText);
-      console.log('Response headers:', {
-        'content-type': response.headers.get('content-type'),
-        'content-length': response.headers.get('content-length'),
-      });
-
       if (!response.ok) {
-        console.error('❌ Upload response NOT OK');
-        console.error('Status:', response.status, response.statusText);
-        console.error('Blob size:', blob.size, 'bytes');
-        console.error('Blob type:', blob.type);
-        console.error('Cleaned MIME type sent:', cleanMimeType);
         let err;
         try {
           const text = await response.text();
-          console.error('Response body raw:', text);
-          console.error('Response body length:', text.length);
           err = JSON.parse(text);
         } catch (e) {
-          console.error('Could not parse response:', response.statusText);
-          console.error('Parse error:', e);
           err = {};
         }
-        console.error('Parsed error object:', err);
-        console.log('========== UPLOAD DEBUG END (FAILED) ==========');
 
         // Handle specific error codes
         let errorMsg = err.error || `Upload failed: ${response.status}`;
@@ -486,9 +438,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       }
 
       const data = await response.json();
-      console.log('✅ Upload successful');
-      console.log('Response data:', data);
-      console.log('========== UPLOAD DEBUG END (SUCCESS) ==========');
 
       // Clean up saved audio if this was uploaded from saved phase
       await deleteSavedAudio(observation.id);
@@ -511,24 +460,19 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   };
 
   const pollNeoStatus = useCallback(async () => {
-    console.log('pollNeoStatus called');
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) {
-      console.error('No token for polling');
       return;
     }
 
-    console.log('Starting Neo status polling with observation_id:', observation.id);
     let pollCount = 0;
     const maxPolls = 100; // ~800 seconds for longer audio processing
 
     pollIntervalRef.current = window.setInterval(async () => {
       pollCount++;
-      console.log(`Poll interval tick #${pollCount}`);
       setPollProgress(Math.min((pollCount / maxPolls) * 100, 90));
 
       try {
-        console.log(`Poll #${pollCount}: fetching neo-status...`);
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-status`,
           {
@@ -541,19 +485,14 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           }
         );
 
-        console.log(`Poll #${pollCount}: response status=${response.status}`);
-
         if (!response.ok) {
           const err = await response.json();
-          console.error(`Poll #${pollCount}: error response`, err);
           throw new Error(err.error || 'Status check failed');
         }
 
         const data = await response.json();
-        console.log(`Poll #${pollCount}: status=${data.status}`, data);
 
         if (data.status === 'completed') {
-          console.log('Neo processing completed!');
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
@@ -571,7 +510,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
             onSaved(updated as CotObservation);
           }
         } else if (data.status === 'failed') {
-          console.error('Neo processing FAILED:', data.error);
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
@@ -580,7 +518,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           toast.error('Debrief analysis failed');
         }
       } catch (err) {
-        console.error('Poll error:', err);
         if (pollCount >= maxPolls) {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
