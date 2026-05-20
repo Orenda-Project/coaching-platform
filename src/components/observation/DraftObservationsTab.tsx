@@ -50,7 +50,7 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
     onRefresh();
   };
 
-  const drafts = observations.filter(o => o.status === 'Draft');
+  const drafts = observations.filter(o => o.status === 'Draft' || o.status === 'Scheduled');
   const resolve = (obs: CotObservation) => localOverrides[obs.id] ?? obs;
 
   const handleObsUpdate = (updated: CotObservation) => {
