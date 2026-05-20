@@ -78,37 +78,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Signup error:', {
         message: authError.message,
         status: authError.status,
-        details: (authError as any).details,
+        details: (authError as Record<string, unknown>).details,
       });
       return { error: authError };
     }
 
-    // Step 2: Create the profile row (no longer handled by trigger)
-    // Note: We use admin context here because the user session may not be fully initialized yet
-    // The user_id in the insert ensures we're creating the correct profile
+    // Step 2: Create the profile row using RPC function with elevated privileges
+    // The RPC function uses SECURITY DEFINER to bypass RLS, allowing profile creation
+    // immediately after signup even before email verification or session is fully active
     if (signUpData.user?.id) {
       // Give the database a moment to fully create the auth user
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Create profile with admin/service role context
-      // This bypasses RLS but ensures the profile gets created even if user isn't confirmed yet
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: signUpData.user.id,
-          phone,
-          full_name: fullName || null,
-        });
+      // Call RPC function that uses SECURITY DEFINER (bypasses RLS)
+      const { data: profileData, error: profileError } = await supabase.rpc(
+        'create_profile_after_signup',
+        {
+          user_id: signUpData.user.id,
+          phone_value: phone,
+          full_name_value: fullName || null,
+        }
+      );
 
       if (profileError) {
         console.error('Profile creation error:', {
           message: profileError.message,
-          code: (profileError as any).code,
-          details: (profileError as any).details,
+          code: (profileError as Record<string, unknown>).code,
+          details: (profileError as Record<string, unknown>).details,
         });
 
         // Handle specific database errors
-        const code = (profileError as any).code;
+        const code = (profileError as Record<string, unknown>).code;
         if (code === '23505') {
           // Duplicate key violation
           const message = profileError.message || '';
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: profileError };
       }
 
-      console.log('Profile created successfully for user:', signUpData.user.id);
+      console.log('Profile created successfully for user:', signUpData.user.id, profileData);
     }
 
     return { error: null };
