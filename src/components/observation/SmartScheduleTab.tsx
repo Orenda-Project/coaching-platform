@@ -19,15 +19,14 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const { user, profile } = useAuth();
   const [teachers, setTeachers] = useState<DCTeacher[]>([]);
   const [loading, setLoading] = useState(true);
-  const [assignmentLoading, setAssignmentLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [coachSubRegion, setCoachSubRegion] = useState<string | null>(null);
   const [schedulingTeacherId, setSchedulingTeacherId] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState(false);
 
   const coachName = profile?.full_name || user?.email || 'Coach';
+  const coachSubRegion = profile?.sub_region || null;
 
   // Cache management helpers
   const getCacheKey = useCallback((suffix: string) => `scheduler_${suffix}_${user?.id}`, [user?.id]);
@@ -64,47 +63,6 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     }
   }, [user, getCacheKey]);
 
-  // Load coach's assigned sub-region from coach_assignments
-  useEffect(() => {
-    const loadAssignment = async () => {
-      if (!user) {
-        setAssignmentLoading(false);
-        return;
-      }
-
-      // Try cache first
-      const cache = readCache();
-      if (cache.assignment) {
-        setCoachSubRegion(cache.assignment);
-      }
-
-      try {
-        const { data, error: queryError } = await typedSupabase
-          .from('coach_assignments')
-          .select('sub_region')
-          .eq('coach_id', user.id)
-          .single();
-
-        if (queryError && queryError.code !== 'PGRST116') {
-          // PGRST116 = no rows, which is expected for new/unassigned coaches
-          console.error('Failed to load coach assignment:', queryError);
-        }
-
-        const subRegion = data?.sub_region ?? null;
-        setCoachSubRegion(subRegion);
-        if (subRegion) {
-          localStorage.setItem(getCacheKey('assignment'), subRegion);
-        }
-      } catch (err) {
-        console.error('Error loading coach assignment:', err);
-        setIsOffline(true);
-      } finally {
-        setAssignmentLoading(false);
-      }
-    };
-
-    loadAssignment();
-  }, [user, readCache, getCacheKey]);
 
   const loadData = useCallback(async () => {
     // Load from cache first, if available
@@ -128,9 +86,15 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     try {
       setError(null);
 
-      const { data, error: queryError } = await typedSupabase
+      let query = typedSupabase
         .from('teacher_dc_scores')
-        .select('*')
+        .select('*');
+
+      if (coachSubRegion) {
+        query = query.eq('region', coachSubRegion);
+      }
+
+      const { data, error: queryError } = await query
         .order('total_score', { ascending: true });
 
       clearTimeout(timeoutId);
@@ -276,58 +240,15 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     }
   }, [user, onNewObservation, coachSubRegion]);
 
-  // Show loading state while fetching assignment
-  if (assignmentLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  // No assignment state - show sector picker as fallback
+  // No sub-region assigned
   if (!coachSubRegion) {
-    const uniqueSectors = Array.from(
-      new Map(
-        teachers.map(t => [
-          t.sector,
-          { sector: t.sector, count: teachers.filter(x => x.sector === t.sector).length }
-        ])
-      ).values()
-    ).sort((a, b) => a.sector.localeCompare(b.sector));
-
-    if (uniqueSectors.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-14 text-center">
-          <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
-          <h3 className="font-semibold text-foreground mb-1">No teachers available</h3>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            No teacher data available. Please seed the database.
-          </p>
-        </div>
-      );
-    }
-
     return (
-      <div className="space-y-4">
-        <div>
-          <h2 className="font-display text-lg font-semibold text-foreground">Select Your Sector</h2>
-          <p className="text-sm text-muted-foreground">
-            Choose your sector to see assigned teachers
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {uniqueSectors.map((sector) => (
-            <button
-              key={sector.sector}
-              onClick={() => setCoachSubRegion(sector.sector)}
-              className="px-4 py-2 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors font-medium border border-blue-200"
-            >
-              {sector.sector}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-col items-center justify-center py-14 text-center">
+        <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
+        <h3 className="font-semibold text-foreground mb-1">No region assigned</h3>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Your profile does not have a sub-region assigned. Please contact admin.
+        </p>
       </div>
     );
   }

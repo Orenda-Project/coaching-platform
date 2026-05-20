@@ -12,7 +12,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Brain,
-  WifiOff,
   Pause,
   Play,
   RotateCcw,
@@ -20,7 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CotObservation, NeoResults } from '@/types/observation';
-import { saveAudioToQueue, getPendingAudio, removeFromQueue, lockForUpload, unlockUpload, saveSavedAudio, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
+import { saveSavedAudio, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
 import { markObservationDraft } from '@/data/observations';
 
 interface Props {
@@ -28,8 +27,43 @@ interface Props {
   onSaved: (obs: CotObservation) => void;
 }
 
-type NeoPhase = 'idle' | 'recording' | 'saved' | 'uploading' | 'queued' | 'processing' | 'completed' | 'failed';
+type NeoPhase = 'idle' | 'recording' | 'saved' | 'uploading' | 'processing' | 'completed' | 'failed';
 type Language = 'en' | 'ur';
+
+// Detect actual audio format from file signature
+async function detectAudioFormat(blob: Blob): Promise<string> {
+  const headerBuffer = await blob.slice(0, 12).arrayBuffer();
+  const view = new Uint8Array(headerBuffer);
+
+  // WebM: 1A 45 DF A3
+  if (view[0] === 0x1a && view[1] === 0x45 && view[2] === 0xdf && view[3] === 0xa3) {
+    return 'audio/webm';
+  }
+
+  // OGG: 4F 67 67 53
+  if (view[0] === 0x4f && view[1] === 0x67 && view[2] === 0x67 && view[3] === 0x53) {
+    return 'audio/ogg';
+  }
+
+  // WAV: 52 49 46 46 (RIFF)
+  if (view[0] === 0x52 && view[1] === 0x49 && view[2] === 0x46 && view[3] === 0x46) {
+    return 'audio/wav';
+  }
+
+  // MP3: FF FB or FF FA
+  if ((view[0] === 0xff && (view[1] === 0xfb || view[1] === 0xfa)) ||
+      (view[0] === 0x49 && view[1] === 0x44 && view[2] === 0x33)) {
+    return 'audio/mpeg';
+  }
+
+  // M4A/AAC: ftyp at offset 4
+  if (view[4] === 0x66 && view[5] === 0x74 && view[6] === 0x79 && view[7] === 0x70) {
+    return 'audio/mp4';
+  }
+
+  // Default fallback
+  return 'audio/webm';
+}
 
 const translations: Record<Language, Record<string, string>> = {
   en: {
@@ -144,13 +178,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
-  // Check for pending audio on mount
-  useEffect(() => {
-    getPendingAudio(observation.id).then(record => {
-      if (record) setPhase('queued');
-    });
-  }, [observation.id]);
-
   // Load saved audio on mount
   useEffect(() => {
     getSavedAudio(observation.id).then(result => {
@@ -176,29 +203,25 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const startRecording = async () => {
     try {
-      console.log('Starting recording - requesting microphone access...');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone access granted. Stream:', stream);
+      // Check if browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Microphone recording not supported on this browser. Please use Chrome, Firefox, or Safari.');
+      }
 
-      // Use WebM - it's widely supported and Neo accepts it
-      const mimeType = 'audio/webm';
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Let browser choose the format - it will pick the best supported one
+      const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-      console.log('MediaRecorder created');
 
       mediaRecorder.ondataavailable = (event) => {
-        console.log(`dataavailable event fired: ${event.data.size} bytes`);
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
-          console.log(`Audio chunk captured: ${event.data.size} bytes, total chunks: ${audioChunksRef.current.length}`);
-        } else {
-          console.log('dataavailable event had 0 bytes');
         }
       };
 
       mediaRecorder.onstart = () => {
-        console.log('Recording started');
         setPhase('recording');
         setRecordingTime(0);
         recordingIntervalRef.current = window.setInterval(() => {
@@ -207,25 +230,35 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       };
 
       mediaRecorder.onstop = () => {
-        console.log(`Recording stopped. Total chunks collected: ${audioChunksRef.current.length}`);
         if (recordingIntervalRef.current) {
           clearInterval(recordingIntervalRef.current);
         }
-        // Stop tracks after a small delay to ensure final dataavailable event is processed
-        setTimeout(() => {
-          stream.getTracks().forEach((track) => {
-            console.log(`Stopping audio track: ${track.kind}`);
-            track.stop();
-          });
-        }, 100);
+        // Stop tracks immediately - don't wait
+        stream.getTracks().forEach((track) => {
+          track.stop();
+        });
       };
-
-      console.log('Calling mediaRecorder.start()...');
       mediaRecorder.start(); // No timeslice = one complete audio blob on stop()
     } catch (err) {
       console.error('Microphone error:', err);
-      toast.error('Could not access microphone');
-      setError(err instanceof Error ? err.message : 'Microphone access denied');
+
+      let errorMsg = 'Could not access microphone';
+
+      // Provide specific error messages based on error type
+      if (err instanceof DOMException) {
+        if (err.name === 'NotAllowedError') {
+          errorMsg = 'Microphone permission denied. Please allow microphone access in browser settings and try again.';
+        } else if (err.name === 'NotFoundError') {
+          errorMsg = 'No microphone found. Please connect a microphone and try again.';
+        } else if (err.name === 'NotReadableError') {
+          errorMsg = 'Microphone is in use by another application. Please close other apps using the microphone.';
+        }
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+
+      toast.error(errorMsg);
+      setError(errorMsg);
     }
   };
 
@@ -265,9 +298,10 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           return;
         }
 
-        // Create audio blob and save to IndexedDB
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await saveSavedAudio(observation.id, audioBlob, 'audio/webm');
+        const rawMimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const mimeType = rawMimeType.split(';')[0]; // Remove codec metadata (e.g. "audio/webm;codecs=opus" -> "audio/webm")
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        await saveSavedAudio(observation.id, audioBlob, mimeType);
         setSavedAudio(audioBlob);
         setPhase('saved');
         toast.success('Audio saved — review and submit with observation');
@@ -309,35 +343,40 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       return;
     }
 
+    // Stop recording timer
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+
+    setIsPaused(false);
+
     return new Promise<void>((resolve) => {
       const handleStop = async () => {
-        if (audioChunksRef.current.length === 0) {
-          toast.error('No audio recorded');
-          setPhase('idle');
-          resolve();
-          return;
-        }
+        try {
+          if (audioChunksRef.current.length === 0) {
+            toast.error('No audio recorded');
+            setPhase('idle');
+            resolve();
+            return;
+          }
 
-        // Create audio blob and save to IndexedDB
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        await saveSavedAudio(observation.id, audioBlob, 'audio/webm');
-        setSavedAudio(audioBlob);
-        setPhase('saved');
-        toast.success('Recording stopped — ready to upload');
+          const rawMimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+          const mimeType = rawMimeType.split(';')[0]; // Remove codec metadata (e.g. "audio/webm;codecs=opus" -> "audio/webm")
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+
+          await saveSavedAudio(observation.id, audioBlob, mimeType);
+          setSavedAudio(audioBlob);
+          setPhase('saved');
+          toast.success('Recording stopped — ready to upload');
+        } catch (err) {
+          console.error('Error saving recording:', err);
+          toast.error('Error saving recording');
+        }
         resolve();
       };
 
-      // Stop recording timer
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-        recordingIntervalRef.current = null;
-      }
-
-      // Set up one-time stop listener
       mediaRecorderRef.current!.addEventListener('stop', handleStop, { once: true });
-
-      // Stop the recorder
-      setIsPaused(false);
       mediaRecorderRef.current!.stop();
     });
   };
@@ -352,24 +391,30 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
     try {
-      // Acquire upload lock to prevent concurrent uploads
-      if (!lockForUpload(observation.id)) {
-        toast.error('Upload already in progress');
+      if (!observation?.id) {
+        toast.error('No observation selected. Please schedule a visit first.');
+        setPhase('idle');
         return;
       }
 
       setIsUploading(true);
-      console.log('uploadAudio called with blob size:', blob.size, 'mimeType:', mimeType);
-      console.log('observation.id:', observation.id);
+
+      // Strip codec info from MIME type (e.g. "audio/webm;codecs=opus" -> "audio/webm")
+      const cleanMimeType = blob.type.split(';')[0] || 'audio/webm';
 
       const formData = new FormData();
       formData.append('file', blob);
       formData.append('observation_id', observation.id);
 
-      console.log('FormData created. Checking token...');
+      console.log('Uploading audio for observation:', {
+        id: observation.id,
+        status: observation.status,
+        fileSize: blob.size,
+        mimeType: cleanMimeType,
+      });
+
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) {
-        unlockUpload(observation.id);
         toast.error('Not authenticated');
         setPhase('idle');
         setIsUploading(false);
@@ -377,8 +422,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       }
 
       const uploadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`;
-      console.log('Sending POST to:', uploadUrl);
-      console.log('Authorization header present:', !!token);
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
@@ -388,22 +431,30 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         body: formData,
       });
 
-      console.log('Upload response received');
-      console.log('Response status:', response.status, response.statusText);
-
       if (!response.ok) {
-        console.error('Upload response NOT OK');
-        console.error('Blob size:', blob.size);
-        const err = await response.json().catch(() => ({}));
-        console.error('Error from server:', err);
-        throw new Error(err.error || `Upload failed: ${response.status}`);
+        let err;
+        try {
+          const text = await response.text();
+          err = JSON.parse(text);
+        } catch (e) {
+          err = {};
+        }
+
+        // Handle specific error codes
+        let errorMsg = err.error || `Upload failed: ${response.status}`;
+        if (response.status === 404 && blob.size > 10 * 1024 * 1024) {
+          // 404 + large file = likely audio limit exceeded
+          errorMsg = 'Audio file too large. Please record a shorter debrief (under 5 minutes recommended).';
+        } else if (response.status === 413 || response.status === 429) {
+          errorMsg = 'Audio limit exceeded. Please record a shorter debrief (under 5 minutes recommended).';
+        } else if (response.status === 404) {
+          errorMsg = 'Upload service unavailable. Please try again in a moment, or record a shorter debrief.';
+        }
+
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
-
-      // Clean up from queue if this was a queued upload
-      await removeFromQueue(observation.id);
-      unlockUpload(observation.id);
 
       // Clean up saved audio if this was uploaded from saved phase
       await deleteSavedAudio(observation.id);
@@ -418,55 +469,27 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       pollNeoStatus();
     } catch (err) {
       setIsUploading(false);
-      unlockUpload(observation.id);
-      const isNetworkError = !navigator.onLine || err instanceof TypeError;
-
-      if (isNetworkError) {
-        // Save to offline queue
-        await saveAudioToQueue({
-          observation_id: observation.id,
-          blob,
-          mime_type: mimeType,
-          queued_at: new Date().toISOString(),
-          observer_id: observation.observer_id,
-        });
-
-        // Save audio locally and mark observation as Draft
-        await saveSavedAudio(observation.id, blob, mimeType);
-        await markObservationDraft(observation.id);
-
-        onSaved({ ...observation, status: 'Draft' });
-        setPhase('queued');
-        setError(null);
-        toast.info('Audio saved offline — will upload when connection returns');
-      } else {
-        const message = err instanceof Error ? err.message : 'Upload failed';
-        toast.error(message);
-        setError(message);
-        setPhase('saved');
-      }
+      const message = err instanceof Error ? err.message : 'Upload failed';
+      toast.error(message);
+      setError(message);
+      setPhase(savedAudio ? 'saved' : 'idle');
     }
   };
 
-  const pollNeoStatus = async () => {
-    console.log('pollNeoStatus called');
+  const pollNeoStatus = useCallback(async () => {
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) {
-      console.error('No token for polling');
       return;
     }
 
-    console.log('Starting Neo status polling with observation_id:', observation.id);
     let pollCount = 0;
     const maxPolls = 100; // ~800 seconds for longer audio processing
 
     pollIntervalRef.current = window.setInterval(async () => {
       pollCount++;
-      console.log(`Poll interval tick #${pollCount}`);
       setPollProgress(Math.min((pollCount / maxPolls) * 100, 90));
 
       try {
-        console.log(`Poll #${pollCount}: fetching neo-status...`);
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-status`,
           {
@@ -479,19 +502,14 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           }
         );
 
-        console.log(`Poll #${pollCount}: response status=${response.status}`);
-
         if (!response.ok) {
           const err = await response.json();
-          console.error(`Poll #${pollCount}: error response`, err);
           throw new Error(err.error || 'Status check failed');
         }
 
         const data = await response.json();
-        console.log(`Poll #${pollCount}: status=${data.status}`, data);
 
         if (data.status === 'completed') {
-          console.log('Neo processing completed!');
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
@@ -499,7 +517,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           setPhase('completed');
           toast.success('Debrief analysis complete!');
           // Refresh observation data
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           const { data: updated } = await (supabase as any)
             .from('cot_observations')
             .select('*')
@@ -509,7 +527,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
             onSaved(updated as CotObservation);
           }
         } else if (data.status === 'failed') {
-          console.error('Neo processing FAILED:', data.error);
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
@@ -518,7 +535,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           toast.error('Debrief analysis failed');
         }
       } catch (err) {
-        console.error('Poll error:', err);
         if (pollCount >= maxPolls) {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
@@ -528,62 +544,8 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         }
       }
     }, 8000);
-  };
+  }, [observation.id, onSaved]);
 
-  const attemptQueuedUpload = useCallback(async () => {
-    const record = await getPendingAudio(observation.id);
-    if (!record) return;
-    if (!lockForUpload(observation.id)) return; // Already uploading
-
-    setPhase('uploading');
-    // Re-fetch token to ensure it's fresh
-    const token = (await supabase.auth.getSession()).data.session?.access_token;
-    if (!token) {
-      unlockUpload(observation.id);
-      toast.error('Not authenticated');
-      return;
-    }
-    const mimeType = record.mime_type;
-
-    try {
-      const formData = new FormData();
-      formData.append('file', record.blob);
-      formData.append('observation_id', observation.id);
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`,
-        { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData }
-      );
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `Upload failed: ${response.status}`);
-      }
-
-      await removeFromQueue(observation.id);
-      unlockUpload(observation.id);
-      setPhase('processing');
-      setPollProgress(0);
-      setError(null);
-      pollNeoStatus();
-    } catch (err) {
-      unlockUpload(observation.id);
-      const message = err instanceof Error ? err.message : 'Upload failed';
-      toast.error(message);
-      setError(message);
-      setPhase('queued');
-    }
-  }, [observation.id, pollNeoStatus]);
-
-  // Listen for online event when queued
-  useEffect(() => {
-    if (phase !== 'queued') return;
-    const handleOnline = () => {
-      attemptQueuedUpload();
-    };
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [phase, attemptQueuedUpload]);
 
   const retry = () => {
     setPhase('idle');
@@ -649,17 +611,23 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   if (phase === 'recording') {
     const mins = Math.floor(recordingTime / 60);
     const secs = recordingTime % 60;
+    const isLong = recordingTime > 300; // 5 min warning
     return (
-      <Card className="bg-slate-50 border-slate-200">
+      <Card className={`${isLong ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'}`}>
         <CardContent className="pt-5 pb-5 px-5">
           <div className="flex flex-col items-center space-y-5">
             {/* Status with indicator */}
             <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full ${isPaused ? '' : 'animate-pulse'}`} style={{ backgroundColor: isPaused ? '#f59e0b' : '#dc2626' }} />
-              <span className="text-sm font-medium text-foreground">
+              <div className={`w-2.5 h-2.5 rounded-full ${isPaused ? '' : 'animate-pulse'}`} style={{ backgroundColor: isLong ? '#f59e0b' : isPaused ? '#f59e0b' : '#dc2626' }} />
+              <span className={`text-sm font-medium ${isLong ? 'text-amber-700' : 'text-foreground'}`}>
                 {isPaused ? 'Paused' : 'Recording'} — {mins}:{secs.toString().padStart(2, '0')}
               </span>
             </div>
+            {isLong && (
+              <p className="text-xs text-amber-700 text-center">
+                ⚠️ Long recording (5+ min). Consider stopping and uploading to avoid upload issues.
+              </p>
+            )}
 
             {/* Icon buttons */}
             <div className="flex items-center justify-center gap-6">
@@ -715,7 +683,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         />
 
         {/* Upload button */}
-        <Button onClick={() => uploadAudio(savedAudio, 'audio/webm')} disabled={isUploading} className="w-full py-6">
+        <Button onClick={() => uploadAudio(savedAudio, (mediaRecorderRef.current as any)?._mimeType || 'audio/webm')} disabled={isUploading} className="w-full py-6">
           {isUploading ? 'Uploading...' : 'Upload for Debrief'}
         </Button>
 
@@ -741,30 +709,26 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   }
 
   // Uploading phase
-  if (phase === 'uploading') {
+  if (phase === 'uploading' && savedAudio) {
+    const audioUrl = URL.createObjectURL(savedAudio);
     return (
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">{t('Uploading audio')}</p>
+      <div className="space-y-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm font-medium text-blue-900">{t('Uploading audio')}</p>
+        </div>
+
+        <audio ref={audioPlayerRef} controls className="w-full" src={audioUrl} />
+
+        <Button disabled className="w-full py-6">
+          ⏳ {t('Uploading audio')}...
+        </Button>
+
         <Progress value={uploadProgress} className="h-2" />
       </div>
     );
   }
 
   // Queued phase (offline)
-  if (phase === 'queued') {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
-          <WifiOff className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-amber-900">{t('Audio Saved Offline')}</p>
-            <p className="text-xs text-amber-700 mt-1">{t('Offline Sync Message')}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Processing phase
   if (phase === 'processing') {
     return (

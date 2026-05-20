@@ -23,7 +23,7 @@ type Option = Tables<"options">;
 interface QuestionWithOptions extends Question {
   options: Option[];
 }
-
+/* //test */
 const QUIZ_PASS_THRESHOLD = 80;
 const MAX_ATTEMPTS = 3;
 

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Clock, CheckCircle2, BarChart2, ArrowLeft, CalendarDays } from 'lucide-react';
-import { getPendingAudios, removeFromQueue, lockForUpload, unlockUpload } from '@/lib/audioQueue';
 import { listObservationsForObserver } from '@/data/observations';
 import { toast } from 'sonner';
 import { DraftObservationsTab } from '@/components/observation/DraftObservationsTab';
@@ -39,55 +38,6 @@ export default function ObservationScheduler() {
   useEffect(() => {
     loadObservations();
   }, [loadObservations]);
-
-  // Sync pending offline audios
-  useEffect(() => {
-    const syncPendingAudios = async () => {
-      if (!user || !navigator.onLine) return;
-
-      const pending = await getPendingAudios();
-      if (pending.length === 0) return;
-
-      const token = (await supabase.auth.getSession()).data.session?.access_token;
-      if (!token) return;
-
-      for (const record of pending) {
-        if (!lockForUpload(record.observation_id)) continue; // Already uploading
-
-        try {
-          const formData = new FormData();
-          formData.append('file', record.blob);
-          formData.append('observation_id', record.observation_id);
-
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/neo-start`,
-            {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${token}` },
-              body: formData,
-            }
-          );
-
-          if (response.ok) {
-            await removeFromQueue(record.observation_id);
-            unlockUpload(record.observation_id);
-            toast.success('Offline recording uploaded — Neo is analyzing');
-            loadObservations();
-          } else {
-            unlockUpload(record.observation_id);
-          }
-        } catch {
-          unlockUpload(record.observation_id);
-        }
-      }
-    };
-
-    syncPendingAudios();
-
-    const handleOnline = () => syncPendingAudios();
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [user, loadObservations]);
 
   const draftCount = observations.filter(o => o.status === 'Draft').length;
   const submittedCount = observations.filter(o => o.status === 'Submitted' || o.status === 'Approved').length;

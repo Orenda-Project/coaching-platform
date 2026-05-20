@@ -9,6 +9,7 @@
 //   C ≥ 65  (and < 70)
 //   D ≥ 60  (and < 65)
 //   E < 60   (entry-level — sees all modules)
+/* //test */
 
 import { PERSONA_THRESHOLDS } from './thresholds';
 

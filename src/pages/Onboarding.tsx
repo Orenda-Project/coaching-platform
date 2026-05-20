@@ -41,7 +41,7 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   const submitting = useRef(false);
   const navigated = useRef(false);
-//test
+/* //test */
   const addQualification = () => setQualifications((prev) => [...prev, emptyQualification()]);
   const removeQualification = (idx: number) => setQualifications((prev) => prev.filter((_, i) => i !== idx));
   const updateQualification = (idx: number, field: keyof Qualification, value: string) =>

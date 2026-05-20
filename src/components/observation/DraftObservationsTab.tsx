@@ -14,12 +14,11 @@ import {
   Send,
   PenSquare,
   Trash2,
-  WifiOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { NeoAnalysis } from './NeoAnalysis';
 import type { CotObservation } from '@/types/observation';
-import { getPendingAudios, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
+import { getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
 import { updateObservationStatus } from '@/data/observations';
 
 interface Props {
@@ -33,13 +32,6 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
   const [localOverrides, setLocalOverrides] = useState<Record<string, CotObservation>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [pendingAudioIds, setPendingAudioIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    getPendingAudios().then(records => {
-      setPendingAudioIds(new Set(records.map(r => r.observation_id)));
-    });
-  }, []);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -58,7 +50,7 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
     onRefresh();
   };
 
-  const drafts = observations.filter(o => o.status === 'Draft');
+  const drafts = observations.filter(o => o.status === 'Draft' || o.status === 'Scheduled');
   const resolve = (obs: CotObservation) => localOverrides[obs.id] ?? obs;
 
   const handleObsUpdate = (updated: CotObservation) => {
@@ -171,14 +163,6 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
                           className="text-xs text-blue-700 border-blue-200 bg-blue-50"
                         >
                           Debrief Processing…
-                        </Badge>
-                      )}
-                      {pendingAudioIds.has(obs.id) && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs text-amber-700 border-amber-200 bg-amber-50 flex items-center gap-1"
-                        >
-                          <WifiOff className="w-3 h-3" /> Audio Queued
                         </Badge>
                       )}
                     </div>

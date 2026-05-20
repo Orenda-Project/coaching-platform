@@ -69,9 +69,23 @@ serve(async (req) => {
     const audioFile = formData.get("file") as File | null;
     const observationId = formData.get("observation_id") as string | null;
 
+    console.log("neo-start received:", {
+      userId: user.id,
+      observationId,
+      fileSize: audioFile?.size,
+      fileName: audioFile?.name,
+    });
+
     if (!audioFile || !observationId) {
+      console.error("Missing required fields:", {
+        hasFile: !!audioFile,
+        hasObsId: !!observationId,
+      });
       return new Response(
-        JSON.stringify({ error: "Missing file or observation_id" }),
+        JSON.stringify({
+          error: "Missing file or observation_id",
+          details: { hasFile: !!audioFile, hasObsId: !!observationId }
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -88,8 +102,20 @@ serve(async (req) => {
       .single();
 
     if (obsError || !obs) {
+      console.error("Observation lookup failed:", {
+        observationId,
+        userId: user.id,
+        obsError: obsError?.message,
+      });
       return new Response(
-        JSON.stringify({ error: "Observation not found or unauthorized" }),
+        JSON.stringify({
+          error: "Observation not found or unauthorized",
+          details: {
+            observationId,
+            userId: user.id,
+            dbError: obsError?.message,
+          }
+        }),
         {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
