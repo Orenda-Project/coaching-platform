@@ -527,9 +527,10 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     } catch (err) {
       setIsUploading(false);
       unlockUpload(observation.id);
+      const isNetworkError = !navigator.onLine || err instanceof TypeError;
 
-      // Always queue failed uploads — let them retry when connection is stable
-      try {
+      if (isNetworkError) {
+        // Save to offline queue
         await saveAudioToQueue({
           observation_id: observation.id,
           blob,
@@ -546,12 +547,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         setPhase('queued');
         setError(null);
         toast.info('Audio saved offline — will upload when connection returns');
-      } catch (queueErr) {
+      } else {
         const message = err instanceof Error ? err.message : 'Upload failed';
         toast.error(message);
         setError(message);
         setPhase('saved');
-        console.error('Failed to queue audio:', queueErr);
       }
     }
   };
