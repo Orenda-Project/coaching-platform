@@ -400,6 +400,13 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       formData.append('file', blob);
       formData.append('observation_id', observation.id);
 
+      console.log('Uploading audio for observation:', {
+        id: observation.id,
+        status: observation.status,
+        fileSize: blob.size,
+        mimeType: cleanMimeType,
+      });
+
       const token = (await supabase.auth.getSession()).data.session?.access_token;
       if (!token) {
         toast.error('Not authenticated');
