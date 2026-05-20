@@ -12,6 +12,10 @@ import {
   AlertCircle,
   CheckCircle2,
   Brain,
+  Pause,
+  Play,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CotObservation, NeoResults } from '@/types/observation';
