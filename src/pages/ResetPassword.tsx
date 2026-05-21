@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isRecoverySessionReady } from "@/lib/auth-recovery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,18 +19,11 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if recovery tokens are present in URL hash (Supabase sends them here)
-    const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
-    const hasRecoveryToken = hashParams.has('access_token') && hashParams.get('type') === 'recovery';
-
     // If recovery token is in URL, Supabase will process it automatically.
     // We wait for the PASSWORD_RECOVERY or SIGNED_IN event to ensure the session
     // is established before showing the form, preventing race conditions with updateUser()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Set ready when:
-      // 1. PASSWORD_RECOVERY event fires (token was processed)
-      // 2. SIGNED_IN event fires and session exists (user already has valid session)
-      if ((event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) && session?.user) {
+      if (isRecoverySessionReady(event, session)) {
         setReady(true);
       }
     });
