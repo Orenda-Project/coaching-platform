@@ -38,6 +38,8 @@ export interface SupabaseMock {
       signUp: ReturnType<typeof vi.fn>;
       signOut: ReturnType<typeof vi.fn>;
       onAuthStateChange: ReturnType<typeof vi.fn>;
+      resetPasswordForEmail: ReturnType<typeof vi.fn>;
+      updateUser: ReturnType<typeof vi.fn>;
     };
   };
   queueResult: <T>(result: SupabaseResult<T>) => void;
@@ -104,13 +106,38 @@ export function createSupabaseMock(): SupabaseMock {
       return buildChain();
     },
     auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
-      signInWithPassword: vi.fn().mockResolvedValue({ data: null, error: null }),
-      signUp: vi.fn().mockResolvedValue({ data: null, error: null }),
-      signOut: vi.fn().mockResolvedValue({ error: null }),
+      getSession: vi.fn().mockResolvedValue({
+        data: { session: null },
+        error: null,
+      }),
+      getUser: vi.fn().mockResolvedValue({
+        data: { user: null },
+        error: null,
+      }),
+      signInWithPassword: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      }),
+      signUp: vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      }),
+      signOut: vi.fn().mockResolvedValue({
+        error: null,
+      }),
       onAuthStateChange: vi.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: vi.fn() } },
+        data: {
+          subscription: {
+            unsubscribe: vi.fn(),
+          }
+        },
+      }),
+      resetPasswordForEmail: vi.fn().mockResolvedValue({
+        error: null,
+      }),
+      updateUser: vi.fn().mockResolvedValue({
+        data: { user: null },
+        error: null,
       }),
     },
   };

@@ -104,7 +104,6 @@ export function BaselineResultsCard({
             ))}
           </ul>
         </div>
-
         <div>
           <h3 className="font-semibold text-sm mb-2 text-foreground">
             Areas for Growth (Your Focus)
@@ -118,7 +117,6 @@ export function BaselineResultsCard({
             ))}
           </ul>
         </div>
-
         <div className="bg-muted p-3 rounded border-l-4 border-primary">
           <p className="text-sm font-semibold text-foreground mb-1">
             Next Step
