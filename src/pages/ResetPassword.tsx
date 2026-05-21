@@ -18,16 +18,25 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Listen for PASSWORD_RECOVERY event triggered when Supabase processes the URL hash
+    // Check if recovery tokens are present in URL hash (Supabase sends them here)
+    const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+    const hasRecoveryToken = hashParams.has('access_token') && hashParams.get('type') === 'recovery';
+
+    if (hasRecoveryToken) {
+      // Recovery link was clicked - wait for Supabase to process the tokens
+      setReady(true);
+    } else {
+      // Check if we already have a valid recovery session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) setReady(true);
+      });
+    }
+
+    // Listen for PASSWORD_RECOVERY event as fallback
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
         setReady(true);
       }
-    });
-
-    // Also check if a recovery session already exists (e.g. page refreshed)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setReady(true);
     });
 
     return () => subscription.unsubscribe();
