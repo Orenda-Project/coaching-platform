@@ -69,6 +69,11 @@ export interface CotObservation {
   submitted_at?: string | null;
   approved_at?: string | null;
   visit_purpose?: string | null;
+  week?: string | null;
+  visit_type?: 'FICO' | 'Head-Co Observation' | 'M&H' | 'General Visit' | 'RM Visit' | null;
+  planned_date?: string | null;
+  arrival_time?: string | null;
+  departure_time?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -99,7 +104,12 @@ export interface ScheduleFormData {
 }
 
 export interface ScheduleVisitFormData {
+  week?: string;
+  visit_type: 'FICO' | 'Head-Co Observation' | 'M&H' | 'General Visit' | 'RM Visit';
+  planned_date: string;
   date: string;
-  visit_purpose: string;
+  arrival_time: string;
+  departure_time: string;
+  visit_purpose?: string;
   lesson_topic?: string;
 }
