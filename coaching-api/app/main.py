@@ -31,3 +31,12 @@ async def root():
         "version": settings.api_version,
         "docs": "/docs",
     }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Railway deployment."""
+    return {
+        "status": "healthy",
+        "version": settings.api_version,
+    }
