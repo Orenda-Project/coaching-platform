@@ -432,7 +432,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       });
 
       if (!response.ok) {
-        let err;
+        let err: any = {};
         try {
           const text = await response.text();
           err = JSON.parse(text);
@@ -440,15 +440,24 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           err = {};
         }
 
+        console.error('[NeoAnalysis] Upload failed:', {
+          status: response.status,
+          error: err.error,
+          errorCode: err.errorCode,
+          details: err.details,
+        });
+
         // Handle specific error codes
         let errorMsg = err.error || `Upload failed: ${response.status}`;
-        if (response.status === 404 && blob.size > 10 * 1024 * 1024) {
+        if (response.status === 404 && err.errorCode === 'OBS_NOT_FOUND') {
+          errorMsg = 'Visit record not found. Please try scheduling the visit again.';
+        } else if (response.status === 404 && blob.size > 10 * 1024 * 1024) {
           // 404 + large file = likely audio limit exceeded
           errorMsg = 'Audio file too large. Please record a shorter debrief (under 5 minutes recommended).';
         } else if (response.status === 413 || response.status === 429) {
           errorMsg = 'Audio limit exceeded. Please record a shorter debrief (under 5 minutes recommended).';
         } else if (response.status === 404) {
-          errorMsg = 'Upload service unavailable. Please try again in a moment, or record a shorter debrief.';
+          errorMsg = 'Upload service unavailable. Please try again in a moment.';
         }
 
         throw new Error(errorMsg);

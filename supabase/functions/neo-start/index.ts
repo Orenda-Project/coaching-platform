@@ -106,10 +106,12 @@ serve(async (req) => {
         observationId,
         userId: user.id,
         obsError: obsError?.message,
+        code: obsError?.code,
       });
       return new Response(
         JSON.stringify({
-          error: "Observation not found or unauthorized",
+          error: `Observation not found: ${obsError?.message || "No matching observation for this user"}`,
+          errorCode: "OBS_NOT_FOUND",
           details: {
             observationId,
             userId: user.id,
