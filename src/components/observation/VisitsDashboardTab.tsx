@@ -21,7 +21,11 @@ export function VisitsDashboardTab({
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const scheduledVisits = observations.filter(
-    (o) => o.status === 'Scheduled' || o.status === 'Draft'
+    (o) => o.status === 'Scheduled'
+  );
+
+  const draftVisits = observations.filter(
+    (o) => o.status === 'Draft'
   );
 
   const completedVisits = observations.filter(
@@ -258,10 +262,10 @@ export function VisitsDashboardTab({
 
   return (
     <Tabs defaultValue="scheduled" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-6">
+      <TabsList className="grid w-full grid-cols-3 mb-6">
         <TabsTrigger value="scheduled" className="gap-1.5">
           <Clock className="w-3.5 h-3.5" />
-          <span>Scheduled</span>
+          <span className="hidden sm:inline">Scheduled</span>
           {scheduledVisits.length > 0 && (
             <span className="ml-1.5 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
               {scheduledVisits.length}
@@ -269,9 +273,19 @@ export function VisitsDashboardTab({
           )}
         </TabsTrigger>
 
+        <TabsTrigger value="draft" className="gap-1.5">
+          <FileText className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Draft</span>
+          {draftVisits.length > 0 && (
+            <span className="ml-1.5 bg-amber-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+              {draftVisits.length}
+            </span>
+          )}
+        </TabsTrigger>
+
         <TabsTrigger value="completed" className="gap-1.5">
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>Completed</span>
+          <span className="hidden sm:inline">Completed</span>
           {completedVisits.length > 0 && (
             <span className="ml-1.5 bg-green-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
               {completedVisits.length}
@@ -294,6 +308,26 @@ export function VisitsDashboardTab({
         ) : (
           <div className="grid gap-4">
             {scheduledVisits.map((obs) => (
+              <ScheduledVisitCard key={obs.id} obs={obs} />
+            ))}
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="draft">
+        {draftVisits.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="p-12 text-center">
+              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+              <p className="text-muted-foreground">No draft visits yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Save visits as draft to continue working on them later
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {draftVisits.map((obs) => (
               <ScheduledVisitCard key={obs.id} obs={obs} />
             ))}
           </div>
