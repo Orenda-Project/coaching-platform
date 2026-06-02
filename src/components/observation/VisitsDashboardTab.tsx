@@ -264,8 +264,7 @@ export function VisitsDashboardTab({
     <Tabs defaultValue="scheduled" className="w-full">
       <TabsList className="grid w-full grid-cols-3 mb-6">
         <TabsTrigger value="scheduled" className="gap-1.5">
-          <Clock className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Scheduled</span>
+          <span>Scheduled</span>
           {scheduledVisits.length > 0 && (
             <span className="ml-1.5 bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
               {scheduledVisits.length}
@@ -274,8 +273,7 @@ export function VisitsDashboardTab({
         </TabsTrigger>
 
         <TabsTrigger value="draft" className="gap-1.5">
-          <FileText className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Draft</span>
+          <span>Draft</span>
           {draftVisits.length > 0 && (
             <span className="ml-1.5 bg-amber-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
               {draftVisits.length}
@@ -284,8 +282,7 @@ export function VisitsDashboardTab({
         </TabsTrigger>
 
         <TabsTrigger value="completed" className="gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Completed</span>
+          <span>Completed</span>
           {completedVisits.length > 0 && (
             <span className="ml-1.5 bg-green-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
               {completedVisits.length}
