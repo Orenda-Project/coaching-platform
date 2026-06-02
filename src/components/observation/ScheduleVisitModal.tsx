@@ -26,8 +26,8 @@ export function ScheduleVisitModal({
   const [visitType, setVisitType] = useState<'FICO' | 'Head-Co Observation' | 'M&H' | 'General Visit' | 'RM Visit'>('FICO');
   const [plannedDate, setPlannedDate] = useState('');
   const [visitDate, setVisitDate] = useState('');
-  const [arrivalTime, setArrivalTime] = useState('');
-  const [departureTime, setDepartureTime] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('09:00');
+  const [departureTime, setDepartureTime] = useState('14:00');
 
   const today = (() => {
     const d = new Date();
