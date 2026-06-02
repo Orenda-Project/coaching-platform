@@ -110,24 +110,32 @@ export function VisitsDashboardTab({
             )}
           </div>
 
-          <div className="flex gap-2 pt-2 justify-end">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onStartDebrief(obs)}
-              disabled={obs.status === 'Draft' && obs.neo_status === 'processing'}
-              title="Give Neo Feedback"
-            >
-              <Mic className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleDelete(obs.id)}
-              disabled={deleting === obs.id}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
+          <div className="flex gap-3 pt-2 justify-end">
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onStartDebrief(obs)}
+                disabled={obs.status === 'Draft' && obs.neo_status === 'processing'}
+                title="Give Neo Feedback"
+                className="h-8 w-8 p-0"
+              >
+                <Mic className="w-3.5 h-3.5" />
+              </Button>
+              <span className="text-xs text-muted-foreground">Feedback</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleDelete(obs.id)}
+                disabled={deleting === obs.id}
+                className="h-8 w-8 p-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+              <span className="text-xs text-muted-foreground">Delete</span>
+            </div>
           </div>
         </div>
       </CardContent>
