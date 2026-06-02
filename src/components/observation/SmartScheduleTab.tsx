@@ -337,7 +337,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         date: formData.date,
         visit_purpose: formData.visit_purpose || `${formData.visit_type} observation`,
         status: 'Scheduled',
-        region: coachSubRegion || teacher.sector,
+        region: coachRegion || coachSubRegion || teacher.sector,
         week: formData.week,
         visit_type: formData.visit_type,
         planned_date: formData.planned_date,
