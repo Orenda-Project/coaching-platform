@@ -345,7 +345,9 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         departure_time: formData.departure_time,
       });
 
+      console.log('[handleScheduleVisit] Visit created successfully:', data);
       toast.success('Visit scheduled!');
+      console.log('[handleScheduleVisit] Calling onNewObservation callback');
       onNewObservation?.(data);
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Unknown error';

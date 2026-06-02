@@ -28,7 +28,9 @@ export default function ObservationScheduler() {
   const loadObservations = useCallback(async () => {
     if (!user) return;
     try {
+      console.log('[loadObservations] Loading for user:', user.id, 'region:', userRegion);
       const data = await listObservationsForObserver(user.id, userRegion || undefined);
+      console.log('[loadObservations] Loaded', data.length, 'observations:', data);
       setObservations(data);
     } catch (err) {
       console.error('Failed to load observations:', err);

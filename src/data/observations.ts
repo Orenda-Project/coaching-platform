@@ -26,6 +26,8 @@ export interface ScheduleVisitPayload {
 }
 
 export async function scheduleVisit(payload: ScheduleVisitPayload): Promise<CotObservation> {
+  console.log('[scheduleVisit] Inserting payload:', payload);
+
   const { data, error } = await typedSupabase
     .from('cot_observations')
     .insert(payload)
@@ -33,9 +35,11 @@ export async function scheduleVisit(payload: ScheduleVisitPayload): Promise<CotO
     .single();
 
   if (error) {
+    console.error('[scheduleVisit] Insert error:', error);
     throw error;
   }
 
+  console.log('[scheduleVisit] Success, returned data:', data);
   return data as CotObservation;
 }
 
