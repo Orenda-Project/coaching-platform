@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, Trash2, Play } from 'lucide-react';
+import { Clock, CheckCircle2, Trash2, Mic } from 'lucide-react';
 import type { CotObservation } from '@/types/observation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -99,26 +99,26 @@ export function VisitsDashboardTab({
             {obs.arrival_time && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Arrival</p>
-                <p className="text-foreground">{obs.arrival_time}</p>
+                <p className="text-foreground">{obs.arrival_time.slice(0, 5)}</p>
               </div>
             )}
             {obs.departure_time && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Departure</p>
-                <p className="text-foreground">{obs.departure_time}</p>
+                <p className="text-foreground">{obs.departure_time.slice(0, 5)}</p>
               </div>
             )}
           </div>
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-2 justify-end">
             <Button
               size="sm"
+              variant="ghost"
               onClick={() => onStartDebrief(obs)}
-              className="flex-1"
               disabled={obs.status === 'Draft' && obs.neo_status === 'processing'}
+              title="Give Neo Feedback"
             >
-              <Play className="w-3.5 h-3.5 mr-1.5" />
-              {obs.neo_status === 'processing' ? 'Recording...' : 'Start Debrief'}
+              <Mic className="w-3.5 h-3.5" />
             </Button>
             <Button
               size="sm"
