@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, Trash2, Mic, Check } from 'lucide-react';
+import { Clock, CheckCircle2, Trash2, Mic, Check, FileText } from 'lucide-react';
 import type { CotObservation } from '@/types/observation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -51,6 +51,28 @@ export function VisitsDashboardTab({
       toast.error('Failed to delete visit');
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleSaveDraft = async (id: string) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const typedSupabase = supabase as any;
+      const { error } = await typedSupabase
+        .from('cot_observations')
+        .update({
+          status: 'Draft',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Visit saved to draft');
+      onRefresh();
+    } catch (err) {
+      console.error('Failed to save draft:', err);
+      toast.error('Failed to save draft');
     }
   };
 
@@ -145,6 +167,18 @@ export function VisitsDashboardTab({
                 <Mic className="w-3.5 h-3.5" />
               </Button>
               <span className="text-xs text-muted-foreground">Feedback</span>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleSaveDraft(obs.id)}
+                title="Save as draft"
+                className="h-8 w-8 p-0"
+              >
+                <FileText className="w-3.5 h-3.5" />
+              </Button>
+              <span className="text-xs text-muted-foreground">Draft</span>
             </div>
             <div className="flex flex-col items-center gap-1">
               <Button
