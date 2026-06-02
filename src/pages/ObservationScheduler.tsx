@@ -12,7 +12,6 @@ import { ObservationsOverviewTab } from '@/components/observation/ObservationsOv
 import SmartScheduleTab from '@/components/observation/SmartScheduleTab';
 import { VisitsDashboardTab } from '@/components/observation/VisitsDashboardTab';
 import { QuickObservationPanel } from '@/components/observation/QuickObservationPanel';
-import ReportIssueButton from '@/components/observation/ReportIssueButton';
 import type { CotObservation } from '@/types/observation';
 
 export default function ObservationScheduler() {
@@ -148,8 +147,6 @@ export default function ObservationScheduler() {
           </TabsContent>
         </Tabs>
       </main>
-
-      <ReportIssueButton />
     </div>
   );
 }
