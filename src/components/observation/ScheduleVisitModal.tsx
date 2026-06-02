@@ -13,6 +13,8 @@ interface ScheduleVisitModalProps {
   onClose: () => void;
 }
 
+const VISIT_TYPES = ['FICO', 'Head-Co Observation', 'M&H', 'General Visit', 'RM Visit'] as const;
+
 export function ScheduleVisitModal({
   teacher,
   coachName,
@@ -20,11 +22,13 @@ export function ScheduleVisitModal({
   onConfirm,
   onClose,
 }: ScheduleVisitModalProps) {
-  const [date, setDate] = useState('');
-  const [visitPurpose, setVisitPurpose] = useState('');
-  const [lessonTopic, setLessonTopic] = useState('');
+  const [week, setWeek] = useState('');
+  const [visitType, setVisitType] = useState<'FICO' | 'Head-Co Observation' | 'M&H' | 'General Visit' | 'RM Visit'>('FICO');
+  const [plannedDate, setPlannedDate] = useState('');
+  const [visitDate, setVisitDate] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('');
+  const [departureTime, setDepartureTime] = useState('');
 
-  // Compute today's date in local timezone (not UTC)
   const today = (() => {
     const d = new Date();
     const year = d.getFullYear();
@@ -33,28 +37,31 @@ export function ScheduleVisitModal({
     return `${year}-${month}-${day}`;
   })();
 
-  const isFormValid = Boolean(date && visitPurpose);
+  const isFormValid = Boolean(visitType && plannedDate && visitDate && arrivalTime && departureTime);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isFormValid) {
       onConfirm({
-        date,
-        visit_purpose: visitPurpose,
-        lesson_topic: lessonTopic || undefined,
+        week: week || undefined,
+        visit_type: visitType,
+        planned_date: plannedDate,
+        date: visitDate,
+        arrival_time: arrivalTime,
+        departure_time: departureTime,
       });
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <Card className="w-full max-w-xl my-auto">
+      <Card className="w-full max-w-2xl my-auto">
         <CardContent className="p-6">
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Schedule Visit</h2>
-              <p className="text-sm text-muted-foreground mt-1">Plan your coaching visit</p>
+              <h2 className="text-lg font-semibold text-foreground">Schedule School Visit</h2>
+              <p className="text-sm text-muted-foreground mt-1">Plan your coaching observation</p>
             </div>
             <button
               type="button"
@@ -65,39 +72,81 @@ export function ScheduleVisitModal({
             </button>
           </div>
 
-          {/* Auto-filled info card */}
+          {/* Teacher info card */}
           <div className="bg-muted/40 border border-muted rounded-lg p-4 mb-6 space-y-3">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Teacher</p>
               <p className="text-sm font-medium text-foreground">{teacher.teacher_name}</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground">School</p>
                 <p className="text-sm text-foreground truncate">{teacher.school}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Subject & Grade</p>
-                <p className="text-sm text-foreground">
-                  {teacher.subject} · {teacher.grade}
-                </p>
+                <p className="text-sm text-foreground">{teacher.subject} · {teacher.grade}</p>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Coach</p>
                 <p className="text-sm text-foreground">{coachName}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Sub-region</p>
-                <p className="text-sm text-foreground">{subRegion}</p>
               </div>
             </div>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Date picker */}
+            {/* Week */}
+            <div>
+              <label htmlFor="week" className="text-sm font-medium text-foreground block mb-1.5">
+                Week
+              </label>
+              <input
+                id="week"
+                type="text"
+                value={week}
+                onChange={(e) => setWeek(e.target.value)}
+                placeholder="e.g., Week 1, Week 2..."
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            {/* Visit Type */}
+            <div>
+              <label htmlFor="visit-type" className="text-sm font-medium text-foreground block mb-1.5">
+                Visit Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="visit-type"
+                value={visitType}
+                onChange={(e) => setVisitType(e.target.value as typeof visitType)}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {VISIT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Planned Date */}
+            <div>
+              <label htmlFor="planned-date" className="text-sm font-medium text-foreground block mb-1.5">
+                Planned Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="planned-date"
+                type="date"
+                value={plannedDate}
+                onChange={(e) => setPlannedDate(e.target.value)}
+                min={today}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                required
+              />
+            </div>
+
+            {/* Visit Date */}
             <div>
               <label htmlFor="visit-date" className="text-sm font-medium text-foreground block mb-1.5">
                 Visit Date <span className="text-red-500">*</span>
@@ -105,44 +154,55 @@ export function ScheduleVisitModal({
               <input
                 id="visit-date"
                 type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
+                value={visitDate}
+                onChange={(e) => setVisitDate(e.target.value)}
                 min={today}
                 className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 required
               />
-              <p className="text-xs text-muted-foreground mt-1">Cannot be in the past</p>
             </div>
 
-            {/* Purpose text input */}
-            <div>
-              <label htmlFor="visit-purpose" className="text-sm font-medium text-foreground block mb-1.5">
-                Purpose of Visit <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="visit-purpose"
-                type="text"
-                value={visitPurpose}
-                onChange={(e) => setVisitPurpose(e.target.value)}
-                placeholder="e.g., Classroom Observation, Lesson Plan Review..."
-                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+            {/* Arrival & Departure Times */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-1.5">
+                  Arrival Time <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={arrivalTime.split(':')[0] || '09'}
+                    onChange={(e) => {
+                      const m = arrivalTime.split(':')[1] || '00';
+                      setArrivalTime(`${e.target.value}:${m}`);
+                    }}
+                    className="flex-1 px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((h) => (
+                      <option key={h} value={h}>{h}:00</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-            {/* Lesson topic text input */}
-            <div>
-              <label htmlFor="lesson-topic" className="text-sm font-medium text-foreground block mb-1.5">
-                Lesson Topic to Observe
-              </label>
-              <input
-                id="lesson-topic"
-                type="text"
-                value={lessonTopic}
-                onChange={(e) => setLessonTopic(e.target.value)}
-                placeholder="e.g., Fractions, Constitutional Rights..."
-                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Optional</p>
+              <div>
+                <label className="text-sm font-medium text-foreground block mb-1.5">
+                  Departure Time <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={departureTime.split(':')[0] || '14'}
+                    onChange={(e) => {
+                      const m = departureTime.split(':')[1] || '00';
+                      setDepartureTime(`${e.target.value}:${m}`);
+                    }}
+                    className="flex-1 px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((h) => (
+                      <option key={h} value={h}>{h}:00</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Buttons */}
@@ -160,7 +220,7 @@ export function ScheduleVisitModal({
                 disabled={!isFormValid}
                 className="flex-1"
               >
-                Confirm Visit
+                Schedule Visit
               </Button>
             </div>
           </form>

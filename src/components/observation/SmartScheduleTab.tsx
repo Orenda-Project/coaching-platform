@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import DCDashboard from './DCDashboard';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { scheduleVisit } from '@/data/observations';
+import { scheduleVisit, listObservationsForObserver } from '@/data/observations';
 import type { CotObservation, ScheduleVisitFormData } from '@/types/observation';
 import type { DCTeacher } from '@/types/teacher';
 
@@ -24,9 +24,103 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const [isOffline, setIsOffline] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState(false);
+  const [visitedTeachers, setVisitedTeachers] = useState<Set<string>>(new Set());
 
   const coachName = profile?.full_name || user?.email || 'Coach';
-  const coachSubRegion = profile?.sub_region || null;
+  const coachSubRegion = (profile as Record<string, unknown>)?.sub_region as string | null;
+  const coachRegion = (profile as Record<string, unknown>)?.region as string | null;
+
+  // Mock test data merging teachers + coaches + schools for Urban-1
+  const getMockTestData = useCallback((): DCTeacher[] => {
+    const coachSchoolMap: Record<string, string> = {
+      'IMS(I-V) No.2 G-8/4': 'Bushra',
+      'IMS(I-V) PIMS G-8/3': 'Bushra',
+      'IMS(I-V) No.1 G-8/4': 'Bushra',
+      'ICG, F-6/2': 'Bushra',
+      'IMS(I-V) F-6/1': 'Hiba',
+      'IMS(I-V) G-6/4': 'Hiba',
+      'IMCG, F-8/1': 'Hiba',
+      'IMS(I-V) G-7/4': 'Hiba',
+      'IMS (I-V) G-7/3-3': 'Hifza',
+      'IMSG (I-VIII) F/7-4': 'Hifza',
+      'IMCB, F-7/3': 'Hifza',
+      'IMCG, ST. 25, F-6/2': 'Hifza',
+      'IMS(I-V) No.1 G-8/2': 'Hifza',
+      'IMS(I-V) No.2 G-8/2': 'Maroof',
+      'IMSG(I-VIII) G-6/2': 'Khadija Akbar',
+      'IMSG (VI-X) G-6/2': 'Maroof',
+      'IMSG (VI-X) F-7/2': 'Maroof',
+      'IMCG (VI-XII), G-6/1-4': 'Maroof',
+    };
+
+    const testTeachers: DCTeacher[] = [
+      {
+        user_id: '1', teacher_name: 'Amina Khan', school: 'IMS(I-V) No.2 G-8/4', sector: 'Urban-1',
+        overall_percentage: 45, total_score: 1.8, created_date: new Date().toISOString(),
+        grade: 'I-V', subject: 'Urdu',
+        accurate_lesson_planning: 2.2, timely_lesson_delivery: 1.8, subject_command: 1.3, effective_pedagogy: 1.8,
+        effective_resource_use: 1.5, activity_based_learning: 2.0, student_participation: 1.6, critical_thinking: 1.7,
+        inclusive_practices: 1.4, technology_integration: 1.2, technology_handling: 1.5, verbal_communication: 2.0, non_verbal_communication: 1.8
+      },
+      {
+        user_id: '2', teacher_name: 'Fatima Ahmed', school: 'IMS(I-V) PIMS G-8/3', sector: 'Urban-1',
+        overall_percentage: 52, total_score: 2.08, created_date: new Date().toISOString(),
+        grade: 'I-V', subject: 'Math',
+        accurate_lesson_planning: 2.4, timely_lesson_delivery: 2.0, subject_command: 1.6, effective_pedagogy: 2.1,
+        effective_resource_use: 1.8, activity_based_learning: 2.2, student_participation: 1.9, critical_thinking: 2.0,
+        inclusive_practices: 1.7, technology_integration: 1.5, technology_handling: 1.8, verbal_communication: 2.2, non_verbal_communication: 2.0
+      },
+      {
+        user_id: '3', teacher_name: 'Sara Malik', school: 'IMS(I-V) No.1 G-8/4', sector: 'Urban-1',
+        overall_percentage: 58, total_score: 2.32, created_date: new Date().toISOString(),
+        grade: 'I-V', subject: 'English',
+        accurate_lesson_planning: 2.8, timely_lesson_delivery: 2.3, subject_command: 1.9, effective_pedagogy: 2.3,
+        effective_resource_use: 2.1, activity_based_learning: 2.4, student_participation: 2.2, critical_thinking: 2.1,
+        inclusive_practices: 2.0, technology_integration: 1.8, technology_handling: 2.0, verbal_communication: 2.5, non_verbal_communication: 2.3
+      },
+      {
+        user_id: '4', teacher_name: 'Zainab Raza', school: 'ICG, F-6/2', sector: 'Urban-1',
+        overall_percentage: 62, total_score: 2.48, created_date: new Date().toISOString(),
+        grade: 'VI-X', subject: 'Science',
+        accurate_lesson_planning: 3.0, timely_lesson_delivery: 2.5, subject_command: 2.1, effective_pedagogy: 2.5,
+        effective_resource_use: 2.3, activity_based_learning: 2.6, student_participation: 2.4, critical_thinking: 2.3,
+        inclusive_practices: 2.1, technology_integration: 2.0, technology_handling: 2.2, verbal_communication: 2.7, non_verbal_communication: 2.5
+      },
+      {
+        user_id: '5', teacher_name: 'Hira Khan', school: 'IMS(I-V) F-6/1', sector: 'Urban-1',
+        overall_percentage: 68, total_score: 2.72, created_date: new Date().toISOString(),
+        grade: 'I-V', subject: 'Urdu',
+        accurate_lesson_planning: 3.1, timely_lesson_delivery: 2.8, subject_command: 2.4, effective_pedagogy: 2.8,
+        effective_resource_use: 2.6, activity_based_learning: 2.9, student_participation: 2.7, critical_thinking: 2.6,
+        inclusive_practices: 2.5, technology_integration: 2.2, technology_handling: 2.5, verbal_communication: 2.9, non_verbal_communication: 2.8
+      },
+      {
+        user_id: '6', teacher_name: 'Nida Hassan', school: 'IMS(I-V) G-6/4', sector: 'Urban-1',
+        overall_percentage: 75, total_score: 3.0, created_date: new Date().toISOString(),
+        grade: 'I-V', subject: 'Math',
+        accurate_lesson_planning: 3.3, timely_lesson_delivery: 3.0, subject_command: 2.8, effective_pedagogy: 3.0,
+        effective_resource_use: 2.8, activity_based_learning: 3.1, student_participation: 2.9, critical_thinking: 2.8,
+        inclusive_practices: 2.7, technology_integration: 2.5, technology_handling: 2.8, verbal_communication: 3.1, non_verbal_communication: 3.0
+      },
+      {
+        user_id: '7', teacher_name: 'Aisha Syed', school: 'IMCG, F-8/1', sector: 'Urban-1',
+        overall_percentage: 82, total_score: 3.28, created_date: new Date().toISOString(),
+        grade: 'VI-X', subject: 'English',
+        accurate_lesson_planning: 3.6, timely_lesson_delivery: 3.3, subject_command: 3.1, effective_pedagogy: 3.3,
+        effective_resource_use: 3.1, activity_based_learning: 3.4, student_participation: 3.2, critical_thinking: 3.1,
+        inclusive_practices: 3.0, technology_integration: 2.9, technology_handling: 3.1, verbal_communication: 3.4, non_verbal_communication: 3.3
+      },
+      {
+        user_id: '8', teacher_name: 'Rabia Ali', school: 'IMS(I-V) G-7/4', sector: 'Urban-1',
+        overall_percentage: 88, total_score: 3.52, created_date: new Date().toISOString(),
+        grade: 'I-V', subject: 'Science',
+        accurate_lesson_planning: 3.8, timely_lesson_delivery: 3.6, subject_command: 3.4, effective_pedagogy: 3.6,
+        effective_resource_use: 3.4, activity_based_learning: 3.7, student_participation: 3.5, critical_thinking: 3.4,
+        inclusive_practices: 3.3, technology_integration: 3.2, technology_handling: 3.4, verbal_communication: 3.7, non_verbal_communication: 3.6
+      },
+    ];
+    return testTeachers;
+  }, []);
 
   // Cache management helpers
   const getCacheKey = useCallback((suffix: string) => `scheduler_${suffix}_${user?.id}`, [user?.id]);
@@ -86,6 +180,21 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     try {
       setError(null);
 
+      // Load observations to compute visited teachers
+      if (user && coachSubRegion) {
+        try {
+          const observations = await listObservationsForObserver(user.id, coachSubRegion);
+          const visited = new Set(
+            observations
+              .filter(o => o.status === 'Submitted' || o.status === 'Approved')
+              .map(o => o.teacher_name)
+          );
+          setVisitedTeachers(visited);
+        } catch (obsErr) {
+          console.error('Failed to load observations:', obsErr);
+        }
+      }
+
       let query = typedSupabase
         .from('teacher_dc_scores')
         .select('*');
@@ -110,12 +219,19 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
           setConnectionError(false);
         }
       } else if (!data || data.length === 0) {
-        if (cache.teachers) {
+        // No database data - try mock test data for local testing
+        if (coachSubRegion === 'Urban-1') {
+          const mockData = getMockTestData();
+          setTeachers(mockData);
+          writeCache(mockData, coachSubRegion);
+          setConnectionError(false);
+        } else if (cache.teachers) {
           setIsOffline(true);
+          setTeachers([]);
         } else {
           setError('No teachers assigned to your sub-region.');
+          setTeachers([]);
         }
-        setTeachers([]);
       } else {
         // Map database fields to component interface
         interface DbRow {
@@ -185,7 +301,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     } finally {
       setLoading(false);
     }
-  }, [coachSubRegion, readCache, writeCache]);
+  }, [coachSubRegion, readCache, writeCache, getMockTestData]);
 
   useEffect(() => {
     loadData();
@@ -219,12 +335,17 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         topic: formData.lesson_topic || null,
         framework: 'FICO',
         date: formData.date,
-        visit_purpose: formData.visit_purpose,
+        visit_purpose: formData.visit_purpose || `${formData.visit_type} observation`,
         status: 'Scheduled',
         region: coachSubRegion || teacher.sector,
+        week: formData.week,
+        visit_type: formData.visit_type,
+        planned_date: formData.planned_date,
+        arrival_time: formData.arrival_time,
+        departure_time: formData.departure_time,
       });
 
-      toast.success('Visit scheduled! Opening Neo recording...');
+      toast.success('Visit scheduled!');
       onNewObservation?.(data);
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Unknown error';
@@ -240,12 +361,44 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     }
   }, [user, onNewObservation, coachSubRegion]);
 
-  // No sub-region assigned
+  // Region routing - only show ICT view for now
+  const regionLower = coachRegion?.toLowerCase() || '';
+  const isICT = !regionLower || regionLower.includes('ict') || regionLower.includes('islamabad');
+  const isPindi = regionLower.includes('pindi') || regionLower.includes('rawalpindi');
+  const isPunjab = regionLower.includes('punjab');
+
+  // Pindi view (placeholder)
+  if (isPindi) {
+    return (
+      <div className="flex flex-col items-center justify-center py-14 text-center">
+        <AlertCircle className="w-10 h-10 text-blue-600 mb-3" />
+        <h3 className="font-semibold text-foreground mb-1">Pindi Smart Schedule</h3>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Coming soon — Pindi coaching structure is being set up
+        </p>
+      </div>
+    );
+  }
+
+  // Punjab view (placeholder)
+  if (isPunjab) {
+    return (
+      <div className="flex flex-col items-center justify-center py-14 text-center">
+        <AlertCircle className="w-10 h-10 text-blue-600 mb-3" />
+        <h3 className="font-semibold text-foreground mb-1">Punjab Smart Schedule</h3>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Coming soon — Punjab cluster structure is being set up
+        </p>
+      </div>
+    );
+  }
+
+  // ICT view - requires sub-region
   if (!coachSubRegion) {
     return (
       <div className="flex flex-col items-center justify-center py-14 text-center">
         <AlertCircle className="w-10 h-10 text-amber-600 mb-3" />
-        <h3 className="font-semibold text-foreground mb-1">No region assigned</h3>
+        <h3 className="font-semibold text-foreground mb-1">No sub-region assigned</h3>
         <p className="text-sm text-muted-foreground max-w-xs">
           Your profile does not have a sub-region assigned. Please contact admin.
         </p>
@@ -287,7 +440,11 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     );
   }
 
-  // Teacher list view
+  // Teacher list view (ICT)
+  const visitedCount = visitedTeachers.size;
+  const totalCount = teachers.length;
+  const progressPercent = totalCount > 0 ? Math.round((visitedCount / totalCount) * 100) : 0;
+
   return (
     <div className="space-y-4">
       <div>
@@ -298,6 +455,24 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         </p>
       </div>
 
+      {/* Progress bar */}
+      {totalCount > 0 && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">
+              {visitedCount} / {totalCount} teachers visited
+            </span>
+            <span className="text-xs text-muted-foreground">{progressPercent}%</span>
+          </div>
+          <div className="w-full bg-slate-200 rounded-full h-2">
+            <div
+              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <DCDashboard
         teachers={teachers}
         loading={loading}
@@ -307,6 +482,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         isOffline={isOffline}
         lastSynced={lastSynced}
         onRetry={loadData}
+        visitedTeachers={visitedTeachers}
       />
     </div>
   );

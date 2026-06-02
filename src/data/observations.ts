@@ -3,6 +3,7 @@ import type { CotObservation } from '@/types/observation';
 
  
 // TODO: Regenerate types in src/types/observation.ts to include cot_observations table
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const typedSupabase = supabase as any;
 
 export interface ScheduleVisitPayload {
@@ -17,6 +18,11 @@ export interface ScheduleVisitPayload {
   visit_purpose: string;
   status: 'Scheduled' | 'Draft';
   region: string;
+  week?: string;
+  visit_type?: 'FICO' | 'Head-Co Observation' | 'M&H' | 'General Visit' | 'RM Visit';
+  planned_date?: string;
+  arrival_time?: string;
+  departure_time?: string;
 }
 
 export async function scheduleVisit(payload: ScheduleVisitPayload): Promise<CotObservation> {
@@ -33,11 +39,17 @@ export async function scheduleVisit(payload: ScheduleVisitPayload): Promise<CotO
   return data as CotObservation;
 }
 
-export async function listObservationsForObserver(observer_id: string): Promise<CotObservation[]> {
-  const { data, error } = await typedSupabase
+export async function listObservationsForObserver(observer_id: string, region?: string): Promise<CotObservation[]> {
+  let query = typedSupabase
     .from('cot_observations')
     .select('*')
-    .eq('observer_id', observer_id)
+    .eq('observer_id', observer_id);
+
+  if (region) {
+    query = query.eq('region', region);
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false });
 
   if (error) {
