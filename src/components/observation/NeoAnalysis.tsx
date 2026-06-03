@@ -65,6 +65,58 @@ async function detectAudioFormat(blob: Blob): Promise<string> {
   return 'audio/webm';
 }
 
+// Convert AudioBuffer to WAV Blob for Neo compatibility
+function audioBufferToWav(audioBuffer: AudioBuffer): Blob {
+  const numberOfChannels = audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const format = 1; // PCM
+  const bitDepth = 16;
+
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numberOfChannels * bytesPerSample;
+
+  const channelData = [];
+  for (let i = 0; i < numberOfChannels; i++) {
+    channelData.push(audioBuffer.getChannelData(i));
+  }
+
+  const length = audioBuffer.length * numberOfChannels * bytesPerSample + 36;
+  const arrayBuffer = new ArrayBuffer(44 + length);
+  const view = new DataView(arrayBuffer);
+
+  const writeString = (offset: number, string: string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + length, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, format, true);
+  view.setUint16(22, numberOfChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  writeString(36, 'data');
+  view.setUint32(40, length, true);
+
+  let offset = 44;
+  const volume = 1;
+  for (let i = 0; i < audioBuffer.length; i++) {
+    for (let channel = 0; channel < numberOfChannels; channel++) {
+      const sample = Math.max(-1, Math.min(1, channelData[channel][i])) * 0x7fff;
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
 const translations: Record<Language, Record<string, string>> = {
   en: {
     'Coach Debrief': 'Coach Debrief',
@@ -399,11 +451,29 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
       setIsUploading(true);
 
-      // Strip codec info from MIME type (e.g. "audio/webm;codecs=opus" -> "audio/webm")
-      const cleanMimeType = blob.type.split(';')[0] || 'audio/webm';
+      // Convert WebM to WAV to ensure compatibility with Neo
+      let uploadBlob = blob;
+      if (blob.type.includes('webm')) {
+        try {
+          console.log('[NeoAnalysis] Converting WebM to WAV');
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const arrayBuffer = await blob.arrayBuffer();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+          // Convert to WAV
+          const wavBlob = audioBufferToWav(audioBuffer);
+          uploadBlob = wavBlob;
+          console.log('[NeoAnalysis] WebM converted to WAV successfully');
+        } catch (conversionError) {
+          console.error('[NeoAnalysis] WebM conversion failed, uploading as-is:', conversionError);
+        }
+      }
+
+      // Strip codec info from MIME type
+      const cleanMimeType = uploadBlob.type.split(';')[0] || 'audio/wav';
 
       const formData = new FormData();
-      formData.append('file', blob);
+      formData.append('file', uploadBlob);
       formData.append('observation_id', observation.id);
 
       console.log('Uploading audio for observation:', {
