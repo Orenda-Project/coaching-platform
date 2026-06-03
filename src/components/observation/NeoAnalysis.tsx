@@ -181,6 +181,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [translating, setTranslating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [savedAudio, setSavedAudio] = useState<Blob | null>(null);
+  const [savedAudioMimeType, setSavedAudioMimeType] = useState<string>('audio/webm');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
@@ -237,7 +238,9 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         // Reconstruct blob with correct mime type (preserves type property after IndexedDB retrieval)
         const typedBlob = new Blob([result.blob], { type: result.mime_type });
         setSavedAudio(typedBlob);
+        setSavedAudioMimeType(result.mime_type);
         setPhase('saved');
+        console.log('[NeoAnalysis] Loaded saved audio:', { mime_type: result.mime_type, size: result.blob.size });
       }
     });
   }, [observation.id]);
@@ -455,7 +458,15 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
       // Convert WebM to WAV to ensure compatibility with Neo
       let uploadBlob = blob;
-      if (blob.type.includes('webm')) {
+      let uploadMimeType = mimeType || blob.type || 'audio/webm';
+
+      console.log('[NeoAnalysis] Starting upload:', {
+        blobType: blob.type,
+        passedMimeType: mimeType,
+        finalMimeType: uploadMimeType,
+      });
+
+      if (uploadMimeType.includes('webm') || blob.type.includes('webm')) {
         try {
           console.log('[NeoAnalysis] Converting WebM to WAV');
           const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -465,24 +476,39 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           // Convert to WAV
           const wavBlob = audioBufferToWav(audioBuffer);
           uploadBlob = wavBlob;
-          console.log('[NeoAnalysis] WebM converted to WAV successfully');
+          uploadMimeType = 'audio/wav';
+          console.log('[NeoAnalysis] WebM converted to WAV successfully', {
+            originalSize: blob.size,
+            wavSize: wavBlob.size,
+            wavType: wavBlob.type,
+          });
         } catch (conversionError) {
-          console.error('[NeoAnalysis] WebM conversion failed, uploading as-is:', conversionError);
+          console.error('[NeoAnalysis] WebM conversion failed:', conversionError);
+          uploadMimeType = 'audio/webm';
         }
       }
 
-      // Strip codec info from MIME type
-      const cleanMimeType = uploadBlob.type.split(';')[0] || 'audio/wav';
-
       const formData = new FormData();
-      formData.append('file', uploadBlob);
+
+      // Create blob with explicit mime type if not already set
+      let finalBlob = uploadBlob;
+      if (!finalBlob.type || finalBlob.type === 'application/octet-stream') {
+        finalBlob = new Blob([uploadBlob], { type: uploadMimeType });
+      }
+
+      // Use appropriate filename extension
+      const filename = uploadMimeType === 'audio/wav' ? 'recording.wav' : 'recording.webm';
+      formData.append('file', finalBlob, filename);
       formData.append('observation_id', observation.id);
 
-      console.log('Uploading audio for observation:', {
+      console.log('[NeoAnalysis] Uploading audio for observation:', {
         id: observation.id,
         status: observation.status,
-        fileSize: blob.size,
-        mimeType: cleanMimeType,
+        originalSize: blob.size,
+        uploadSize: finalBlob.size,
+        mimeType: uploadMimeType,
+        blobType: finalBlob.type,
+        filename: filename,
       });
 
       const token = (await supabase.auth.getSession()).data.session?.access_token;
@@ -764,7 +790,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         />
 
         {/* Upload button */}
-        <Button onClick={() => uploadAudio(savedAudio, (mediaRecorderRef.current as any)?._mimeType || 'audio/webm')} disabled={isUploading} className="w-full py-6">
+        <Button onClick={() => uploadAudio(savedAudio, savedAudioMimeType)} disabled={isUploading} className="w-full py-6">
           {isUploading ? 'Uploading...' : 'Upload for Debrief'}
         </Button>
 
