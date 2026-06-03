@@ -924,21 +924,19 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           </CardContent>
         </Card>
 
-        {Object.values(results.section_scores).some(s => s !== 0) && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-foreground">{t('Section Scores')}</p>
-            <div className="grid grid-cols-5 gap-2">
-              {['A', 'B', 'C', 'D', 'E'].map((section) => (
-                <div key={section} className="text-center">
-                  <div className="text-xs text-muted-foreground mb-1">{t('Section')} {section}</div>
-                  <div className="bg-muted rounded px-2 py-1 text-sm font-semibold text-foreground">
-                    {results.section_scores[section as keyof typeof results.section_scores] || 0}
-                  </div>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-foreground">{t('Section Scores')}</p>
+          <div className="grid grid-cols-5 gap-2">
+            {['A', 'B', 'C', 'D', 'E'].map((section) => (
+              <div key={section} className="text-center">
+                <div className="text-xs text-muted-foreground mb-1">{t('Section')} {section}</div>
+                <div className="bg-muted rounded px-2 py-1 text-sm font-semibold text-foreground">
+                  {results.section_scores[section as keyof typeof results.section_scores] || 0}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
 
         {results.observer_feedback && (
           <div className="space-y-3">
