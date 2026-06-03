@@ -460,15 +460,19 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       let uploadBlob = blob;
       let uploadMimeType = mimeType || blob.type || 'audio/webm';
 
+      // Detect actual audio format from file signature
+      const detectedFormat = await detectAudioFormat(blob);
       console.log('[NeoAnalysis] Starting upload:', {
         blobType: blob.type,
         passedMimeType: mimeType,
-        finalMimeType: uploadMimeType,
+        detectedFormat: detectedFormat,
+        size: blob.size,
       });
 
-      if (uploadMimeType.includes('webm') || blob.type.includes('webm')) {
+      // Always convert to WAV unless already WAV (ensures Neo compatibility)
+      if (detectedFormat !== 'audio/wav') {
         try {
-          console.log('[NeoAnalysis] Converting WebM to WAV');
+          console.log('[NeoAnalysis] Converting', detectedFormat, 'to WAV');
           const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
           const arrayBuffer = await blob.arrayBuffer();
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
@@ -477,15 +481,19 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           const wavBlob = audioBufferToWav(audioBuffer);
           uploadBlob = wavBlob;
           uploadMimeType = 'audio/wav';
-          console.log('[NeoAnalysis] WebM converted to WAV successfully', {
+          console.log('[NeoAnalysis] Conversion successful', {
+            from: detectedFormat,
             originalSize: blob.size,
             wavSize: wavBlob.size,
             wavType: wavBlob.type,
           });
         } catch (conversionError) {
-          console.error('[NeoAnalysis] WebM conversion failed:', conversionError);
-          uploadMimeType = 'audio/webm';
+          console.error('[NeoAnalysis] Conversion failed:', conversionError);
+          uploadMimeType = detectedFormat;
         }
+      } else {
+        console.log('[NeoAnalysis] Already WAV, no conversion needed');
+        uploadMimeType = 'audio/wav';
       }
 
       const formData = new FormData();
