@@ -871,10 +871,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       <div className="space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="font-semibold text-foreground flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-green-600" /> {t('Debrief Analysis Complete')}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <p className="text-xs text-muted-foreground">{t('Debrief Analysis Complete')}</p>
+            </div>
+            <p className="text-sm text-foreground font-medium mt-2 line-clamp-2">
               {language === 'ur' && translatedFeedback ? translatedFeedback.readiness_level || results.readiness_level : results.readiness_level}
             </p>
           </div>
