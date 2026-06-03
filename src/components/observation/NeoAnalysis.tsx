@@ -234,7 +234,9 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   useEffect(() => {
     getSavedAudio(observation.id).then(result => {
       if (result) {
-        setSavedAudio(result.blob);
+        // Reconstruct blob with correct mime type (preserves type property after IndexedDB retrieval)
+        const typedBlob = new Blob([result.blob], { type: result.mime_type });
+        setSavedAudio(typedBlob);
         setPhase('saved');
       }
     });
