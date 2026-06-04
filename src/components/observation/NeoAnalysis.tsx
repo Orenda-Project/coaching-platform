@@ -65,6 +65,58 @@ async function detectAudioFormat(blob: Blob): Promise<string> {
   return 'audio/webm';
 }
 
+// Convert AudioBuffer to WAV Blob for Neo compatibility
+function audioBufferToWav(audioBuffer: AudioBuffer): Blob {
+  const numberOfChannels = audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const format = 1; // PCM
+  const bitDepth = 16;
+
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numberOfChannels * bytesPerSample;
+
+  const channelData = [];
+  for (let i = 0; i < numberOfChannels; i++) {
+    channelData.push(audioBuffer.getChannelData(i));
+  }
+
+  const length = audioBuffer.length * numberOfChannels * bytesPerSample + 36;
+  const arrayBuffer = new ArrayBuffer(44 + length);
+  const view = new DataView(arrayBuffer);
+
+  const writeString = (offset: number, string: string) => {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + length, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, format, true);
+  view.setUint16(22, numberOfChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  writeString(36, 'data');
+  view.setUint32(40, length, true);
+
+  let offset = 44;
+  const volume = 1;
+  for (let i = 0; i < audioBuffer.length; i++) {
+    for (let channel = 0; channel < numberOfChannels; channel++) {
+      const sample = Math.max(-1, Math.min(1, channelData[channel][i])) * 0x7fff;
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
 const translations: Record<Language, Record<string, string>> = {
   en: {
     'Coach Debrief': 'Coach Debrief',
@@ -129,6 +181,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [translating, setTranslating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [savedAudio, setSavedAudio] = useState<Blob | null>(null);
+  const [savedAudioMimeType, setSavedAudioMimeType] = useState<string>('audio/webm');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
@@ -182,8 +235,12 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   useEffect(() => {
     getSavedAudio(observation.id).then(result => {
       if (result) {
-        setSavedAudio(result.blob);
+        // Reconstruct blob with correct mime type (preserves type property after IndexedDB retrieval)
+        const typedBlob = new Blob([result.blob], { type: result.mime_type });
+        setSavedAudio(typedBlob);
+        setSavedAudioMimeType(result.mime_type);
         setPhase('saved');
+        console.log('[NeoAnalysis] Loaded saved audio:', { mime_type: result.mime_type, size: result.blob.size });
       }
     });
   }, [observation.id]);
@@ -399,18 +456,67 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
       setIsUploading(true);
 
-      // Strip codec info from MIME type (e.g. "audio/webm;codecs=opus" -> "audio/webm")
-      const cleanMimeType = blob.type.split(';')[0] || 'audio/webm';
+      // Convert WebM to WAV to ensure compatibility with Neo
+      let uploadBlob = blob;
+      let uploadMimeType = mimeType || blob.type || 'audio/webm';
+
+      // Detect actual audio format from file signature
+      const detectedFormat = await detectAudioFormat(blob);
+      console.log('[NeoAnalysis] Starting upload:', {
+        blobType: blob.type,
+        passedMimeType: mimeType,
+        detectedFormat: detectedFormat,
+        size: blob.size,
+      });
+
+      // Always convert to WAV unless already WAV (ensures Neo compatibility)
+      if (detectedFormat !== 'audio/wav') {
+        try {
+          console.log('[NeoAnalysis] Converting', detectedFormat, 'to WAV');
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const arrayBuffer = await blob.arrayBuffer();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+          // Convert to WAV
+          const wavBlob = audioBufferToWav(audioBuffer);
+          uploadBlob = wavBlob;
+          uploadMimeType = 'audio/wav';
+          console.log('[NeoAnalysis] Conversion successful', {
+            from: detectedFormat,
+            originalSize: blob.size,
+            wavSize: wavBlob.size,
+            wavType: wavBlob.type,
+          });
+        } catch (conversionError) {
+          console.error('[NeoAnalysis] Conversion failed:', conversionError);
+          uploadMimeType = detectedFormat;
+        }
+      } else {
+        console.log('[NeoAnalysis] Already WAV, no conversion needed');
+        uploadMimeType = 'audio/wav';
+      }
 
       const formData = new FormData();
-      formData.append('file', blob);
+
+      // Create blob with explicit mime type if not already set
+      let finalBlob = uploadBlob;
+      if (!finalBlob.type || finalBlob.type === 'application/octet-stream') {
+        finalBlob = new Blob([uploadBlob], { type: uploadMimeType });
+      }
+
+      // Use appropriate filename extension
+      const filename = uploadMimeType === 'audio/wav' ? 'recording.wav' : 'recording.webm';
+      formData.append('file', finalBlob, filename);
       formData.append('observation_id', observation.id);
 
-      console.log('Uploading audio for observation:', {
+      console.log('[NeoAnalysis] Uploading audio for observation:', {
         id: observation.id,
         status: observation.status,
-        fileSize: blob.size,
-        mimeType: cleanMimeType,
+        originalSize: blob.size,
+        uploadSize: finalBlob.size,
+        mimeType: uploadMimeType,
+        blobType: finalBlob.type,
+        filename: filename,
       });
 
       const token = (await supabase.auth.getSession()).data.session?.access_token;
@@ -432,7 +538,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       });
 
       if (!response.ok) {
-        let err;
+        let err: any = {};
         try {
           const text = await response.text();
           err = JSON.parse(text);
@@ -440,15 +546,24 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           err = {};
         }
 
+        console.error('[NeoAnalysis] Upload failed:', {
+          status: response.status,
+          error: err.error,
+          errorCode: err.errorCode,
+          details: err.details,
+        });
+
         // Handle specific error codes
         let errorMsg = err.error || `Upload failed: ${response.status}`;
-        if (response.status === 404 && blob.size > 10 * 1024 * 1024) {
+        if (response.status === 404 && err.errorCode === 'OBS_NOT_FOUND') {
+          errorMsg = 'Visit record not found. Please try scheduling the visit again.';
+        } else if (response.status === 404 && blob.size > 10 * 1024 * 1024) {
           // 404 + large file = likely audio limit exceeded
           errorMsg = 'Audio file too large. Please record a shorter debrief (under 5 minutes recommended).';
         } else if (response.status === 413 || response.status === 429) {
           errorMsg = 'Audio limit exceeded. Please record a shorter debrief (under 5 minutes recommended).';
         } else if (response.status === 404) {
-          errorMsg = 'Upload service unavailable. Please try again in a moment, or record a shorter debrief.';
+          errorMsg = 'Upload service unavailable. Please try again in a moment.';
         }
 
         throw new Error(errorMsg);
@@ -683,7 +798,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         />
 
         {/* Upload button */}
-        <Button onClick={() => uploadAudio(savedAudio, (mediaRecorderRef.current as any)?._mimeType || 'audio/webm')} disabled={isUploading} className="w-full py-6">
+        <Button onClick={() => uploadAudio(savedAudio, savedAudioMimeType)} disabled={isUploading} className="w-full py-6">
           {isUploading ? 'Uploading...' : 'Upload for Debrief'}
         </Button>
 
@@ -709,15 +824,15 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   }
 
   // Uploading phase
-  if (phase === 'uploading' && savedAudio) {
-    const audioUrl = URL.createObjectURL(savedAudio);
+  if (phase === 'uploading') {
+    const audioUrl = savedAudio ? URL.createObjectURL(savedAudio) : undefined;
     return (
       <div className="space-y-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-sm font-medium text-blue-900">{t('Uploading audio')}</p>
         </div>
 
-        <audio ref={audioPlayerRef} controls className="w-full" src={audioUrl} />
+        {audioUrl && <audio ref={audioPlayerRef} controls className="w-full" src={audioUrl} />}
 
         <Button disabled className="w-full py-6">
           ⏳ {t('Uploading audio')}...
@@ -756,10 +871,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       <div className="space-y-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="font-semibold text-foreground flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-green-600" /> {t('Debrief Analysis Complete')}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <p className="text-xs text-muted-foreground">{t('Debrief Analysis Complete')}</p>
+            </div>
+            <p className="text-sm text-foreground font-medium mt-2 line-clamp-2">
               {language === 'ur' && translatedFeedback ? translatedFeedback.readiness_level || results.readiness_level : results.readiness_level}
             </p>
           </div>
@@ -808,21 +924,19 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           </CardContent>
         </Card>
 
-        {Object.values(results.section_scores).some(s => s !== 0) && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-foreground">{t('Section Scores')}</p>
-            <div className="grid grid-cols-5 gap-2">
-              {['A', 'B', 'C', 'D', 'E'].map((section) => (
-                <div key={section} className="text-center">
-                  <div className="text-xs text-muted-foreground mb-1">{t('Section')} {section}</div>
-                  <div className="bg-muted rounded px-2 py-1 text-sm font-semibold text-foreground">
-                    {results.section_scores[section as keyof typeof results.section_scores] || 0}
-                  </div>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-foreground">{t('Section Scores')}</p>
+          <div className="grid grid-cols-5 gap-2">
+            {['A', 'B', 'C', 'D', 'E'].map((section) => (
+              <div key={section} className="text-center">
+                <div className="text-xs text-muted-foreground mb-1">{t('Section')} {section}</div>
+                <div className="bg-muted rounded px-2 py-1 text-sm font-semibold text-foreground">
+                  {results.section_scores[section as keyof typeof results.section_scores] || 0}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        )}
+        </div>
 
         {results.observer_feedback && (
           <div className="space-y-3">

@@ -3,9 +3,8 @@ builder = "dockerfile"
 
 [deploy]
 # startCommand is defined in Dockerfile CMD
-# Health check disabled — enable once app stability is verified
-# healthcheckPath = "/api/export/health"
-# healthcheckTimeout = 5
+healthcheckPath = "/health"
+healthcheckTimeout = 10
 
 [env]
 DATABASE_URL = "${{ Postgres.DATABASE_URL }}"

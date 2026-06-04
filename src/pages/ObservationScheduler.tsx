@@ -8,39 +8,41 @@ import { Button } from '@/components/ui/button';
 import { GraduationCap, Clock, CheckCircle2, BarChart2, ArrowLeft, CalendarDays } from 'lucide-react';
 import { listObservationsForObserver } from '@/data/observations';
 import { toast } from 'sonner';
-import { DraftObservationsTab } from '@/components/observation/DraftObservationsTab';
-import { SubmittedObservationsTab } from '@/components/observation/SubmittedObservationsTab';
 import { ObservationsOverviewTab } from '@/components/observation/ObservationsOverviewTab';
 import SmartScheduleTab from '@/components/observation/SmartScheduleTab';
+import { VisitsDashboardTab } from '@/components/observation/VisitsDashboardTab';
 import { QuickObservationPanel } from '@/components/observation/QuickObservationPanel';
-import ReportIssueButton from '@/components/observation/ReportIssueButton';
 import type { CotObservation } from '@/types/observation';
 
 export default function ObservationScheduler() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [observations, setObservations] = useState<CotObservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('scheduler');
   const [quickObs, setQuickObs] = useState<CotObservation | null>(null);
 
+  const userRegion = (profile as Record<string, unknown>)?.region as string | null;
+
   const loadObservations = useCallback(async () => {
     if (!user) return;
     try {
-      const data = await listObservationsForObserver(user.id);
+      console.log('[loadObservations] Loading for user:', user.id, 'region:', userRegion);
+      const data = await listObservationsForObserver(user.id, userRegion || undefined);
+      console.log('[loadObservations] Loaded', data.length, 'observations:', data);
       setObservations(data);
     } catch (err) {
       console.error('Failed to load observations:', err);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, userRegion]);
 
   useEffect(() => {
     loadObservations();
   }, [loadObservations]);
 
-  const draftCount = observations.filter(o => o.status === 'Draft').length;
-  const submittedCount = observations.filter(o => o.status === 'Submitted' || o.status === 'Approved').length;
+  const scheduledCount = observations.filter(o => o.status === 'Scheduled' || o.status === 'Draft').length;
+  const completedCount = observations.filter(o => o.status === 'Submitted' || o.status === 'Approved').length;
 
   if (loading) {
     return (
@@ -99,28 +101,18 @@ export default function ObservationScheduler() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="scheduler" className="text-xs sm:text-sm gap-1.5">
               <CalendarDays className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Smart Plan</span>
             </TabsTrigger>
 
-            <TabsTrigger value="draft" className="text-xs sm:text-sm gap-1.5">
+            <TabsTrigger value="visits" className="text-xs sm:text-sm gap-1.5">
               <Clock className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">In Progress</span>
-              {draftCount > 0 && (
+              <span className="hidden sm:inline">Visits</span>
+              {(scheduledCount + completedCount) > 0 && (
                 <span className="ml-0.5 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
-                  {draftCount}
-                </span>
-              )}
-            </TabsTrigger>
-
-            <TabsTrigger value="submitted" className="text-xs sm:text-sm gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Submitted</span>
-              {submittedCount > 0 && (
-                <span className="ml-0.5 bg-green-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
-                  {submittedCount}
+                  {scheduledCount + completedCount}
                 </span>
               )}
             </TabsTrigger>
@@ -134,22 +126,20 @@ export default function ObservationScheduler() {
           <TabsContent value="scheduler">
             <SmartScheduleTab
               onNewObservation={(obs) => {
-                setQuickObs(obs);
                 loadObservations();
-                setActiveTab('draft');
+                setActiveTab('visits');
               }}
             />
           </TabsContent>
 
-          <TabsContent value="draft">
-            <DraftObservationsTab
+          <TabsContent value="visits">
+            <VisitsDashboardTab
               observations={observations}
+              onStartDebrief={(obs) => {
+                setQuickObs(obs);
+              }}
               onRefresh={loadObservations}
             />
-          </TabsContent>
-
-          <TabsContent value="submitted">
-            <SubmittedObservationsTab observations={observations} />
           </TabsContent>
 
           <TabsContent value="overview">
@@ -157,8 +147,6 @@ export default function ObservationScheduler() {
           </TabsContent>
         </Tabs>
       </main>
-
-      <ReportIssueButton />
     </div>
   );
 }

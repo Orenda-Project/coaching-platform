@@ -106,10 +106,12 @@ serve(async (req) => {
         observationId,
         userId: user.id,
         obsError: obsError?.message,
+        code: obsError?.code,
       });
       return new Response(
         JSON.stringify({
-          error: "Observation not found or unauthorized",
+          error: `Observation not found: ${obsError?.message || "No matching observation for this user"}`,
+          errorCode: "OBS_NOT_FOUND",
           details: {
             observationId,
             userId: user.id,
@@ -127,6 +129,12 @@ serve(async (req) => {
     const regionName = getRegionName(region);
     const apiKey = getRegionKey(region);
 
+    console.log("Region lookup:", {
+      region,
+      regionName,
+      hasApiKey: !!apiKey,
+    });
+
     if (!apiKey) {
       return new Response(
         JSON.stringify({ error: `Neo API key not configured for region ${regionName}` }),
@@ -138,6 +146,13 @@ serve(async (req) => {
     }
 
     const neoBaseUrl = Deno.env.get("NEO_BASE_URL") || "";
+
+    console.log("Neo upload starting:", {
+      neoBaseUrl,
+      regionName,
+      audioFileSize: audioFile.size,
+      uploadUrl: `${neoBaseUrl}/api/neo/upload-audio`,
+    });
 
     // Step 1: Upload audio to Neo
     const uploadFormData = new FormData();
@@ -154,9 +169,18 @@ serve(async (req) => {
 
     if (!uploadResponse.ok) {
       const uploadError = await uploadResponse.text();
+      console.error("Neo upload failed:", {
+        status: uploadResponse.status,
+        neoBaseUrl,
+        regionName,
+        responseText: uploadError,
+      });
       return new Response(
         JSON.stringify({
           error: `Neo upload failed: ${uploadResponse.status}`,
+          errorType: "NEO_UPLOAD_FAILED",
+          neoUrl: `${neoBaseUrl}/api/neo/upload-audio`,
+          region: regionName,
           details: uploadError,
         }),
         {

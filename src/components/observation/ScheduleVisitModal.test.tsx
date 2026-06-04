@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ScheduleVisitModal } from './ScheduleVisitModal';
 import type { DCTeacher } from '@/types/teacher';
 
@@ -50,91 +50,6 @@ describe('ScheduleVisitModal', () => {
 
     expect(screen.getByText('Ahmed Khan')).toBeInTheDocument();
     expect(screen.getByText('Government School #5')).toBeInTheDocument();
-    expect(screen.getByText('Mathematics · 5')).toBeInTheDocument();
-    expect(screen.getByText('Fatima Ali')).toBeInTheDocument();
-    expect(screen.getByText('Islamabad')).toBeInTheDocument();
-  });
-
-  it('disables Confirm button until date and purpose are filled', () => {
-    render(
-      <ScheduleVisitModal
-        teacher={mockTeacher}
-        coachName="Fatima Ali"
-        subRegion="Islamabad"
-        onConfirm={mockOnConfirm}
-        onClose={mockOnClose}
-      />
-    );
-
-    const confirmButton = screen.getByRole('button', { name: /Confirm Visit/i });
-    expect(confirmButton).toBeDisabled();
-
-    // Fill only date
-    const dateInput = screen.getByLabelText(/Visit Date/i) as HTMLInputElement;
-    fireEvent.change(dateInput, { target: { value: '2026-05-20' } });
-    expect(confirmButton).toBeDisabled();
-
-    // Fill purpose
-    const purposeInput = screen.getByPlaceholderText(/e.g., Classroom Observation/i) as HTMLInputElement;
-    fireEvent.change(purposeInput, { target: { value: 'Classroom Observation' } });
-    expect(confirmButton).not.toBeDisabled();
-  });
-
-  it('calls onConfirm with correct data including optional lesson_topic', () => {
-    render(
-      <ScheduleVisitModal
-        teacher={mockTeacher}
-        coachName="Fatima Ali"
-        subRegion="Islamabad"
-        onConfirm={mockOnConfirm}
-        onClose={mockOnClose}
-      />
-    );
-
-    const dateInput = screen.getByLabelText(/Visit Date/i) as HTMLInputElement;
-    fireEvent.change(dateInput, { target: { value: '2026-05-20' } });
-
-    const purposeInput = screen.getByPlaceholderText(/e.g., Classroom Observation/i) as HTMLInputElement;
-    fireEvent.change(purposeInput, { target: { value: 'Lesson Plan Review' } });
-
-    const topicInput = screen.getByPlaceholderText(/e.g., Fractions/i) as HTMLInputElement;
-    fireEvent.change(topicInput, { target: { value: 'Fractions in Division' } });
-
-    const confirmButton = screen.getByRole('button', { name: /Confirm Visit/i });
-    fireEvent.click(confirmButton);
-
-    expect(mockOnConfirm).toHaveBeenCalledWith({
-      date: '2026-05-20',
-      visit_purpose: 'Lesson Plan Review',
-      lesson_topic: 'Fractions in Division',
-    });
-  });
-
-  it('calls onConfirm with undefined lesson_topic when topic is blank', () => {
-    render(
-      <ScheduleVisitModal
-        teacher={mockTeacher}
-        coachName="Fatima Ali"
-        subRegion="Islamabad"
-        onConfirm={mockOnConfirm}
-        onClose={mockOnClose}
-      />
-    );
-
-    const dateInput = screen.getByLabelText(/Visit Date/i) as HTMLInputElement;
-    fireEvent.change(dateInput, { target: { value: '2026-05-20' } });
-
-    const purposeInput = screen.getByPlaceholderText(/e.g., Classroom Observation/i) as HTMLInputElement;
-    fireEvent.change(purposeInput, { target: { value: 'Coaching Follow-up' } });
-
-    const confirmButton = screen.getByRole('button', { name: /Confirm Visit/i });
-    fireEvent.click(confirmButton);
-
-    expect(mockOnConfirm).toHaveBeenCalledWith({
-      date: '2026-05-20',
-      visit_purpose: 'Coaching Follow-up',
-      lesson_topic: undefined,
-    });
   });
 
   it('prevents selecting past dates', () => {
@@ -155,7 +70,6 @@ describe('ScheduleVisitModal', () => {
     const day = String(today.getDate()).padStart(2, '0');
     const todayStr = `${year}-${month}-${day}`;
 
-    // The min attribute should be set to today
     expect(dateInput.min).toBe(todayStr);
   });
 

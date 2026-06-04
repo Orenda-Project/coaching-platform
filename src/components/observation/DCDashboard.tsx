@@ -18,6 +18,7 @@ interface Props {
   isOffline?: boolean;
   lastSynced?: string | null;
   onRetry?: () => void;
+  visitedTeachers?: Set<string>;
 }
 
 const INDICATORS = [
@@ -75,7 +76,7 @@ function isCacheStale(timestamp: string | null): boolean {
   return age > ttl;
 }
 
-export default function DCDashboard({ teachers, onScheduleVisit, coachName, subRegion, loading, isOffline, lastSynced, onRetry }: Props) {
+export default function DCDashboard({ teachers, onScheduleVisit, coachName, subRegion, loading, isOffline, lastSynced, onRetry, visitedTeachers }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [pendingTeacher, setPendingTeacher] = useState<DCTeacher | null>(null);
 
@@ -184,11 +185,16 @@ export default function DCDashboard({ teachers, onScheduleVisit, coachName, subR
               <div key={teacher.user_id} className={`border rounded-lg p-4 ${getScoreBg(teacher.overall_percentage)}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-semibold text-foreground truncate">{teacher.teacher_name}</h3>
                       <Badge variant="outline" className={`shrink-0 ${getScoreColor(teacher.overall_percentage)}`}>
                         {teacher.overall_percentage.toFixed(1)}%
                       </Badge>
+                      {visitedTeachers?.has(teacher.teacher_name) && (
+                        <Badge variant="outline" className="shrink-0 text-green-700 border-green-200 bg-green-50">
+                          ✓ Visited
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">{teacher.school}</p>
                     <p className="text-xs text-muted-foreground">Grade {teacher.grade} · {teacher.subject} · Last assessed: {new Date(teacher.created_date).toLocaleDateString()}</p>
