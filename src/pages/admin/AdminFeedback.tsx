@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
-import { createClient } from '@supabase/supabase-js';
+import { useFeedback } from '@/hooks/useFeedback';
 import {
   Select,
   SelectContent,
@@ -38,17 +38,9 @@ interface KPIData {
 
 const ITEMS_PER_PAGE = 20;
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || '',
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || ''
-);
-
 export default function AdminFeedback() {
-  const [kpis, setKpis] = useState<KPIData | null>(null);
-  const [feedback, setFeedback] = useState<FeedbackRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { feedback: feedbackData, kpis, loading, error } = useFeedback();
   const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const [filters, setFilters] = useState({
     category: '',
     rating: '',
@@ -58,113 +50,39 @@ export default function AdminFeedback() {
   });
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackRecord | null>(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      // Fetch all feedback for KPIs (30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { data: allFeedback, error: allError } = await supabase
-        .from('feedback')
-        .select('rating', { count: 'exact' })
-        .gte('created_at', thirtyDaysAgo.toISOString());
-
-      if (allError) throw allError;
-
-      // Calculate KPIs
-      const totalFeedback = allFeedback?.length || 0;
-      const avgRating =
-        totalFeedback > 0
-          ? (allFeedback!.reduce((sum, f) => sum + f.rating, 0) / totalFeedback)
-          : 0;
-      const lowRatingCount = allFeedback?.filter((f) => f.rating <= 2).length || 0;
-
-      setKpis({
-        totalFeedback,
-        avgRating: Math.round(avgRating * 10) / 10,
-        lowRatingCount,
-      });
-
-      // Fetch paginated feedback and filters
-      const offset = (page - 1) * ITEMS_PER_PAGE;
-      let query = supabase
-        .from('feedback')
-        .select('*', { count: 'exact' });
-
-      if (filters.category) {
-        query = query.eq('category', filters.category);
-      }
-      if (filters.rating) {
-        query = query.eq('rating', parseInt(filters.rating));
-      }
-      if (filters.persona) {
-        query = query.eq('persona', filters.persona);
-      }
-      if (filters.startDate) {
-        query = query.gte('created_at', new Date(filters.startDate).toISOString());
-      }
-      if (filters.endDate) {
-        query = query.lte('created_at', new Date(filters.endDate).toISOString());
-      }
-
-      const { data: paginatedFeedback, count, error } = await query
-        .order('created_at', { ascending: false })
-        .range(offset, offset + ITEMS_PER_PAGE - 1);
-
-      if (error) throw error;
-
-      // Fetch profiles for each feedback entry
-      if (paginatedFeedback && paginatedFeedback.length > 0) {
-        const userIds = paginatedFeedback.map((f) => f.user_id);
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, full_name, phone')
-          .in('id', userIds);
-
-        if (profileError) throw profileError;
-
-        const profileMap = new Map(
-          (profiles || []).map((p) => [
-            p.id,
-            {
-              id: p.id,
-              full_name: p.full_name,
-              phone: p.phone,
-              email: null,
-            },
-          ])
-        );
-
-        const feedbackWithProfiles = paginatedFeedback.map((f) => ({
-          ...f,
-          profiles: profileMap.get(f.user_id) || null,
-        }));
-
-        setFeedback(feedbackWithProfiles);
-      } else {
-        setFeedback([]);
-      }
-
-      setTotalCount(count || 0);
-    } catch (err) {
-      console.error('Error fetching feedback:', err);
+  useEffect(() => {
+    if (error) {
       toast.error('Failed to load feedback');
-    } finally {
-      setLoading(false);
     }
-  }, [page, filters]);
+  }, [error]);
+
+  const filteredFeedback = feedbackData.filter((item) => {
+    if (filters.category && item.category !== filters.category) return false;
+    if (filters.rating && item.rating !== parseInt(filters.rating)) return false;
+    if (filters.persona && item.persona !== filters.persona) return false;
+    if (filters.startDate) {
+      const itemDate = new Date(item.created_at).getTime();
+      const startDate = new Date(filters.startDate).getTime();
+      if (itemDate < startDate) return false;
+    }
+    if (filters.endDate) {
+      const itemDate = new Date(item.created_at).getTime();
+      const endDate = new Date(filters.endDate).getTime();
+      if (itemDate > endDate) return false;
+    }
+    return true;
+  });
+
+  const totalCount = filteredFeedback.length;
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+  const offset = (page - 1) * ITEMS_PER_PAGE;
+  const paginatedFeedback = filteredFeedback
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(offset, offset + ITEMS_PER_PAGE);
 
   useEffect(() => {
     setPage(1);
   }, [filters]);
-
-  useEffect(() => {
-    fetchData();
-  }, [page, filters, fetchData]);
-
-  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-6">
@@ -305,7 +223,7 @@ export default function AdminFeedback() {
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
-          ) : feedback.length === 0 ? (
+          ) : paginatedFeedback.length === 0 ? (
             <p className="text-center py-8 text-muted-foreground">No feedback yet</p>
           ) : (
             <>
@@ -331,7 +249,7 @@ export default function AdminFeedback() {
                     </tr>
                   </thead>
                   <tbody>
-                    {feedback.map((item) => {
+                    {paginatedFeedback.map((item) => {
                       const displayName = item.profiles?.full_name || item.profiles?.phone || 'Unknown';
                       const displaySecondary = item.profiles?.full_name && item.profiles?.phone
                         ? item.profiles.phone
