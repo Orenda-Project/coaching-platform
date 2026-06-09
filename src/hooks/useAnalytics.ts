@@ -1,54 +1,157 @@
+/**
+ * useAnalytics Hook
+ *
+ * React hook for managing analytics data and events
+ *
+ * Features:
+ * - Log user events
+ * - Fetch and update metrics
+ * - Get module-level analytics
+ * - Retrieve dashboard data
+ * - Error handling
+ *
+ * Usage:
+ *   const { logEvent, getMetrics, getDashboard } = useAnalytics(userId);
+ *   await logEvent({ event_type: "quiz_completed", event_data: {...} });
+ *   const metrics = await getMetrics();
+ *   const dashboard = await getDashboard();
+ */
+
 import { useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { analyticsApiClient } from "@/lib/apiClients/analyticsApiClient";
+import type {
+  AnalyticsEvent,
+  UserMetrics,
+  DashboardData,
+  EventLogRequest,
+  MetricsUpdate,
+  ModuleAnalytics,
+  PaginationOptions,
+  EventsResponse,
+  AllAnalyticsResponse,
+} from "@/lib/apiClients/analyticsApiClient";
 
-export type AnalyticsEventType =
-  | "scenario_viewed"
-  | "decision_submitted"
-  | "feedback_viewed"
-  | "read_more_clicked"
-  | "tab_visible"
-  | "tab_hidden";
-
-export interface TrackEventParams {
-  event_type: AnalyticsEventType;
-  scenario_id?: string;
-  unit_id?: string;
-  metadata?: Record<string, unknown>;
+interface UseAnalyticsReturn {
+  logEvent: (eventData: EventLogRequest) => Promise<AnalyticsEvent>;
+  getEvents: (options?: PaginationOptions) => Promise<EventsResponse>;
+  getEventsByType: (
+    eventType: string,
+    options?: PaginationOptions
+  ) => Promise<EventsResponse>;
+  getMetrics: () => Promise<UserMetrics>;
+  updateMetrics: (updates: MetricsUpdate) => Promise<UserMetrics>;
+  incrementMetric: (
+    metricName: keyof UserMetrics,
+    increment: number
+  ) => Promise<UserMetrics>;
+  getModuleAnalytics: (moduleId: string) => Promise<ModuleAnalytics>;
+  getDashboard: () => Promise<DashboardData>;
+  getAllAnalytics: (options?: PaginationOptions) => Promise<AllAnalyticsResponse>;
 }
 
 /**
- * useAnalytics hook for fire-and-forget event tracking.
- * Events are logged to the analytics_events table.
- * This hook silently handles failures and never throws errors.
+ * Hook for analytics operations
  */
-export function useAnalytics() {
-  const { user } = useAuth();
-
-  const track = useCallback(
-    ({ event_type, scenario_id, unit_id, metadata }: TrackEventParams) => {
-      if (!user) return;
-
-      // Fire-and-forget: do not await or surface errors to caller.
-      // `as never` bypasses the typed Insert overload until types.ts is
-      // regenerated to include the analytics_events row shape.
-      supabase
-        .from("analytics_events")
-        .insert({
-          user_id: user.id,
-          event_type,
-          scenario_id: scenario_id ?? null,
-          unit_id: unit_id ?? null,
-          metadata: metadata ?? {},
-        } as never)
-        .then(({ error }) => {
-          if (error) {
-            console.warn("[analytics]", error.message);
-          }
-        });
+export function useAnalytics(userId: string): UseAnalyticsReturn {
+  /**
+   * Log an event for the user
+   */
+  const logEvent = useCallback(
+    async (eventData: EventLogRequest): Promise<AnalyticsEvent> => {
+      return analyticsApiClient.logEvent(userId, eventData);
     },
-    [user]
+    [userId]
   );
 
-  return { track };
+  /**
+   * Get user events
+   */
+  const getEvents = useCallback(
+    async (options?: PaginationOptions): Promise<EventsResponse> => {
+      return analyticsApiClient.getEvents(userId, options);
+    },
+    [userId]
+  );
+
+  /**
+   * Get events filtered by type
+   */
+  const getEventsByType = useCallback(
+    async (
+      eventType: string,
+      options?: PaginationOptions
+    ): Promise<EventsResponse> => {
+      return analyticsApiClient.getEventsByType(userId, eventType, options);
+    },
+    [userId]
+  );
+
+  /**
+   * Get user metrics
+   */
+  const getMetrics = useCallback(async (): Promise<UserMetrics> => {
+    return analyticsApiClient.getMetrics(userId);
+  }, [userId]);
+
+  /**
+   * Update user metrics
+   */
+  const updateMetrics = useCallback(
+    async (updates: MetricsUpdate): Promise<UserMetrics> => {
+      return analyticsApiClient.updateMetrics(userId, updates);
+    },
+    [userId]
+  );
+
+  /**
+   * Increment a metric
+   */
+  const incrementMetric = useCallback(
+    async (
+      metricName: keyof UserMetrics,
+      increment: number
+    ): Promise<UserMetrics> => {
+      return analyticsApiClient.incrementMetric(userId, metricName, increment);
+    },
+    [userId]
+  );
+
+  /**
+   * Get module-level analytics
+   */
+  const getModuleAnalytics = useCallback(
+    async (moduleId: string): Promise<ModuleAnalytics> => {
+      return analyticsApiClient.getModuleAnalytics(moduleId);
+    },
+    []
+  );
+
+  /**
+   * Get user dashboard data
+   */
+  const getDashboard = useCallback(async (): Promise<DashboardData> => {
+    return analyticsApiClient.getDashboard(userId);
+  }, [userId]);
+
+  /**
+   * Get all analytics (admin only)
+   */
+  const getAllAnalytics = useCallback(
+    async (options?: PaginationOptions): Promise<AllAnalyticsResponse> => {
+      return analyticsApiClient.getAllAnalytics(options);
+    },
+    []
+  );
+
+  return {
+    logEvent,
+    getEvents,
+    getEventsByType,
+    getMetrics,
+    updateMetrics,
+    incrementMetric,
+    getModuleAnalytics,
+    getDashboard,
+    getAllAnalytics,
+  };
 }

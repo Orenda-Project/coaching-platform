@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCoaching } from '@/hooks/useCoaching';
 import DCDashboard from './DCDashboard';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -8,15 +8,13 @@ import { scheduleVisit } from '@/data/observations';
 import type { CotObservation, ScheduleVisitFormData } from '@/types/observation';
 import type { DCTeacher } from '@/types/teacher';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const typedSupabase = supabase as any;
-
 interface SmartScheduleTabProps {
   onNewObservation?: (obs: CotObservation) => void;
 }
 
 export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabProps) {
   const { user, profile } = useAuth();
+  const { teachers: apiTeachers, loading: apiLoading, error: apiError, loadTeachers } = useCoaching();
   const [teachers, setTeachers] = useState<DCTeacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +61,32 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     }
   }, [user, getCacheKey]);
 
+  const mapTeachersData = useCallback((data: typeof apiTeachers): DCTeacher[] => {
+    return data.map((row) => ({
+      user_id: row.id,
+      teacher_name: row.teacher_name,
+      school: row.school_name,
+      sector: row.region,
+      overall_percentage: row.raw_results?.overall_percentage || 0,
+      total_score: row.total_score,
+      created_date: row.scored_at,
+      grade: row.grade,
+      subject: row.subject,
+      accurate_lesson_planning: row.raw_results?.accurate_lesson_planning || 0,
+      timely_lesson_delivery: row.raw_results?.timely_lesson_delivery || 0,
+      subject_command: row.raw_results?.subject_command || 0,
+      effective_pedagogy: row.raw_results?.effective_pedagogy || 0,
+      effective_resource_use: row.raw_results?.effective_resource_use || 0,
+      activity_based_learning: row.raw_results?.activity_based_learning || 0,
+      student_participation: row.raw_results?.student_participation || 0,
+      critical_thinking: row.raw_results?.critical_thinking || 0,
+      inclusive_practices: row.raw_results?.inclusive_practices || 0,
+      technology_integration: row.raw_results?.technology_integration || 0,
+      technology_handling: row.raw_results?.technology_handling || 0,
+      verbal_communication: row.raw_results?.verbal_communication || 0,
+      non_verbal_communication: row.raw_results?.non_verbal_communication || 0,
+    }));
+  }, []);
 
   const loadData = useCallback(async () => {
     // Load from cache first, if available
@@ -85,31 +109,21 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
 
     try {
       setError(null);
-
-      let query = typedSupabase
-        .from('teacher_dc_scores')
-        .select('*');
-
-      if (coachSubRegion) {
-        query = query.eq('region', coachSubRegion);
-      }
-
-      const { data, error: queryError } = await query
-        .order('total_score', { ascending: true });
+      await loadTeachers(coachSubRegion || undefined);
 
       clearTimeout(timeoutId);
 
-      if (queryError) {
+      if (apiError) {
         // Network error - show cached data if available, otherwise show error
         if (cache.teachers) {
           setIsOffline(true);
           setConnectionError(false);
         } else {
-          setError(queryError.message);
+          setError(apiError.message || 'Failed to load teachers');
           setTeachers([]);
           setConnectionError(false);
         }
-      } else if (!data || data.length === 0) {
+      } else if (!apiTeachers || apiTeachers.length === 0) {
         if (cache.teachers) {
           setIsOffline(true);
         } else {
@@ -117,57 +131,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         }
         setTeachers([]);
       } else {
-        // Map database fields to component interface
-        interface DbRow {
-          id: string;
-          teacher_name: string;
-          school_name: string;
-          region: string;
-          grade: string;
-          subject: string;
-          total_score: number;
-          scored_at: string;
-          raw_results?: {
-            overall_percentage?: number;
-            accurate_lesson_planning?: number;
-            timely_lesson_delivery?: number;
-            subject_command?: number;
-            effective_pedagogy?: number;
-            effective_resource_use?: number;
-            activity_based_learning?: number;
-            student_participation?: number;
-            critical_thinking?: number;
-            inclusive_practices?: number;
-            technology_integration?: number;
-            technology_handling?: number;
-            verbal_communication?: number;
-            non_verbal_communication?: number;
-          };
-        }
-        const mappedTeachers: DCTeacher[] = data.map((row: DbRow) => ({
-          user_id: row.id,
-          teacher_name: row.teacher_name,
-          school: row.school_name,
-          sector: row.region,
-          overall_percentage: row.raw_results?.overall_percentage || 0,
-          total_score: row.total_score,
-          created_date: row.scored_at,
-          grade: row.grade,
-          subject: row.subject,
-          accurate_lesson_planning: row.raw_results?.accurate_lesson_planning || 0,
-          timely_lesson_delivery: row.raw_results?.timely_lesson_delivery || 0,
-          subject_command: row.raw_results?.subject_command || 0,
-          effective_pedagogy: row.raw_results?.effective_pedagogy || 0,
-          effective_resource_use: row.raw_results?.effective_resource_use || 0,
-          activity_based_learning: row.raw_results?.activity_based_learning || 0,
-          student_participation: row.raw_results?.student_participation || 0,
-          critical_thinking: row.raw_results?.critical_thinking || 0,
-          inclusive_practices: row.raw_results?.inclusive_practices || 0,
-          technology_integration: row.raw_results?.technology_integration || 0,
-          technology_handling: row.raw_results?.technology_handling || 0,
-          verbal_communication: row.raw_results?.verbal_communication || 0,
-          non_verbal_communication: row.raw_results?.non_verbal_communication || 0,
-        }));
+        const mappedTeachers = mapTeachersData(apiTeachers);
         setTeachers(mappedTeachers);
         writeCache(mappedTeachers, coachSubRegion);
         setConnectionError(false);
@@ -185,7 +149,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     } finally {
       setLoading(false);
     }
-  }, [coachSubRegion, readCache, writeCache]);
+  }, [coachSubRegion, readCache, writeCache, loadTeachers, apiTeachers, apiError, mapTeachersData]);
 
   useEffect(() => {
     loadData();

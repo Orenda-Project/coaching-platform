@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.controllers import export_controller, quiz_controller, auth_controller, assessment_controller, training_controller
+from app.controllers import export_controller, quiz_controller, auth_controller, assessment_controller, training_controller, analytics_controller, scenario_controller
 
 # Create FastAPI app
 app = FastAPI(
@@ -25,6 +25,10 @@ app.include_router(quiz_controller.router)
 app.include_router(auth_controller.router)
 app.include_router(assessment_controller.router)
 app.include_router(training_controller.router)
+
+# Phase 4: Analytics & Scenarios APIs
+app.include_router(analytics_controller.router)
+app.include_router(scenario_controller.router)
 
 # Phase 3: Coaching APIs - to be integrated after testing
 # app.include_router(observation_controller.router)
