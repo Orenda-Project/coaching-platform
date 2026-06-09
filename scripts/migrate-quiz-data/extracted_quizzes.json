@@ -3823,6 +3823,210 @@
         ],
         "section_header": "MCQ_Section_3",
         "has_correct_answer": true
+      },
+      {
+        "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "scenario",
+        "question_text": "Scenario: A coach is creating a Digital Journal entry for a teacher's growth journey. They include a photo of a student's improved essay and add the note: \"Notice the shift in student engagement and clarity when you moved to the back row to support the 'Shadow' students.\" This note is an example of:\r\n            *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "A technical correction of the teacher's mistakes.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "A \"Human Annotation\" that highlights professional agency and growth.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "A \"Deficit Frame\" focusing on what was missing earlier.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "An administrative report for the principal to use in a salary review.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
+      },
+      {
+        "order_number": 1,
+        "question_number_in_section": 2,
+        "question_type": "scenario",
+        "question_text": "Scenario: You have been working with a teacher for three months. You decide to show them a sequence of artifacts from their Digital Journal, starting from the first \"Identify\" phase to the most recent \"Improve\" phase. Why are you acting as a \"Biographer of Growth\"?\r\n            *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "To prove to the district that you have been working every week.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "To keep a record of every error the teacher made so they don't repeat them.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "To document the teacher\u2019s success and professional journey over time rather than just counting errors.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "To write a story that makes the school's test scores look better than they are.\r\n________________\r\n\r\n\r\nUnit 4.2: The Adaptive Facilitator",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "scenario",
+        "question_text": "Scenario: You are coaching a teacher who is currently facing a classroom safety crisis and feels completely overwhelmed. In this specific moment, which coaching stance is most appropriate?\r\n            *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Facilitative: Asking powerful questions to help them reflect on the crisis.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Directive: Providing immediate, clear instructions to ensure safety and clarity.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Silent: Observing from the back to see how they handle it alone.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Evaluative: Taking notes on their lack of crisis management skills.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
+      },
+      {
+        "order_number": 3,
+        "question_number_in_section": 4,
+        "question_type": "scenario",
+        "question_text": "Scenario: A teacher is showing resistance to changing their lesson structure. An Adaptive Facilitator offers the teacher a choice: \"Would you prefer to focus on improving your 'Check for Understanding' questions or your 'Wait Time' transitions first?\" Why is this effective?\r\n            *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "It allows the coach to avoid making a difficult decision.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "It tricks the teacher into doing what the coach wanted all along.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "It increases buy-in and agency by allowing the teacher to select a path that fits their current capacity.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "It follows the school's policy that teachers should always be happy.\r\n________________\r\n\r\n\r\nUnit 4.3: The Partnership Advocate",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
+      },
+      {
+        "order_number": 4,
+        "question_number_in_section": 5,
+        "question_type": "scenario",
+        "question_text": "Scenario: The Principal asks you for your \"evaluative notes\" on the \"bottom 5\" teachers in the building to help with a performance audit. Which response shows \"Mastery\" as a Partnership Advocate?\r\n            *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Give the notes but ask the Principal to be \"nice\" when they talk to the teachers.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Refuse to speak to the Principal at all to protect your personal integrity.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Redirect the Principal to school-wide growth patterns and trends while firmly protecting individual confidentiality.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Hand over the notes immediately to maintain a good relationship with leadership.\r\n________________\r\n\r\n\r\nUnit 4.4: The Consistency Guardian (WRER)",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
+      },
+      {
+        "order_number": 5,
+        "question_number_in_section": 6,
+        "question_type": "scenario",
+        "question_text": "Scenario: Your WRER (Weekly Record of Engagement & Results) data shows that you only completed 40% of your scheduled coaching visits this month because you were asked to cover classes for absent teachers. How should you use this data?\r\n            *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Hide the data so the Principal doesn't think you are being lazy.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Use it to complain to the teachers about how busy you are.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Use it as objective evidence to show the Principal how \"displaced time\" is preventing teacher growth.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Accept that inconsistency is a normal part of school life and stop tracking it.\r\n________________\r\n\r\n\r\nAnswer Key \r\nQuestion\r\n\tAnswer\r\n\t1\r\n\tB\r\n\t2\r\n\tC\r\n\t3\r\n\tB\r\n\t4\r\n\tC\r\n\t5\r\n\tC\r\n\t6\r\n\tC",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
       }
     ],
     "sections": {
@@ -3841,11 +4045,15 @@
       "MCQ_Section_3": {
         "mcq_count": 8,
         "scenario_count": 0
+      },
+      "Scenarios": {
+        "mcq_count": 0,
+        "scenario_count": 6
       }
     },
-    "total_questions": 26,
+    "total_questions": 32,
     "mcq_count": 26,
-    "scenario_count": 0
+    "scenario_count": 6
   },
   "module_5": {
     "module_id": "module_5",
@@ -4762,6 +4970,108 @@
     "questions": [
       {
         "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "In the Pakistan school context, a coaching cycle \"leaks\" when:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "The coach forgets to visit.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "A great conversation happens but nothing changes in the classroom.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "The students are absent.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "The school building is damaged.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 1,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "When \"Closing the Loop,\" the coach\u2019s identity shifts from \"Inspector\" to:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Evaluator.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Co-Pilot looking for progress.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Subject Matter Expert.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Administrative Assistant.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "mcq",
+        "question_text": "Closing the Loop is the bridge between which two phases of the Impact Cycle?",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Identify and Learn.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Learn and Improve.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Improve and Identify.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Planning and Audit.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 3,
         "question_number_in_section": 4,
         "question_type": "mcq",
         "question_text": "Which is a \"Curious Opener\" designed to replace judgmental statements?",
@@ -4795,7 +5105,211 @@
         "has_correct_answer": true
       },
       {
+        "order_number": 4,
+        "question_number_in_section": 5,
+        "question_type": "mcq",
+        "question_text": "A \"Strong Action Step\" in the follow-up protocol must be:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Broad and complex.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Bite-sized, observable, and teacher-chosen.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Determined solely by the coach.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Based on the annual appraisal form.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 5,
+        "question_number_in_section": 6,
+        "question_type": "mcq",
+        "question_text": "The purpose of returning to the classroom to \"Close the Loop\" is to:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Find faults.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "See if the strategy is working and help the teacher \"Pivot\" if needed.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Fill out the final report for the District.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Give the students a test.\r\nAnswer Key: 1-B, 2-B, 3-B, 4-C, 5-B, 6-B\r\n\r\n\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
         "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "The \"Protocol Guardrail\" is primarily used to ensure the coach:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Arrives on time.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Does not slip back into \"Inspector Mode\" or unsolicited advice.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Follows the school's dress code.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Grades the students accurately.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 1,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "\"Status Confirmation\" serves as a guardrail by:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Confirming the coach's authority.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Using objective evidence to confirm the teacher's professional growth.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Confirming the teacher's salary.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Confirming the Principal's opinion.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "mcq",
+        "question_text": "If a coach uses \"Evaluative Adjectives\" (e.g., \"That was a bad start\"), they have:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Provided helpful feedback.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Breached the Protocol Guardrail.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Followed the Impact Cycle.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Demonstrated expertise.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 3,
+        "question_number_in_section": 4,
+        "question_type": "mcq",
+        "question_text": "The \"Improve\" phase guardrail requires the teacher to choose one of the \"4 Paths.\" These paths are:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Pass, Fail, Retry, Quit.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Modify, Switch, Stay the Course, Re-identify.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Plan, Teach, Observe, Report.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Lecture, Practical, Homework, Test.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 4,
         "question_number_in_section": 5,
         "question_type": "mcq",
         "question_text": "A protocol is considered a \"Guardrail\" because it:",
@@ -4829,7 +5343,75 @@
         "has_correct_answer": true
       },
       {
+        "order_number": 5,
+        "question_number_in_section": 6,
+        "question_type": "mcq",
+        "question_text": "Data shared within the Protocol Guardrail should always be:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "The coach's opinion.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Objective student evidence (the \"Mirror\").",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "General impressions.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Subjective judgments.\r\nAnswer Key: 1-B, 2-B, 3-B, 4-B, 5-B, 6-B\r\n\r\n\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
         "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "\"Responsive Contextualization\" requires a coach to:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Follow AI suggestions without change.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Adjust strategies to fit constraints like large class sizes or limited resources.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Ignore the classroom environment.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Tell the teacher to buy their own resources.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 1,
         "question_number_in_section": 2,
         "question_type": "mcq",
         "question_text": "\"Praxis\" (PP-6) is the realization that learning happens through:",
@@ -4855,6 +5437,142 @@
           {
             "letter": "D",
             "option_text": "Passing a written test.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "mcq",
+        "question_text": "The \"Human Filter\" is essential in this unit because:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "AI is always wrong.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "The coach must contextualize data to make it realistic for the teacher.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "The coach needs to look busy.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "It prevents teachers from talking.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 3,
+        "question_number_in_section": 4,
+        "question_type": "mcq",
+        "question_text": "Reflection without action (Praxis) results in:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Professionalism.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "A \"Leaky\" coaching cycle.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Excellence.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Hierarchy.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 4,
+        "question_number_in_section": 5,
+        "question_type": "mcq",
+        "question_text": "A coach modeling a \"Workaround\" for a missing textbook is an example of:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Laziness.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Responsive Contextualization.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Audit Culture.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Expertise.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 5,
+        "question_number_in_section": 6,
+        "question_type": "mcq",
+        "question_text": "The goal of Praxis in Module 6 is to turn \"Coaching Conversations\" into:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Written reports.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Observable student results.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Longer meetings.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Principal approvals.\r\nAnswer Key: 1-B, 2-B, 3-B, 4-B, 5-B, 6-B\r\n\r\n\r\n________________",
             "is_correct": false,
             "order_number": 3
           }
@@ -4898,6 +5616,176 @@
       },
       {
         "order_number": 1,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "\"Audit Culture\" is dangerous to coaching because it triggers:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Rapid growth.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Fear and \"Status Denial,\" causing teachers to hide their struggles.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Better student scores.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Increased funding.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "mcq",
+        "question_text": "When a Principal asks for names of \"failing\" teachers, the Reciprocity Defense suggests:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Giving the names to avoid trouble.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Redirecting to \"Aggregate Trends\" (e.g., \"70% of teachers are mastering the Planning Loop\").",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Telling the Principal it is none of their business.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Quitting the coaching job.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 3,
+        "question_number_in_section": 4,
+        "question_type": "mcq",
+        "question_text": "The \"Sacred Space\" is the professional boundary that ensures:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "The coach has their own office.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Coaching remains a developmental tool, not an evaluative one.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Only religious subjects are taught.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "The classroom door is locked.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 4,
+        "question_number_in_section": 5,
+        "question_type": "mcq",
+        "question_text": "A \"Strong\" response to administrative pressure (Section 14) involves:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Total compliance.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Validating the Principal's goal while firmly holding the confidentiality boundary.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Blaming the teacher.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Sharing the teacher's personal journal.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 5,
+        "question_number_in_section": 6,
+        "question_type": "mcq",
+        "question_text": "Professionalism in Unit 6.4 is defined as:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Following every command.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Guarding the integrity of the partnership even under system pressure.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Finishing paperwork on time.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Keeping secrets from everyone.\r\nAnswer Key: 1-B, 2-B, 3-B, 4-B, 5-B, 6-B\r\n Scenario-Based questions\r\n\r\n\r\nUnit 6.1: Closing the Loop",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 6,
         "question_number_in_section": 1,
         "question_type": "mcq",
         "question_text": "Scenario: You had a great \"Learn\" session with a teacher about using a \"No-Hands-Up\" questioning strategy. However, when you return for the next observation, the teacher has gone back to only calling on the students who raise their hands.\r\nAccording to the module, this is an example of a \"Leaky\" coaching cycle. What is the most effective way to \"Close the Loop\"?\r\n*",
@@ -4931,7 +5819,7 @@
         "has_correct_answer": true
       },
       {
-        "order_number": 2,
+        "order_number": 7,
         "question_number_in_section": 2,
         "question_type": "mcq",
         "question_text": "Scenario: During a follow-up, a teacher says, \"I tried the timer, but it made the students anxious, so I stopped using it.\" A \"Mastery\" level coach should respond by:\r\n*",
@@ -4963,28 +5851,202 @@
         ],
         "section_header": "MCQ_Section_3",
         "has_correct_answer": true
+      },
+      {
+        "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "scenario",
+        "question_text": "Scenario: You had a great \"Learn\" session with a teacher about using a \"No-Hands-Up\" questioning strategy. However, when you return for the next observation, the teacher has gone back to only calling on the students who raise their hands.\r\nAccording to the module, this is an example of a \"Leaky\" coaching cycle. What is the most effective way to \"Close the Loop\"?\r\n*",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Remind the teacher that the Principal is expecting to see this change in their next formal evaluation.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Mark the teacher as \"Not Proficient\" in your weekly report to create accountability.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Use a \"Curious Opener\" such as: \"I noticed the 'No-Hands-Up' strategy wasn't used today; what barrier got in the way of trying that move?\"",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Give the teacher a new, easier strategy since they clearly couldn't handle the first one.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
+      },
+      {
+        "order_number": 1,
+        "question_number_in_section": 2,
+        "question_type": "scenario",
+        "question_text": "Scenario: During a follow-up, a teacher says, \"I tried the timer, but it made the students anxious, so I stopped using it.\" A \"Mastery\" level coach should respond by:\r\n*",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Telling the teacher they must keep using it because it is an \"evidence-based\" strategy.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Facilitating a \"Pivot\" by asking the teacher if they want to adjust the strategy (e.g., use a visual signal instead of a loud beep) or try a different one from the menu.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Agreeing that the students are the problem and moving on to a different topic.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Telling the teacher to ignore the students' anxiety and focus on the clock.\r\n________________\r\n\r\n\r\nUnit 6.2 & 6.4: The Partnership Advocate vs. System Pressure",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "scenario",
+        "question_text": "Scenario: Your Principal calls you into their office and says, \"I\u2019m doing a performance audit. Give me the names of the three 'weakest' teachers you are coaching so I can decide whose contracts not to renew.\" Based on the Module 6 Mastery Rubric (Section 14), what is the \"Strong Response\"?\r\n*",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Give the names but ask the Principal to promise not to tell the teachers where the information came from.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Refuse to give any information at all and walk out of the room to protect your integrity.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Validate the Principal\u2019s goal of school improvement, but firmly hold the confidentiality boundary and offer to share \"Aggregate Trends\" (e.g., \"70% of teachers are struggling with transitions\") instead of names.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Provide the names but only for the teachers who haven't been \"nice\" to you during coaching sessions.\r\n________________\r\n\r\n\r\nUnit 6.3: The Principle of Reciprocity (PP-7)",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
+      },
+      {
+        "order_number": 3,
+        "question_number_in_section": 4,
+        "question_type": "scenario",
+        "question_text": "Scenario: A teacher expresses fear about trying a new, risky student-centered activity while the coach is watching. The coach explains, \"I am taking a professional risk by protecting our confidentiality from the administration so that you can feel safe taking a risk with your teaching.\" This is the definition of Reciprocity because:\r\n*",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "The coach and teacher are becoming best friends.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "The coach is doing the teacher a favor that the teacher must pay back later.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "It recognizes that both the coach and teacher must take risks to maintain the \"Sacred Space\" of the coaching partnership.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "It ensures that neither the coach nor the teacher gets in trouble with the District.\r\n________________\r\n\r\n\r\nUnit 6.5: Professionalism as Integrity",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
+      },
+      {
+        "order_number": 4,
+        "question_number_in_section": 5,
+        "question_type": "scenario",
+        "question_text": "Scenario: You are asked by a district official to share your \"Coaching Journal\" notes which contain a teacher's private reflections on their failures. How does a \"Mastery\" coach define Professionalism in this moment?\r\n*",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Following the command of the district official because they are higher in the hierarchy.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Guarding the integrity of the partnership by explaining that the journal is a developmental tool for the teacher, not an evaluative tool for the system.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Deleting the notes immediately so that no one can ever see them.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Giving the notes but editing them first to make the teacher look better.\r\n________________\r\n\r\n\r\nAnswer Key \r\nQuestion\r\n\tAnswer\r\n\t1\r\n\tC\r\n\t2\r\n\tB\r\n\t3\r\n\tC\r\n\t4\r\n\tC\r\n\t5\r\n\tB",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "Scenarios",
+        "has_correct_answer": false
       }
     ],
     "sections": {
       "MCQ_Section_0": {
-        "mcq_count": 1,
+        "mcq_count": 6,
         "scenario_count": 0
       },
       "MCQ_Section_1": {
-        "mcq_count": 1,
+        "mcq_count": 6,
         "scenario_count": 0
       },
       "MCQ_Section_2": {
-        "mcq_count": 1,
+        "mcq_count": 6,
         "scenario_count": 0
       },
       "MCQ_Section_3": {
-        "mcq_count": 3,
+        "mcq_count": 8,
         "scenario_count": 0
+      },
+      "Scenarios": {
+        "mcq_count": 0,
+        "scenario_count": 5
       }
     },
-    "total_questions": 6,
-    "mcq_count": 6,
-    "scenario_count": 0
+    "total_questions": 31,
+    "mcq_count": 26,
+    "scenario_count": 5
   }
 }

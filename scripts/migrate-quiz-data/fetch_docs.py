@@ -62,18 +62,25 @@ def extract_options(block: str) -> List[Tuple[str, str]]:
             option_text = match.group(2).strip()
             options.append((letter, option_text))
     else:
-        # Try inline pattern: " A) text B) text C) text D) text"
-        # This handles options on the same line as question
-        inline_pattern = r'([A-D])\)\s*([^A-D]*?)(?=[A-D]\)|$)'
-        inline_matches = list(re.finditer(inline_pattern, block))
+        # Try inline pattern: find all A-D) and extract text between them
+        # Pattern: match A), B), C), D) and capture text between each
+        inline_positions = list(re.finditer(r'\s+([A-D])\)\s*', block))
 
-        if len(inline_matches) >= 4:
-            for match in inline_matches[:4]:
-                letter = match.group(1).upper()
-                option_text = match.group(2).strip()
-                # Clean up text
-                option_text = re.sub(r'^\s*\*\s*', '', option_text)  # Remove leading asterisk
-                option_text = re.sub(r'\s+$', '', option_text)  # Remove trailing whitespace
+        if len(inline_positions) >= 4:
+            # Extract text between each position
+            for i in range(4):
+                letter = inline_positions[i].group(1).upper()
+                start = inline_positions[i].end()
+                # Text goes until next A-D) or end of block
+                end = inline_positions[i + 1].start() if i + 1 < len(inline_positions) else len(block)
+                option_text = block[start:end].strip()
+                # Clean up trailing punctuation from prior option
+                option_text = re.sub(r'\s*[A-D]\)\s*$', '', option_text)
+                # Remove leading asterisk if present
+                option_text = re.sub(r'^\s*\*\s*', '', option_text)
+                # Clean answer key markers
+                option_text = re.sub(r'\s*(?:Answer|answer)s?\s*:.*$', '', option_text, flags=re.DOTALL)
+                option_text = option_text.strip()
                 options.append((letter, option_text))
 
     return options
@@ -177,7 +184,8 @@ def parse_module(content: str, module_id: str) -> Dict[str, Any]:
         module_data["sections"][section_header]["mcq_count"] += len(questions)
 
     # === PARSE SCENARIO SECTIONS ===
-    scenario_blocks = re.split(r'(?:Scenario\s+base\s+)?Scenario[s]?\s+(?:based\s+)?Questions?\s*\n', content, flags=re.IGNORECASE)
+    # Look for scenario sections with various formats: "Scenario-based questions", "Scenario Questions", "Senerio Questions", etc.
+    scenario_blocks = re.split(r'Scenario[\s\-]*[Bb]ased\s+[Qq]uestions?\s*\n|(?:Scenario\s+base\s+)?Scenario[s]?\s+(?:based\s+)?Questions?\s*\n', content, flags=re.IGNORECASE)
 
     if len(scenario_blocks) > 1:
         scenario_text = '\n'.join(scenario_blocks[1:])
