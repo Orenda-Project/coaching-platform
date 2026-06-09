@@ -8,6 +8,8 @@ from app.models.training import (
     ScenarioOption,
 )
 from app.models.user import User, UserProfile
+from app.models.assessment import Assessment, AssessmentResponse, AssessmentAttempt
+from app.models.training_progress import TrainingProgress
 
 __all__ = [
     "Module",
@@ -19,4 +21,8 @@ __all__ = [
     "ScenarioOption",
     "User",
     "UserProfile",
+    "Assessment",
+    "AssessmentResponse",
+    "AssessmentAttempt",
+    "TrainingProgress",
 ]
