@@ -101,14 +101,17 @@ export function ScheduleVisitModal({
               <label htmlFor="week" className="text-sm font-medium text-foreground block mb-1.5">
                 Week
               </label>
-              <input
+              <select
                 id="week"
-                type="text"
                 value={week}
                 onChange={(e) => setWeek(e.target.value)}
-                placeholder="e.g., Week 1, Week 2..."
-                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">— Select week (optional)</option>
+                {Array.from({ length: 10 }, (_, i) => `Week ${i + 1}`).map((w) => (
+                  <option key={w} value={w}>{w}</option>
+                ))}
+              </select>
             </div>
 
             {/* Visit Type */}
@@ -130,22 +133,6 @@ export function ScheduleVisitModal({
               </select>
             </div>
 
-            {/* Planned Date */}
-            <div>
-              <label htmlFor="planned-date" className="text-sm font-medium text-foreground block mb-1.5">
-                Planned Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="planned-date"
-                type="date"
-                value={plannedDate}
-                onChange={(e) => setPlannedDate(e.target.value)}
-                min={today}
-                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                required
-              />
-            </div>
-
             {/* Visit Date */}
             <div>
               <label htmlFor="visit-date" className="text-sm font-medium text-foreground block mb-1.5">
@@ -155,7 +142,10 @@ export function ScheduleVisitModal({
                 id="visit-date"
                 type="date"
                 value={visitDate}
-                onChange={(e) => setVisitDate(e.target.value)}
+                onChange={(e) => {
+                  setVisitDate(e.target.value);
+                  setPlannedDate(e.target.value);
+                }}
                 min={today}
                 className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 required
@@ -168,40 +158,38 @@ export function ScheduleVisitModal({
                 <label className="text-sm font-medium text-foreground block mb-1.5">
                   Arrival Time <span className="text-red-500">*</span>
                 </label>
-                <div className="flex gap-2">
-                  <select
-                    value={arrivalTime.split(':')[0] || '09'}
-                    onChange={(e) => {
-                      const m = arrivalTime.split(':')[1] || '00';
-                      setArrivalTime(`${e.target.value}:${m}`);
-                    }}
-                    className="flex-1 px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((h) => (
-                      <option key={h} value={h}>{h}:00</option>
-                    ))}
-                  </select>
-                </div>
+                <select
+                  value={arrivalTime}
+                  onChange={(e) => setArrivalTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {Array.from({ length: 48 }, (_, i) => {
+                    const h = String(Math.floor(i / 2)).padStart(2, '0');
+                    const m = (i % 2) * 30;
+                    return `${h}:${String(m).padStart(2, '0')}`;
+                  }).map((time) => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-foreground block mb-1.5">
                   Departure Time <span className="text-red-500">*</span>
                 </label>
-                <div className="flex gap-2">
-                  <select
-                    value={departureTime.split(':')[0] || '14'}
-                    onChange={(e) => {
-                      const m = departureTime.split(':')[1] || '00';
-                      setDepartureTime(`${e.target.value}:${m}`);
-                    }}
-                    className="flex-1 px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map((h) => (
-                      <option key={h} value={h}>{h}:00</option>
-                    ))}
-                  </select>
-                </div>
+                <select
+                  value={departureTime}
+                  onChange={(e) => setDepartureTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {Array.from({ length: 48 }, (_, i) => {
+                    const h = String(Math.floor(i / 2)).padStart(2, '0');
+                    const m = (i % 2) * 30;
+                    return `${h}:${String(m).padStart(2, '0')}`;
+                  }).map((time) => (
+                    <option key={time} value={time}>{time}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
