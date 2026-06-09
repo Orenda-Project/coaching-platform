@@ -38,8 +38,8 @@ Done! You're ready to start. ✅
 
 **Read these (in order):**
 1. **This file** (you're reading it)
-2. [API_SPECIFICATION.md](API_SPECIFICATION.md) — what endpoints you're building
-3. [PHASE1_AUTH_IMPLEMENTATION.md](PHASE1_AUTH_IMPLEMENTATION.md) — your template (Phase 1 code)
+2. [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md) — what endpoints you're building
+3. [docs/PHASE1_AUTH_IMPLEMENTATION.md](docs/PHASE1_AUTH_IMPLEMENTATION.md) — your template (Phase 1 code)
 
 ---
 

@@ -11,29 +11,29 @@
 
 ### **Documents to Read (in order):**
 
-1. **START HERE:** `FULL_MIGRATION_COMPLETION_SUMMARY.md`
+1. **START HERE:** [FULL_MIGRATION_COMPLETION_SUMMARY.md](FULL_MIGRATION_COMPLETION_SUMMARY.md)
    - Overview of what's been completed
    - Phase 1 lessons learned
    - Success metrics
 
-2. **REFERENCE:** `PHASES_2_5_IMPLEMENTATION_ORCHESTRATION.md` (THIS DOCUMENT)
+2. **REFERENCE:** [PHASES_2_5_IMPLEMENTATION_ORCHESTRATION.md](PHASES_2_5_IMPLEMENTATION_ORCHESTRATION.md)
    - Timeline & milestones
    - Team allocation
    - Definition of done
 
-3. **IMPLEMENTATION GUIDE:** `PHASE1_AUTH_IMPLEMENTATION.md`
+3. **IMPLEMENTATION GUIDE:** [docs/PHASE1_AUTH_IMPLEMENTATION.md](docs/PHASE1_AUTH_IMPLEMENTATION.md)
    - Complete code walkthrough
    - How to structure services, controllers, hooks
    - Testing patterns to replicate
    - **This is your template for all phases**
 
-4. **API SPEC:** `API_SPECIFICATION.md`
+4. **API SPEC:** [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md)
    - All 50+ endpoints defined
    - Request/response formats
    - Error codes & handling
    - Use this as your contract
 
-5. **TEST STRATEGY:** `TEST_STRATEGY.md`
+5. **TEST STRATEGY:** [TEST_STRATEGY.md](TEST_STRATEGY.md)
    - Unit test patterns
    - Integration test approach
    - E2E testing checklist
