@@ -1,0 +1,35 @@
+Supabase Backup Manifest
+========================
+Generated: 2026-06-09 14:50:38
+Backup File: supabase_export_20260609_145036.sql
+
+Backup Details:
+  Size: 580K (584608 bytes)
+  Lines:    11829
+  MD5: 99b2fc38bf5973cf0a9c7a40144d7c70
+  Timestamp: 20260609_145036
+
+Database:
+  Host: 127.0.0.1
+  Port: 54322
+  Database: postgres
+  User: postgres
+
+Notes:
+  - This is a complete schema and data backup
+  - Created before quiz data migration
+  - Restore with: psql -h 127.0.0.1 -p 54322 -U postgres -d postgres < supabase_export_20260609_145036.sql
+  - Tables backed up include: quiz tables, scenario tables, analytics, regions, users, profiles, etc.
+
+Verification:
+  To verify this backup is valid, check:
+    1. File size > 1 KB: ✓ PASS
+    2. MD5 checksum matches: 99b2fc38bf5973cf0a9c7a40144d7c70
+    3. Line count > 10: ✓ PASS
+
+Restore Instructions:
+  1. Ensure Supabase is running: supabase start
+  2. Restore the backup:
+     PGPASSWORD="postgres" psql        -h 127.0.0.1        -p 54322        -U postgres        -d postgres        -f supabase_export_20260609_145036.sql
+  3. Verify tables were restored: supabase status
+

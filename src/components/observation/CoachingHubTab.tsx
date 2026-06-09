@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useObservation } from '@/hooks/useObservation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +26,7 @@ interface Props {
 }
 
 export function CoachingHubTab({ observations, onRefresh, onStarted }: Props) {
+  const { updateObservation, deleteObservation } = useObservation();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [startingId, setStartingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -34,39 +34,32 @@ export function CoachingHubTab({ observations, onRefresh, onStarted }: Props) {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
-    const { error } = await (supabase as any)
-      .from('cot_observations')
-      .delete()
-      .eq('id', id);
-    setDeletingId(null);
-    setConfirmDeleteId(null);
-    if (error) {
+    try {
+      await deleteObservation(id);
+      setDeletingId(null);
+      setConfirmDeleteId(null);
+      toast.success('Observation deleted');
+      onRefresh();
+    } catch {
       toast.error('Failed to delete observation');
-      return;
+      setDeletingId(null);
     }
-    toast.success('Observation deleted');
-    onRefresh();
   };
 
   const scheduled = observations.filter(o => o.status === 'Scheduled');
 
   const handleStart = async (obs: CotObservation) => {
     setStartingId(obs.id);
-    const { error } = await (supabase as any)
-      .from('cot_observations')
-      .update({ status: 'Draft', updated_at: new Date().toISOString() })
-      .eq('id', obs.id);
-
-    setStartingId(null);
-
-    if (error) {
+    try {
+      await updateObservation(obs.id, { status: 'Draft' } as never);
+      setStartingId(null);
+      toast.success('Observation started — go to Draft Observations to complete it');
+      onRefresh();
+      onStarted({ ...obs, status: 'Draft' });
+    } catch {
       toast.error('Failed to start observation');
-      return;
+      setStartingId(null);
     }
-
-    toast.success('Observation started — go to Draft Observations to complete it');
-    onRefresh();
-    onStarted({ ...obs, status: 'Draft' });
   };
 
   return (
