@@ -90,7 +90,7 @@ def upgrade() -> None:
         original_id = item.pop("original_module_id")
         sql = """
             INSERT INTO export_modules (id, title, description, is_mandatory, order_number, competencies, persona_required, created_at)
-            VALUES (%(id)s, %(title)s, %(description)s, %(is_mandatory)s, %(order_number)s, %(competencies)s, %(persona_required)s, %(created_at)s)
+            VALUES (:id, :title, :description, :is_mandatory, :order_number, :competencies, :persona_required, :created_at)
             ON CONFLICT (id) DO NOTHING
         """
         conn.execute(sa.text(sql), item)
@@ -114,7 +114,7 @@ def upgrade() -> None:
     for item in training_inserts:
         sql = """
             INSERT INTO export_trainings (id, module_id, title, description, order_number, created_at)
-            VALUES (%(id)s, %(module_id)s, %(title)s, %(description)s, %(order_number)s, %(created_at)s)
+            VALUES (:id, :module_id, :title, :description, :order_number, :created_at)
             ON CONFLICT (id) DO NOTHING
         """
         conn.execute(sa.text(sql), item)
@@ -185,7 +185,7 @@ def upgrade() -> None:
     for item in question_inserts:
         sql = """
             INSERT INTO export_questions (id, training_id, question_type, question_text, order_number, max_score, created_at)
-            VALUES (%(id)s, %(training_id)s, %(question_type)s, %(question_text)s, %(order_number)s, %(max_score)s, %(created_at)s)
+            VALUES (:id, :training_id, :question_type, :question_text, :order_number, :max_score, :created_at)
             ON CONFLICT (id) DO NOTHING
         """
         conn.execute(sa.text(sql), item)
@@ -194,7 +194,7 @@ def upgrade() -> None:
     for item in option_inserts:
         sql = """
             INSERT INTO export_options (id, question_id, option_text, is_correct, order_number, created_at)
-            VALUES (%(id)s, %(question_id)s, %(option_text)s, %(is_correct)s, %(order_number)s, %(created_at)s)
+            VALUES (:id, :question_id, :option_text, :is_correct, :order_number, :created_at)
             ON CONFLICT (id) DO NOTHING
         """
         conn.execute(sa.text(sql), item)
@@ -203,7 +203,7 @@ def upgrade() -> None:
     for item in scenario_inserts:
         sql = """
             INSERT INTO export_scenarios (id, training_id, situation, question, difficulty, created_at)
-            VALUES (%(id)s, %(training_id)s, %(situation)s, %(question)s, %(difficulty)s, %(created_at)s)
+            VALUES (:id, :training_id, :situation, :question, :difficulty, :created_at)
             ON CONFLICT (id) DO NOTHING
         """
         conn.execute(sa.text(sql), item)
@@ -212,7 +212,7 @@ def upgrade() -> None:
     for item in scenario_option_inserts:
         sql = """
             INSERT INTO export_scenario_options (id, scenario_id, letter, option_text, is_correct, rationale, created_at)
-            VALUES (%(id)s, %(scenario_id)s, %(letter)s, %(option_text)s, %(is_correct)s, %(rationale)s, %(created_at)s)
+            VALUES (:id, :scenario_id, :letter, :option_text, :is_correct, :rationale, :created_at)
             ON CONFLICT (id) DO NOTHING
         """
         conn.execute(sa.text(sql), item)

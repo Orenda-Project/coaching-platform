@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.controllers import export_controller
+from app.controllers import export_controller, quiz_controller, auth_controller
 
 # Create FastAPI app
 app = FastAPI(
@@ -21,6 +21,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(export_controller.router)
+app.include_router(quiz_controller.router)
+app.include_router(auth_controller.router)
 
 
 @app.get("/")
