@@ -12,6 +12,7 @@ from app.models.assessment import Assessment, AssessmentResponse, AssessmentAtte
 from app.models.training_progress import TrainingProgress
 from app.models.analytics import AnalyticsEvent, UserMetrics
 from app.models.scenario import Scenario, ScenarioOption, ScenarioResponse
+from app.models.admin import AdminUser, AdminRole, FieldIssue, FieldIssueStatus, Region
 
 __all__ = [
     "Module",
@@ -32,4 +33,9 @@ __all__ = [
     "Scenario",
     "ScenarioOption",
     "ScenarioResponse",
+    "AdminUser",
+    "AdminRole",
+    "FieldIssue",
+    "FieldIssueStatus",
+    "Region",
 ]

@@ -7,6 +7,7 @@ from . import (
     training_controller,
     analytics_controller,
     scenario_controller,
+    admin_controller,
 )
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "training_controller",
     "analytics_controller",
     "scenario_controller",
+    "admin_controller",
 ]
