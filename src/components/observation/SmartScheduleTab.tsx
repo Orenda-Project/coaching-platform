@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { scheduleVisit, listObservationsForObserver } from '@/data/observations';
 import type { CotObservation, ScheduleVisitFormData } from '@/types/observation';
 import type { DCTeacher } from '@/types/teacher';
+import { getScoreTrend, calculateDaysOverdue, assignPriorityTier, getVisitInterval } from '@/lib/scheduler-utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const typedSupabase = supabase as any;
@@ -29,6 +30,21 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const coachName = profile?.full_name || user?.email || 'Coach';
   const coachSubRegion = (profile as Record<string, unknown>)?.sub_region as string | null;
   const coachRegion = (profile as Record<string, unknown>)?.region as string | null;
+
+  // Coaching cycle management
+  const getCycleStartDate = () => {
+    if (!user?.id) return null;
+    const stored = localStorage.getItem(`cycle_start_${user.id}`);
+    return stored ? new Date(stored) : null;
+  };
+
+  const resetCycle = () => {
+    if (!user?.id) return;
+    localStorage.setItem(`cycle_start_${user.id}`, new Date().toISOString());
+    toast.success('Coaching cycle reset');
+  };
+
+  const cycleStart = getCycleStartDate();
 
   // Mock test data merging teachers + coaches + schools for Urban-1
   const getMockTestData = useCallback((): DCTeacher[] => {
@@ -180,16 +196,32 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     try {
       setError(null);
 
-      // Load observations to compute visited teachers
+      // Load observations to compute visited teachers + urgency signals
+      type UrgencyInfo = { lastVisitDate: Date | null; scoreTrend: 'falling' | 'flat' | 'improving' | null };
+      const urgencyMap = new Map<string, UrgencyInfo>();
       if (user && coachSubRegion) {
         try {
           const observations = await listObservationsForObserver(user.id, coachSubRegion);
-          const visited = new Set(
-            observations
-              .filter(o => o.status === 'Submitted' || o.status === 'Approved')
-              .map(o => o.teacher_name)
-          );
+          const cycleDate = getCycleStartDate();
+          const submittedObs = observations
+            .filter(o => o.status === 'Submitted' || o.status === 'Approved')
+            .filter(o => !cycleDate || (o.submitted_at && new Date(o.submitted_at) >= cycleDate));
+          const visited = new Set(submittedObs.map(o => o.teacher_name));
           setVisitedTeachers(visited);
+
+          // Group by teacher, sorted newest first
+          const byTeacher = new Map<string, typeof submittedObs>();
+          for (const obs of submittedObs) {
+            if (!byTeacher.has(obs.teacher_name)) byTeacher.set(obs.teacher_name, []);
+            byTeacher.get(obs.teacher_name)!.push(obs);
+          }
+          for (const [name, obs] of byTeacher.entries()) {
+            obs.sort((a, b) => new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime());
+            urgencyMap.set(name, {
+              lastVisitDate: obs[0].submitted_at ? new Date(obs[0].submitted_at) : null,
+              scoreTrend: obs.length >= 2 ? getScoreTrend(obs[0].total_score, obs[1].total_score) : null,
+            });
+          }
         } catch (obsErr) {
           console.error('Failed to load observations:', obsErr);
         }
@@ -203,8 +235,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         query = query.eq('region', coachSubRegion);
       }
 
-      const { data, error: queryError } = await query
-        .order('total_score', { ascending: true });
+      const { data, error: queryError } = await query;
 
       clearTimeout(timeoutId);
 
@@ -260,30 +291,47 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
             non_verbal_communication?: number;
           };
         }
-        const mappedTeachers: DCTeacher[] = data.map((row: DbRow) => ({
-          user_id: row.id,
-          teacher_name: row.teacher_name,
-          school: row.school_name,
-          sector: row.region,
-          overall_percentage: row.raw_results?.overall_percentage || 0,
-          total_score: row.total_score,
-          created_date: row.scored_at,
-          grade: row.grade,
-          subject: row.subject,
-          accurate_lesson_planning: row.raw_results?.accurate_lesson_planning || 0,
-          timely_lesson_delivery: row.raw_results?.timely_lesson_delivery || 0,
-          subject_command: row.raw_results?.subject_command || 0,
-          effective_pedagogy: row.raw_results?.effective_pedagogy || 0,
-          effective_resource_use: row.raw_results?.effective_resource_use || 0,
-          activity_based_learning: row.raw_results?.activity_based_learning || 0,
-          student_participation: row.raw_results?.student_participation || 0,
-          critical_thinking: row.raw_results?.critical_thinking || 0,
-          inclusive_practices: row.raw_results?.inclusive_practices || 0,
-          technology_integration: row.raw_results?.technology_integration || 0,
-          technology_handling: row.raw_results?.technology_handling || 0,
-          verbal_communication: row.raw_results?.verbal_communication || 0,
-          non_verbal_communication: row.raw_results?.non_verbal_communication || 0,
-        }));
+        const mappedTeachers: DCTeacher[] = data.map((row: DbRow) => {
+          const pct = row.raw_results?.overall_percentage || 0;
+          const info = urgencyMap.get(row.teacher_name);
+          const neverObserved = !info;
+          const lastVisitDate = info?.lastVisitDate ?? null;
+          const scoreTrend = info?.scoreTrend ?? null;
+          const tier = assignPriorityTier(pct, neverObserved);
+          const interval = getVisitInterval(tier);
+          const daysOverdue = calculateDaysOverdue(lastVisitDate, interval);
+          const urgency = neverObserved ? 9999 : daysOverdue + (scoreTrend === 'falling' ? 10 : 0) - (scoreTrend === 'improving' ? 5 : 0);
+          return {
+            user_id: row.id,
+            teacher_name: row.teacher_name,
+            school: row.school_name,
+            sector: row.region,
+            overall_percentage: pct,
+            total_score: row.total_score,
+            created_date: row.scored_at,
+            grade: row.grade,
+            subject: row.subject,
+            accurate_lesson_planning: row.raw_results?.accurate_lesson_planning || 0,
+            timely_lesson_delivery: row.raw_results?.timely_lesson_delivery || 0,
+            subject_command: row.raw_results?.subject_command || 0,
+            effective_pedagogy: row.raw_results?.effective_pedagogy || 0,
+            effective_resource_use: row.raw_results?.effective_resource_use || 0,
+            activity_based_learning: row.raw_results?.activity_based_learning || 0,
+            student_participation: row.raw_results?.student_participation || 0,
+            critical_thinking: row.raw_results?.critical_thinking || 0,
+            inclusive_practices: row.raw_results?.inclusive_practices || 0,
+            technology_integration: row.raw_results?.technology_integration || 0,
+            technology_handling: row.raw_results?.technology_handling || 0,
+            verbal_communication: row.raw_results?.verbal_communication || 0,
+            non_verbal_communication: row.raw_results?.non_verbal_communication || 0,
+            lastVisitDate,
+            daysOverdue,
+            scoreTrend,
+            neverObserved,
+            urgency,
+          };
+        });
+        mappedTeachers.sort((a, b) => (b.urgency ?? 0) - (a.urgency ?? 0));
         setTeachers(mappedTeachers);
         writeCache(mappedTeachers, coachSubRegion);
         setConnectionError(false);
@@ -472,6 +520,17 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
               style={{ width: `${progressPercent}%` }}
             />
           </div>
+          <button
+            onClick={() => {
+              if (window.confirm('Reset coaching cycle? This will clear your progress count and start fresh.')) {
+                resetCycle();
+                window.location.reload();
+              }
+            }}
+            className="text-xs font-medium text-slate-600 hover:text-slate-800 mt-2 underline"
+          >
+            Start New Cycle
+          </button>
         </div>
       )}
 

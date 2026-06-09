@@ -81,10 +81,11 @@ export default function DCDashboard({ teachers, onScheduleVisit, coachName, subR
   const [pendingTeacher, setPendingTeacher] = useState<DCTeacher | null>(null);
 
   const groupedTeachers = useMemo(() => {
-    const sorted = [...teachers].sort((a, b) => a.overall_percentage - b.overall_percentage);
-    const tier1 = sorted.filter(t => t.overall_percentage < 60);
-    const tier2 = sorted.filter(t => t.overall_percentage >= 60 && t.overall_percentage < 75);
-    const tier3 = sorted.filter(t => t.overall_percentage >= 75);
+    // Within each tier, sort by urgency (never visited → overdue → falling score)
+    const byUrgency = [...teachers].sort((a, b) => (b.urgency ?? 0) - (a.urgency ?? 0));
+    const tier1 = byUrgency.filter(t => t.overall_percentage < 60);
+    const tier2 = byUrgency.filter(t => t.overall_percentage >= 60 && t.overall_percentage < 75);
+    const tier3 = byUrgency.filter(t => t.overall_percentage >= 75);
     return [
       { tier: getPriorityTier(0), teachers: tier1 },
       { tier: getPriorityTier(60), teachers: tier2 },
@@ -190,14 +191,33 @@ export default function DCDashboard({ teachers, onScheduleVisit, coachName, subR
                       <Badge variant="outline" className={`shrink-0 ${getScoreColor(teacher.overall_percentage)}`}>
                         {teacher.overall_percentage.toFixed(1)}%
                       </Badge>
-                      {visitedTeachers?.has(teacher.teacher_name) && (
-                        <Badge variant="outline" className="shrink-0 text-green-700 border-green-200 bg-green-50">
-                          ✓ Visited
+                      {teacher.neverObserved ? (
+                        <Badge variant="outline" className="shrink-0 text-red-700 border-red-200 bg-red-50">
+                          Never Visited
                         </Badge>
+                      ) : teacher.daysOverdue && teacher.daysOverdue > 0 ? (
+                        <Badge variant="outline" className="shrink-0 text-amber-700 border-amber-200 bg-amber-50">
+                          Overdue {teacher.daysOverdue}d
+                        </Badge>
+                      ) : visitedTeachers?.has(teacher.teacher_name) ? (
+                        <Badge variant="outline" className="shrink-0 text-green-700 border-green-200 bg-green-50">
+                          ✓ On Track
+                        </Badge>
+                      ) : null}
+                      {teacher.scoreTrend === 'falling' && (
+                        <span className="shrink-0 text-red-600 text-sm font-medium">↓ Falling</span>
+                      )}
+                      {teacher.scoreTrend === 'improving' && (
+                        <span className="shrink-0 text-green-600 text-sm font-medium">↑ Improving</span>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">{teacher.school}</p>
-                    <p className="text-xs text-muted-foreground">Grade {teacher.grade} · {teacher.subject} · Last assessed: {new Date(teacher.created_date).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Grade {teacher.grade} · {teacher.subject} · Last assessed: {new Date(teacher.created_date).toLocaleDateString()}
+                      {!teacher.neverObserved && teacher.lastVisitDate && (
+                        <> · Last visited: {teacher.lastVisitDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</>
+                      )}
+                    </p>
                   </div>
 
                   <div className="flex gap-2 shrink-0">
