@@ -1429,6 +1429,74 @@
         ],
         "section_header": "MCQ_Section_6",
         "has_correct_answer": true
+      },
+      {
+        "order_number": 6,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "Scenario: You are coaching a veteran teacher, Mr. Khan, who is hesitant about your visit. He says, \"I\u2019ve been teaching for 20 years; I don't need an auditor telling me what I'm doing wrong.\" Which response best demonstrates the shift from \"Judge\" to \"Co-Pilot\"?\r\n                     *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "\"I\u2019m not here to audit; I\u2019m here to give you a list of modern techniques to improve your job.\"",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "\"I\u2019m not here to find faults. I want to sit side-by-side with you so we can look at classroom data together and work toward goals you care about.\"",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "\"The district requires these visits, but I promise to be a 'nice' judge and only give positive feedback.\"",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "\"Think of me as a friend who is going to tell you exactly how to fix your classroom management.\"",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_6",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 7,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "Scenario: During a debrief, a coach notices the teacher is being very quiet. The coach decides to stop talking and asks the teacher, \"What did you notice about the students' reactions during the group work?\" This best illustrates the importance of \"Voice\" because:\r\n                     *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "It saves the coach's voice from getting tired during a busy day.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "It empowers the teacher to take ownership of their own growth and perspective.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "It forces the teacher to prove they were paying attention during the lesson.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "It allows the coach to see if the teacher knows the \"correct\" answer.\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_6",
+        "has_correct_answer": true
       }
     ],
     "sections": {
@@ -1457,12 +1525,12 @@
         "scenario_count": 0
       },
       "MCQ_Section_6": {
-        "mcq_count": 6,
+        "mcq_count": 8,
         "scenario_count": 0
       }
     },
-    "total_questions": 42,
-    "mcq_count": 42,
+    "total_questions": 44,
+    "mcq_count": 44,
     "scenario_count": 0
   },
   "module_2": {
@@ -2079,6 +2147,74 @@
         ],
         "section_header": "MCQ_Section_2",
         "has_correct_answer": true
+      },
+      {
+        "order_number": 6,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "Scenario: You are conducting a feedback session with a teacher, Mr. Ahmed. You start the meeting by saying, \"The Principal noticed your pacing is slow, so I am here to tell you that you must use a timer for every activity starting tomorrow.\" Mr. Ahmed becomes defensive and stops participating in the conversation.\r\nBased on the SCARF model, why did this \"Top-Down\" directive fail?\r\n         *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Because Mr. Ahmed is simply a difficult teacher who refuses to work hard.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Because the coach forgot to bring a physical timer to the meeting to show him how it works.",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "It removed his \"Choice\" and signaled superiority, triggering a defensive \"Survival State\" in his brain.",
+            "is_correct": true,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Because the advice was given in a friendly and nice tone.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 7,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "Scenario: A coach wants to build Psychological Safety with a new teacher who is afraid of being judged. During their first debrief, the teacher admits, \"I really struggled with the transition from the lecture to group work; it felt like chaos.\" What is the most \"Mastery\" level response from the coach?\r\n         *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "\"Don't worry about it; just try to be friendlier and more comfortable next time.\"",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "\"I appreciate you sharing that vulnerability. Let\u2019s look at the student data together so we can take risks and find a solution without judgment.\"",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "\"It\u2019s okay, the school policy says everyone struggles in the first month.\"",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "\"You shouldn't feel that way; you just need to follow the orders I gave you last week.\"\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
       }
     ],
     "sections": {
@@ -2091,12 +2227,12 @@
         "scenario_count": 0
       },
       "MCQ_Section_2": {
-        "mcq_count": 6,
+        "mcq_count": 8,
         "scenario_count": 0
       }
     },
-    "total_questions": 18,
-    "mcq_count": 18,
+    "total_questions": 20,
+    "mcq_count": 20,
     "scenario_count": 0
   },
   "module_3": {
@@ -2713,6 +2849,74 @@
         ],
         "section_header": "MCQ_Section_2",
         "has_correct_answer": true
+      },
+      {
+        "order_number": 6,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "Scenario: You are observing a classroom where the teacher, Ms. Bano, is moving around frequently. You want to provide objective feedback. Which of the following notes passes the \"Camera Test\"?\r\n         *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "\"Ms. Bano, you seemed very enthusiastic and energetic during the introduction.\"",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "\"The students appeared confused when you explained the instructions for the group work.\"",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "\"Ms. Bano walked to the back of the room three times and stood by the quietest group for 2 minutes.\"",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "\"The lesson was highly effective because the classroom environment felt very positive.\"",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 7,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "Scenario: During a debrief, a coach tells a teacher, \"Your transition between the lecture and the activity was quite messy and weak.\" According to the module, what is the likely impact of using these evaluative adjectives?\r\n         *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "It motivates the teacher to work harder to impress the coach.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "It triggers a status threat and stops the teacher's self-reflection by creating a hierarchy of judgment.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "It provides the \"tough love\" necessary for professional growth.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "It helps the teacher understand exactly how to fix the problem.\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
       }
     ],
     "sections": {
@@ -2725,12 +2929,12 @@
         "scenario_count": 0
       },
       "MCQ_Section_2": {
-        "mcq_count": 6,
+        "mcq_count": 8,
         "scenario_count": 0
       }
     },
-    "total_questions": 18,
-    "mcq_count": 18,
+    "total_questions": 20,
+    "mcq_count": 20,
     "scenario_count": 0
   },
   "module_4": {
@@ -3551,6 +3755,74 @@
         ],
         "section_header": "MCQ_Section_3",
         "has_correct_answer": true
+      },
+      {
+        "order_number": 6,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "Scenario: A coach is creating a Digital Journal entry for a teacher's growth journey. They include a photo of a student's improved essay and add the note: \"Notice the shift in student engagement and clarity when you moved to the back row to support the 'Shadow' students.\" This note is an example of:\r\n            *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "A technical correction of the teacher's mistakes.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "A \"Human Annotation\" that highlights professional agency and growth.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "A \"Deficit Frame\" focusing on what was missing earlier.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "An administrative report for the principal to use in a salary review.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 7,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "Scenario: You have been working with a teacher for three months. You decide to show them a sequence of artifacts from their Digital Journal, starting from the first \"Identify\" phase to the most recent \"Improve\" phase. Why are you acting as a \"Biographer of Growth\"?\r\n            *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "To prove to the district that you have been working every week.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "To keep a record of every error the teacher made so they don't repeat them.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "To document the teacher\u2019s success and professional journey over time rather than just counting errors.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "To write a story that makes the school's test scores look better than they are.\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
       }
     ],
     "sections": {
@@ -3567,62 +3839,1152 @@
         "scenario_count": 0
       },
       "MCQ_Section_3": {
-        "mcq_count": 6,
+        "mcq_count": 8,
         "scenario_count": 0
       }
     },
-    "total_questions": 24,
-    "mcq_count": 24,
+    "total_questions": 26,
+    "mcq_count": 26,
     "scenario_count": 0
   },
   "module_5": {
     "module_id": "module_5",
-    "questions": [],
+    "questions": [
+      {
+        "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "The \"Choice Principle\" (PP-1) ensures that:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "The Principal approves every coaching goal.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "The teacher remains the primary decision-maker during the coaching process.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "The coach decides which strategy is \"best\" for the classroom.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Students choose their own grades.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 1,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "In the \"LEARN\" phase, a coach should offer a \"Micro-skills Menu\" consisting of:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "A single mandatory instruction.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "2\u20133 evidence-based strategies for the teacher to choose from.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "A list of all teaching theories from the last decade.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "A choice of which day to be observed.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "mcq",
+        "question_text": "What does the teacher choose during the \"IDENTIFY\" phase?\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "The coach's salary.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "The PEERS Goal (Powerful, Easy, Emotionally Peaking, Reachable, Student-Focused).",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "The textbook for the next year.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "The school's lunch menu.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 3,
+        "question_number_in_section": 4,
+        "question_type": "mcq",
+        "question_text": "When students haven't met the goal in the \"IMPROVE\" phase, which of these is a valid \"Pivot\" option for the teacher?\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Reporting the students to the office.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Switching to another strategy from the menu.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Quitting the coaching cycle.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Giving the students a lower grade.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 4,
+        "question_number_in_section": 5,
+        "question_type": "mcq",
+        "question_text": "According to the \"Control vs. Partnership\" comparison, the end goal of Partnership is:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Compliance.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Improved Student Outcomes.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Teacher silence.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Following every coach's command.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 5,
+        "question_number_in_section": 6,
+        "question_type": "mcq",
+        "question_text": "\"Voice\" (PP-3) in this unit means:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Speaking louder than the teacher.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "The teacher\u2019s ideas are as valuable as the coach's.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Only the coach speaks during the \"Improve\" phase.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Recording the teacher's voice for an audit.\r\nAnswer Key: 1-B, 2-B, 3-B, 4-B, 5-B, 6-B\r\n\r\n\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "The identity shift in this unit is moving from an \"Inspector\" to an:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Administrator.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Instructional Catalyst.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Evaluator.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Expert with an Opinion.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 1,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "To find the \"Why\" behind a classroom struggle without triggering \"Status Denial,\" a coach should use:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Directive commands.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Curious Openers.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Evaluative adjectives (e.g., \"That was bad\").",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Strict deadlines for improvement.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "mcq",
+        "question_text": "An \"Intellectual Gap\" refers to:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "A student failing a test.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "The mental model or root cause behind a teaching behavior.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Not having enough textbooks.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "A teacher being late to class.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 3,
+        "question_number_in_section": 4,
+        "question_type": "mcq",
+        "question_text": "Which of these is a \"Curious Opener\" designed to find the root cause?\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "\"You need to use more visual aids.\"",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "\"Looking at these 10 students who didn't finish, what do you think was the biggest barrier for them?\"",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "\"Your lesson was messy.\"",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "\"Why didn't you follow the plan I gave you?\"",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 4,
+        "question_number_in_section": 5,
+        "question_type": "mcq",
+        "question_text": "In the Pakistan public school context, \"Status Denial\" is often triggered when a coach:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Asks a question.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Delivers an evaluation as a fact.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Offers a choice.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Listens to the teacher.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 5,
+        "question_number_in_section": 6,
+        "question_type": "mcq",
+        "question_text": "A \"Weak Sample Answer\" for diagnosing a gap would be:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Naming a specific missing skill.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Restating the symptom (e.g., \"Teacher doesn't know how to engage students\").",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Identifying a specific mental model.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Citing student data.\r\nAnswer Key: 1-B, 2-B, 3-B, 4-B, 5-B, 6-B\r\n\r\n\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "Side-by-Side Modeling is intended to be a:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Way for the coach to take over the class.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Bridge for the teacher to move from watching to doing with support.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Method for the coach to rest.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Test for the students.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 1,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "During an \"Improve\" phase meeting, if engagement moved from 40% to 55% against a target of 80%, the teacher must choose:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "To quit.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "One of the 4 Paths (Stay the Course, Modify, Switch, Re-Identify).",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "To blame the coach.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "To ignore the data.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "mcq",
+        "question_text": "In \"Side-by-Side\" coaching, the coach should describe:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "How well they taught compared to the teacher.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Specifically when they stepped in and what they modeled.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "What the students were wearing.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "The mistakes the teacher made.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 3,
+        "question_number_in_section": 4,
+        "question_type": "mcq",
+        "question_text": "Co-modeling scripts and Improve meeting agendas should end with:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Conclusions.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Questions (e.g., \"What should we try next?\").",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Verdicts.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Instructions.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 4,
+        "question_number_in_section": 5,
+        "question_type": "mcq",
+        "question_text": "The teacher\u2019s selection of one of the 4 Paths should be based on:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "The coach's recommendation.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "The teacher's reading of student evidence.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "The Principal's mood.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "The easiest option available.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 5,
+        "question_number_in_section": 6,
+        "question_type": "mcq",
+        "question_text": "\"Closing the Loop\" focuses on whether:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "The teacher liked the session.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "The strategy actually led to student results.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "The coach finished their paperwork.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "The bell rang on time.\r\nAnswer Key: 1-B, 2-B, 3-B, 4-B, 5-B, 6-B\r\n\r\n\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "The shift in this unit is from \"Blaming Effort\" to:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Increasing Audit Pressure.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Diagnosing the System.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Judging Personality.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Ignoring Problems.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 1,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "A \"Planning Loop\" gap occurs when the plan is:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Too long.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "A teacher-behavior script instead of an anticipatory student-response map.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Handwritten instead of typed.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Not approved by the Principal.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 3,
+        "question_type": "mcq",
+        "question_text": "The \"Training Loop\" involves mastering:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Large pedagogical theories.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Micro-moves that make a lesson run smoothly (e.g., signals, specific questions).",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Using a new computer system.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Student name memorization.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 3,
+        "question_number_in_section": 4,
+        "question_type": "mcq",
+        "question_text": "According to PP-7 (Reciprocity), a coach recognizes that systemic issues like class size can make:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Coaching unnecessary.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Simultaneous delivery and monitoring structurally impossible.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Teachers lazy.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Data collection easy.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 4,
+        "question_number_in_section": 5,
+        "question_type": "mcq",
+        "question_text": "The goal of the 3 Loops framework is its own:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Complexity.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Obsolescence as an external tool (becoming an internal habit for the teacher).",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Use in annual performance reviews.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Expansion into 10 loops.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 5,
+        "question_number_in_section": 6,
+        "question_type": "mcq",
+        "question_text": "In Precision Coaching, you should always:\r\n   *",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Name the move first.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Diagnose the loop first, then name the move.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Tell the Principal about the gap.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Give the teacher a generic strategy.\r\nAnswer Key: 1-B, 2-B, 3-B, 4-B, 5-B, 6-B\r\nUnit 5.1: The Power of Choice & The Impact Cycle",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 6,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "Scenario: During the \"Learn\" phase, a teacher is struggling with student transitions. Instead of telling the teacher exactly which method to use, the coach presents a \"Micro-skills Menu\" featuring three different evidence-based strategies (e.g., a countdown timer, a musical cue, or a call-and-response).\r\nWhy is providing this \"Menu\" essential for Partnership?\r\n*",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "It allows the coach to avoid being responsible if the strategy fails.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "It ensures the teacher spends more time reading than teaching.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "It honors the \"Choice Principle\" (PP-1), ensuring the teacher remains the primary decision-maker and is more likely to implement the strategy.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "It proves that the coach knows more strategies than the teacher.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 7,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "Scenario: A teacher\u2019s class has not met their PEERS goal during the \"Improve\" phase. The coach asks, \"Now that we see the data, do you want to stick with this strategy but practice it more, or pivot to a different strategy from our menu?\" This approach is designed to:\r\n*",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Force the teacher to admit they chose the wrong goal.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Foster \"Voice\" and \"Agency,\" keeping the teacher in a learning state rather than a failure state.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Extend the coaching cycle indefinitely so the coach stays busy.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Let the students decide what they want to learn next.\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      }
+    ],
     "sections": {
       "MCQ_Section_0": {
-        "mcq_count": 0,
+        "mcq_count": 6,
         "scenario_count": 0
       },
       "MCQ_Section_1": {
-        "mcq_count": 0,
+        "mcq_count": 6,
         "scenario_count": 0
       },
       "MCQ_Section_2": {
-        "mcq_count": 0,
+        "mcq_count": 6,
         "scenario_count": 0
       },
       "MCQ_Section_3": {
-        "mcq_count": 0,
+        "mcq_count": 8,
         "scenario_count": 0
       }
     },
-    "total_questions": 0,
-    "mcq_count": 0,
+    "total_questions": 26,
+    "mcq_count": 26,
     "scenario_count": 0
   },
   "module_6": {
     "module_id": "module_6",
-    "questions": [],
+    "questions": [
+      {
+        "order_number": 0,
+        "question_number_in_section": 4,
+        "question_type": "mcq",
+        "question_text": "Which is a \"Curious Opener\" designed to replace judgmental statements?",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "\"You didn't use the transition we planned.\"",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "\"Why is the class still noisy?\"",
+            "is_correct": false,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "\"I noticed the 'Think-Pair-Share' didn't happen; what barrier got in the way?\"",
+            "is_correct": true,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "\"The Principal will be unhappy with this lesson.\"",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_0",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 0,
+        "question_number_in_section": 5,
+        "question_type": "mcq",
+        "question_text": "A protocol is considered a \"Guardrail\" because it:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Limits what a teacher can say.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Keeps the conversation partnership-aligned even under pressure.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Slows down the coaching process.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Reports errors to the Principal.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_1",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 0,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "\"Praxis\" (PP-6) is the realization that learning happens through:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Reading manuals.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Real-world action followed by reflection.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Watching videos of others.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Passing a written test.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_2",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 0,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "In the context of Unit 6.4, \"Reciprocity\" means:",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "The teacher giving the coach a gift.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "The coach protecting the teacher's growth data just as they expect the teacher to grow.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "The coach and teacher swapping roles.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Reporting every detail to the Principal.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 1,
+        "question_number_in_section": 1,
+        "question_type": "mcq",
+        "question_text": "Scenario: You had a great \"Learn\" session with a teacher about using a \"No-Hands-Up\" questioning strategy. However, when you return for the next observation, the teacher has gone back to only calling on the students who raise their hands.\r\nAccording to the module, this is an example of a \"Leaky\" coaching cycle. What is the most effective way to \"Close the Loop\"?\r\n*",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Remind the teacher that the Principal is expecting to see this change in their next formal evaluation.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Mark the teacher as \"Not Proficient\" in your weekly report to create accountability.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Use a \"Curious Opener\" such as: \"I noticed the 'No-Hands-Up' strategy wasn't used today; what barrier got in the way of trying that move?\"",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Give the teacher a new, easier strategy since they clearly couldn't handle the first one.",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      },
+      {
+        "order_number": 2,
+        "question_number_in_section": 2,
+        "question_type": "mcq",
+        "question_text": "Scenario: During a follow-up, a teacher says, \"I tried the timer, but it made the students anxious, so I stopped using it.\" A \"Mastery\" level coach should respond by:\r\n*",
+        "options": [
+          {
+            "letter": "A",
+            "option_text": "Telling the teacher they must keep using it because it is an \"evidence-based\" strategy.",
+            "is_correct": false,
+            "order_number": 0
+          },
+          {
+            "letter": "B",
+            "option_text": "Facilitating a \"Pivot\" by asking the teacher if they want to adjust the strategy (e.g., use a visual signal instead of a loud beep) or try a different one from the menu.",
+            "is_correct": true,
+            "order_number": 1
+          },
+          {
+            "letter": "C",
+            "option_text": "Agreeing that the students are the problem and moving on to a different topic.",
+            "is_correct": false,
+            "order_number": 2
+          },
+          {
+            "letter": "D",
+            "option_text": "Telling the teacher to ignore the students' anxiety and focus on the clock.\r\n________________",
+            "is_correct": false,
+            "order_number": 3
+          }
+        ],
+        "section_header": "MCQ_Section_3",
+        "has_correct_answer": true
+      }
+    ],
     "sections": {
       "MCQ_Section_0": {
-        "mcq_count": 0,
+        "mcq_count": 1,
         "scenario_count": 0
       },
       "MCQ_Section_1": {
-        "mcq_count": 0,
+        "mcq_count": 1,
         "scenario_count": 0
       },
       "MCQ_Section_2": {
-        "mcq_count": 0,
+        "mcq_count": 1,
         "scenario_count": 0
       },
       "MCQ_Section_3": {
-        "mcq_count": 0,
+        "mcq_count": 3,
         "scenario_count": 0
       }
     },
-    "total_questions": 0,
-    "mcq_count": 0,
+    "total_questions": 6,
+    "mcq_count": 6,
     "scenario_count": 0
   }
 }
