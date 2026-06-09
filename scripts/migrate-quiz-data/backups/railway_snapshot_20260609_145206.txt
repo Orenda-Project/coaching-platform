@@ -1,0 +1,38 @@
+Railway PostgreSQL Backup Reference
+====================================
+Generated: 2026-06-09 14:52:10
+Timestamp: 20260609_145206
+
+Project Information:
+  Project ID: 
+  Environment: UNKNOWN
+
+Manual Snapshot Instructions:
+  1. Go to https://railway.app
+  2. Select the coaching-platform project
+  3. Select the PostgreSQL service
+  4. Click "Metrics & Backups" → "Create Snapshot"
+  5. Wait for snapshot to complete
+  6. Download or restore from the Railway dashboard
+
+Automated Snapshot (if configured):
+  Railway creates automatic snapshots daily
+  Check the Railway dashboard for daily backups
+
+Database Connection:
+  To access the database from Railway CLI:
+    railway run psql --version
+    railway run pg_dump -d coaching_platform > local_backup.sql
+
+Recovery Instructions:
+  1. Go to Railway dashboard → PostgreSQL service
+  2. Click "Restore from snapshot"
+  3. Select the desired snapshot
+  4. Confirm restore (this will cause downtime)
+
+Notes:
+  - Snapshots are managed through the Railway web UI
+  - No automated snapshot creation is available via CLI
+  - Manual snapshots are recommended before migrations
+  - Automatic daily snapshots may also be available (check dashboard)
+
