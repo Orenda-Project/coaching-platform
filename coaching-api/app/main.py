@@ -26,6 +26,10 @@ app.include_router(auth_controller.router)
 app.include_router(assessment_controller.router)
 app.include_router(training_controller.router)
 
+# Phase 3: Coaching APIs - to be integrated after testing
+# app.include_router(observation_controller.router)
+# app.include_router(coaching_controller.router)
+
 
 @app.get("/")
 async def root():
