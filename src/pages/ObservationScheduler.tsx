@@ -12,6 +12,7 @@ import { ObservationsOverviewTab } from '@/components/observation/ObservationsOv
 import SmartScheduleTab from '@/components/observation/SmartScheduleTab';
 import { VisitsDashboardTab } from '@/components/observation/VisitsDashboardTab';
 import { QuickObservationPanel } from '@/components/observation/QuickObservationPanel';
+import { DayEndSummaryPanel } from '@/components/observation/DayEndSummaryPanel';
 import type { CotObservation } from '@/types/observation';
 
 export default function ObservationScheduler() {
@@ -21,6 +22,7 @@ export default function ObservationScheduler() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('scheduler');
   const [quickObs, setQuickObs] = useState<CotObservation | null>(null);
+  const [showDayEndSummary, setShowDayEndSummary] = useState(false);
 
   const userRegion = (profile as Record<string, unknown>)?.region as string | null;
 
@@ -41,7 +43,7 @@ export default function ObservationScheduler() {
     loadObservations();
   }, [loadObservations]);
 
-  const scheduledCount = observations.filter(o => o.status === 'Scheduled' || o.status === 'Draft').length;
+  const scheduledCount = observations.filter(o => o.status === 'Scheduled').length;
   const completedCount = observations.filter(o => o.status === 'Submitted' || o.status === 'Approved').length;
 
   if (loading) {
@@ -68,9 +70,19 @@ export default function ObservationScheduler() {
               <span className="text-xs text-muted-foreground">Observation Scheduler</span>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDayEndSummary(true)}
+              title="View day summary and export report"
+            >
+              📊 Day Summary
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Back
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -85,6 +97,16 @@ export default function ObservationScheduler() {
             setActiveTab('draft');
           }}
           onClose={() => setQuickObs(null)}
+        />
+      )}
+
+      {/* Day End Summary Panel */}
+      {showDayEndSummary && (
+        <DayEndSummaryPanel
+          observations={observations}
+          coachName={profile?.full_name || user?.email || 'Coach'}
+          subRegion={(profile as Record<string, unknown>)?.sub_region as string || 'Unknown'}
+          onClose={() => setShowDayEndSummary(false)}
         />
       )}
 
@@ -110,9 +132,9 @@ export default function ObservationScheduler() {
             <TabsTrigger value="visits" className="text-xs sm:text-sm gap-1.5">
               <Clock className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Visits</span>
-              {(scheduledCount + completedCount) > 0 && (
+              {scheduledCount > 0 && (
                 <span className="ml-0.5 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
-                  {scheduledCount + completedCount}
+                  {scheduledCount}
                 </span>
               )}
             </TabsTrigger>
@@ -139,6 +161,7 @@ export default function ObservationScheduler() {
                 setQuickObs(obs);
               }}
               onRefresh={loadObservations}
+              onNavigateToScheduler={() => setActiveTab('scheduler')}
             />
           </TabsContent>
 

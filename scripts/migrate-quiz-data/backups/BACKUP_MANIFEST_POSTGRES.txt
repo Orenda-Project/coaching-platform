@@ -1,0 +1,65 @@
+PostgreSQL Backup Manifest
+==========================
+Generated: 2026-06-09 14:52:10
+Timestamp: 20260609_145206
+
+BACKUP SUMMARY
+==============
+
+Local PostgreSQL Backup:
+  Status: ⊘ SKIPPED
+  File: postgres_local_20260609_145206.sql
+  Database: coaching_platform
+  Host: localhost:5432
+  User: postgres
+
+Railway PostgreSQL Backup:
+  Status: ✓ SUCCESS (Reference)
+  Reference File: railway_snapshot_20260609_145206.txt
+  Project: coaching-platform (production)
+  Type: Snapshot reference (manual creation required)
+
+LOCAL BACKUP DETAILS
+====================
+Local backup was not created. See above for details.
+
+RAILWAY BACKUP DETAILS
+======================
+Reference File: /Users/mac/Desktop/data/Taleemabad/coaching-platform/scripts/migrate-quiz-data/backups/railway_snapshot_20260609_145206.txt
+
+Railway Backup Recovery Instructions:
+  1. Access the Railway dashboard: https://railway.app
+  2. Navigate to the coaching-platform project
+  3. Select the PostgreSQL service
+  4. Go to "Metrics & Backups" tab
+  5. Find the snapshot taken at 20260609_145206
+  6. Click "Restore from snapshot"
+  7. Confirm the restore (this will cause temporary downtime)
+
+  Alternative: Create a new snapshot manually
+  1. Go to PostgreSQL service → "Metrics & Backups"
+  2. Click "Create Snapshot"
+  3. Wait for completion
+  4. Document the snapshot ID for recovery reference
+
+IMPORTANT NOTES
+===============
+- Do NOT commit sensitive database connection details
+- Backups contain schema and data (review before sharing)
+- Test restoration in a non-production environment first
+- Keep backup files in a secure location
+- Consider using encrypted storage for production backups
+
+Backup Created Before: Quiz Data Migration
+=========================================
+This backup was created before running the quiz data migration scripts.
+
+Migration Scripts:
+  - fetch_docs.py: Extract quiz data from Supabase
+  - validation_against_supabase.py: Validate extracted data
+  - migrate_* scripts: Load data into target environment
+
+If the migration fails, restore using the appropriate recovery instructions above.
+
+End of Manifest
+===============

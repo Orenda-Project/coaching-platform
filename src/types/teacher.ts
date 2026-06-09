@@ -21,4 +21,10 @@ export interface DCTeacher {
   technology_handling: number;
   verbal_communication: number;
   non_verbal_communication: number;
+  // Visit priority signals
+  lastVisitDate?: Date | null;
+  daysOverdue?: number;
+  scoreTrend?: 'falling' | 'flat' | 'improving' | null;
+  neverObserved?: boolean;
+  urgency?: number;
 }
