@@ -26,6 +26,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState(false);
   const [visitedTeachers, setVisitedTeachers] = useState<Set<string>>(new Set());
+  const [showCycleResetModal, setShowCycleResetModal] = useState(false);
 
   const coachName = profile?.full_name || user?.email || 'Coach';
   const coachSubRegion = (profile as Record<string, unknown>)?.sub_region as string | null;
@@ -40,8 +41,14 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
 
   const resetCycle = () => {
     if (!user?.id) return;
+    const existing = getCycleStartDate();
+    if (existing) {
+      const prev = JSON.parse(localStorage.getItem(`cycle_history_${user.id}`) || '[]');
+      prev.unshift({ startDate: existing.toISOString(), endDate: new Date().toISOString(), visitedCount: visitedTeachers.size, totalCount: teachers.length });
+      localStorage.setItem(`cycle_history_${user.id}`, JSON.stringify(prev.slice(0, 10)));
+    }
     localStorage.setItem(`cycle_start_${user.id}`, new Date().toISOString());
-    toast.success('Coaching cycle reset');
+    toast.success('New cycle started');
   };
 
   const cycleStart = getCycleStartDate();
@@ -521,12 +528,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
             />
           </div>
           <button
-            onClick={() => {
-              if (window.confirm('Reset coaching cycle? This will clear your progress count and start fresh.')) {
-                resetCycle();
-                window.location.reload();
-              }
-            }}
+            onClick={() => setShowCycleResetModal(true)}
             className="text-xs font-medium text-slate-600 hover:text-slate-800 mt-2 underline"
           >
             Start New Cycle
@@ -545,6 +547,42 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         onRetry={loadData}
         visitedTeachers={visitedTeachers}
       />
+
+      {/* Cycle Reset Confirmation Modal */}
+      {showCycleResetModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full space-y-4">
+            <h3 className="font-semibold text-foreground">Start New Cycle?</h3>
+            <p className="text-sm text-muted-foreground">
+              Your progress will reset to 0. Previous cycle data will be saved.
+            </p>
+            {cycleStart && (
+              <div className="bg-slate-50 border border-slate-200 rounded p-3 text-sm">
+                <p className="font-medium text-foreground">Current cycle</p>
+                <p className="text-muted-foreground">
+                  {visitedTeachers.size}/{teachers.length} teachers visited
+                  · since {cycleStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </p>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCycleResetModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  resetCycle();
+                  setShowCycleResetModal(false);
+                  window.location.reload();
+                }}
+              >
+                Start New Cycle
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
