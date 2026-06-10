@@ -7,9 +7,10 @@ Update it **after every execution**. Keep entries append-only; newest at the top
 
 ## Execution History
 
-| Date | Total | Passed | Failed | Skipped | Pass Rate (executed) | Notes |
-|------|-------|--------|--------|---------|----------------------|-------|
-| 2026-06-10 | 22 | 17 | 0 | 5 | 100% (17/17) | First full run vs production. Driven via puppeteer-core/CDP on port 9222 (chrome-devtools MCP not connected). Account: umar.kabaili@yopmail.com. |
+| Date | Suite | Total | Passed | Failed | Skipped/NX | Notes |
+|------|-------|-------|--------|--------|------------|-------|
+| 2026-06-10 | Baseline | 22 | 17 | 0 | 5 | First full run vs production. CDP port 9222. Account: umar.kabaili@yopmail.com. |
+| 2026-06-10 | Training Flow | 15 | 5 | 1 | 9 | Staging (noor@yopmail.com). Completed Unit 1.1. **T10 module-gating VIOLATION found.** 2 partial, 7 not-executed (need destructive/logout setups). |
 
 ## Previously Executed Scenarios
 
@@ -55,6 +56,93 @@ Update it **after every execution**. Keep entries append-only; newest at the top
 ## Regression Summaries
 
 - **2026-06-10:** Full @regression sweep of `baseline-assessment.feature` (22 scenarios) against production. 17 PASS, 0 FAIL, 5 SKIPPED. Intro, navigation, progress, save/resume, tab-switch anti-cheat, submit gating, completion lock, and the persona-E pipeline all behave per spec. Exact spec strings matched for tab-switch warnings and resume toast. Submission scored 3% → Persona E; dashboard correctly showed profile card, unlocked modules, and the "already completed → redirect to dashboard" guard. Skips were due to single-account/no-answer-key (personas A–D) and inability to induce a DB failure (S22).
+- **2026-06-10 (Training Flow, staging, noor@yopmail.com):** First training-flow @regression run; completed **Unit 1.1** of Module 1 (7 slides → 2-situation practice, 2/2 100%). **5 PASS** (T2 slides→practice→complete chain, T4 sequential scenarios, T5 reload persistence, T7 practice-locked-while-slides-incomplete, T8 slides-alone ≠ complete) plus within-module sequential unlock (1.1 done → 1.2 unlocked, 1.3–1.6 stay locked; progress 2/25→3/25). **2 PARTIAL** (T6 no explicit message via stepper; T15 persistence observed but true disagreement not induced). **1 FAIL/VIOLATION** (T10: Module 2 Unit 2.1 accessible while Module 1 incomplete — module-level gating not enforced). **7 NOT EXECUTED** (need slides-only unit / mid-scenario abandon / logout-mid-unit / rapid-nav / out-of-order setups). Verdict: **FAIL** (per deterministic rule, ≥1 violation).
+
+---
+
+## Training Flow — Domain Knowledge
+
+The teacher training journey begins **after** the baseline is completed (the baseline gate;
+cross-checked by baseline S21). Key rules the agent validates:
+
+- **Sequential modules:** training is organized into modules; modules must be completed in
+  order. Module N+1 stays **locked** until module N is fully complete.
+- **Sessions within a module:** each module has multiple training **sessions**. Per session,
+  the order is fixed — **start → view all slides → (only then) practice test becomes available
+  → attempt practice → session marked complete**. The next session unlocks only after the
+  previous one is complete.
+- **Module completion:** a module is complete only when **all** its sessions are complete; a
+  **module-level practice test** must then be attempted **and passed**.
+- **Access control:** locked trainings/modules are unreachable; slides gate the practice
+  section; practice tests cannot be skipped; users cannot jump ahead.
+- **Persistence & authority:** progress saves after every completed step; completion status
+  updates correctly; on client/server disagreement the **server state is authoritative**.
+
+## Training Flow — Scenario Status (`training-flow.feature`, 15 @regression)
+
+| # | Scenario | Type | Last Result | Last Run |
+|---|----------|------|-------------|----------|
+| T1 | Complete training with only slides, no scenarios → can proceed | Positive | NOT EXECUTED (Unit 1.1 had practice; no slides-only unit this run) | 2026-06-10 |
+| T2 | Complete slides → auto-navigate to practice → complete scenario → complete | Positive | PASS (Finish Slides→Practice 2 situations→2/2 100%→Unit 1.1 Passed) | 2026-06-10 |
+| T3 | Complete slides, go to practice, return to slides → completion preserved | Positive | NOT EXECUTED (did not return to slides mid-flow) | 2026-06-10 |
+| T4 | Complete training with three practice scenarios in sequence | Positive | PASS (analog: 2 situations completed in sequence; spec says 3, mechanism identical) | 2026-06-10 |
+| T5 | Completion persists after closing browser & returning | Positive | PASS (fresh reload → Unit 1.1 still Passed; Progress 3/25 retained) | 2026-06-10 |
+| T6 | Cannot access practice before completing slides (shows blocking message) | Negative | PARTIAL (practice tab greyed & non-clickable; explicit message string not surfaced via stepper) | 2026-06-10 |
+| T7 | Practice section shown locked when slides incomplete | Negative | PASS ("Practice" step greyed/locked; click is a no-op until slides done) | 2026-06-10 |
+| T8 | Cannot mark complete with only slides done when scenarios exist | Negative | PASS (Finish Slides moved to practice but did NOT complete unit; Passed only after practice) | 2026-06-10 |
+| T9 | Navigate away mid-scenario & return → at practice, partial progress preserved | Negative | NOT EXECUTED (did not leave mid-scenario) | 2026-06-10 |
+| T10 | Cannot access subsequent modules if current training incomplete | Negative | **FAIL / VIOLATION** (Module 2 Unit 2.1 opened to /training while Module 1 only 3/7 — module-level gating not enforced) | 2026-06-10 |
+| T11 | After logout/session expiry, return → still in practice, slides still complete | Negative | NOT EXECUTED (no logout mid-unit) | 2026-06-10 |
+| T12 | Only slides, zero scenarios → immediately complete | Edge | NOT EXECUTED (no slides-only unit this run) | 2026-06-10 |
+| T13 | Rapid slide↔practice navigation → no state corruption | Edge | NOT EXECUTED (not stress-tested) | 2026-06-10 |
+| T14 | Complete scenarios in different order than presented → all recorded | Edge | NOT EXECUTED (practice enforces fixed Situation 1→2 order; out-of-order not offered) | 2026-06-10 |
+| T15 | Client/server completion disagreement → server state wins after refresh | Error | PARTIAL (fresh reload reflected persisted server state; true disagreement not induced) | 2026-06-10 |
+
+**Core behavior (not a numbered T): Within-module sequential unlock — PASS.** Completing Unit 1.1
+flipped Unit 1.2 from locked (`cursor:not-allowed`, opacity 0.6) to accessible (`cursor:pointer`);
+Units 1.3–1.6 remained locked. Completion status (Not Started→Passed) and Progress (2/25→3/25) updated correctly.
+
+> Excluded (not @regression — `@chunk` only, never run): "Revisit completed training to review
+> content", "Server fails to save slide completion status", "Practice section unlocks
+> inconsistently due to sync delay", "User encounters missing scenario content".
+
+## Training Flow — Known Notes & Open Items
+
+### UI selectors / facts mapped (2026-06-10, staging)
+- **Dashboard:** training modules render as expandable cards (`div.cursor-pointer`, `onclick`),
+  each with a `1/7`-style progress and a `›` chevron. Clicking a module **expands inline**
+  (accordion) to reveal its **Units** + a **Module Quiz** ("Attempt Quiz" button). URL stays `/dashboard`.
+- **Unit states (within an expanded module):** accessible unit row → `cursor:pointer`, opacity 1;
+  **locked** unit row → `cursor:not-allowed`, opacity `0.6` (and contains a lock indicator).
+  Status text per unit: `Passed` / `Not Started` / `In Progress`.
+- **Unit (training session) page:** clicking an unlocked unit navigates to `/training/{uuid}`.
+  Top shows a **"Slides → Practice"** stepper ("Practice" greyed until slides done).
+- **Slides:** header "Slide X of 7"; `Previous` (disabled on slide 1) / `Next`; on the **last**
+  slide the button becomes **"Finish Slides"** (NOT "Next").
+- **Practice:** scenario MCQ, header "Situation X of N"; 4 answer options are `<button>`s
+  (not radios); **"Check My Response"** is disabled until an option is selected; after checking,
+  advance with **"Next Situation"**, then on the last situation **"See Results"**.
+- **Results screen:** "Scenario Complete — You made the right call in N of N situations (XX%)"
+  with per-situation feedback; buttons: `Dashboard`, `Try Again`, `Finish Training`.
+
+### Open items
+- **T6 exact message** ("Please complete all training slides before attempting the practice
+  section.") was NOT surfaced by clicking the greyed Practice stepper — find the path/route that
+  triggers it (e.g. direct URL to practice), or confirm the spec message exists in this build.
+- **Module-quiz pass threshold** for module completion still unconfirmed (each module ends with
+  a "Module Quiz" / "Attempt Quiz" — verify the pass requirement).
+- **NOT-EXECUTED scenarios** (T1, T3, T9, T11, T12, T13, T14) need specific setups: a slides-only
+  unit (T1/T12), mid-scenario abandon/return (T3/T9), logout mid-unit (T11), rapid nav (T13),
+  out-of-order practice (T14 — UI currently enforces fixed order).
+
+## Training Flow — Findings / Inconsistencies
+
+- **[HIGH] T10 — Module-level sequential gating NOT enforced.** Spec (T10 + domain rule "Module
+  N+1 stays locked until module N is fully complete") expects the next module to remain locked
+  while the current is incomplete. Observed: with **Module 1 incomplete (3/7)**, **Module 2's
+  Unit 2.1 opened to `/training/{uuid}`** (Slide 1 of 7) with no block or message. Only
+  *within-module* unit sequencing is enforced (Unit 2.2/2.3 stayed locked). Module-to-module
+  progression is open. *Reported as a discrepancy for the team — not a prescribed fix.*
 
 ---
 
@@ -67,3 +155,6 @@ After each `/coaching-agent` run:
 4. Add any new recurring failure to **Common Failures**.
 5. Record any newly discovered defect in **Known Baseline Assessment Issues**.
 6. Append a one-paragraph entry to **Regression Summaries**.
+7. For **training-flow** runs, also update **Training Flow — Scenario Status** with each
+   scenario's latest result, and record newly discovered selectors, messages, or pass
+   thresholds under **Training Flow — Known Notes & Open Items**.
