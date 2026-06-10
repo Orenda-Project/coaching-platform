@@ -10,7 +10,7 @@ Feature: Baseline Assessment
 
   # ── POSITIVE SCENARIOS ───────────────────────────────────────────────────────
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: View intro screen before starting assessment
     Given I navigate to "/assessment/baseline"
     Then I see the "Baseline Assessment" intro card
@@ -23,7 +23,7 @@ Feature: Baseline Assessment
     And I see "Can resume if interrupted" notice
     And I see a "Start Assessment" button
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Start baseline assessment from intro screen
     Given I am on the baseline assessment intro screen
     When I click the "Start Assessment" button
@@ -35,7 +35,7 @@ Feature: Baseline Assessment
     And I see a "Previous" button (disabled)
     And I see a progress bar showing 0% completion
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Answer a question and navigate to next question
     Given I am on question 1 of the baseline
     When I select option "B"
@@ -45,7 +45,7 @@ Feature: Baseline Assessment
     And my answer for question 1 is saved in local state
     And the progress bar updates based on answered questions
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Next button jumps to first unanswered question
     Given I have answered questions 1, 2, and 4
     And I am on question 4
@@ -53,7 +53,7 @@ Feature: Baseline Assessment
     Then I am taken to question 3 (the first unanswered)
     And I see "Question 3 of N" indicator
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Navigate back to previous question and see saved answer
     Given I have answered questions 1 through 3
     And I am on question 3
@@ -62,20 +62,20 @@ Feature: Baseline Assessment
     And my previously selected answer for question 2 is still selected
     And I can modify my answer if needed
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Previous button is disabled on first question
     Given I am on question 1 of the baseline
     Then the "Previous" button is disabled
     And I cannot navigate backward
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Progress bar and counter update as questions are answered
     Given I am on the baseline assessment
     When I answer 5 out of N total questions
     Then the progress bar shows 5/N completion percentage
     And I see "5 of N answered" below the navigation buttons
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Submit button appears only when all questions are answered
     Given I have answered all except 2 questions
     Then I see a "Next" button (not Submit)
@@ -84,7 +84,7 @@ Feature: Baseline Assessment
     Then I see a "Submit" button (not Next)
     And the Submit button is enabled
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Successfully submit baseline and calculate persona A (≥75%)
     Given I have answered all questions with 80% correct
     When I click the "Submit" button
@@ -97,7 +97,7 @@ Feature: Baseline Assessment
     And I am redirected to the dashboard
     And the baseline results card shows my persona "A" and score "80%"
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Successfully submit baseline and calculate persona B (≥70%, <75%)
     Given I have answered all questions with 72% correct
     When I click the "Submit" button
@@ -105,7 +105,7 @@ Feature: Baseline Assessment
     And my baseline_score is saved as 72
     And I am redirected to the dashboard
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Successfully submit baseline and calculate persona C (≥65%, <70%)
     Given I have answered all questions with 67% correct
     When I click the "Submit" button
@@ -113,7 +113,7 @@ Feature: Baseline Assessment
     And my baseline_score is saved as 67
     And I am redirected to the dashboard
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Successfully submit baseline and calculate persona D (≥60%, <65%)
     Given I have answered all questions with 62% correct
     When I click the "Submit" button
@@ -121,7 +121,7 @@ Feature: Baseline Assessment
     And my baseline_score is saved as 62
     And I am redirected to the dashboard
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Successfully submit baseline and calculate persona E (<60%)
     Given I have answered all questions with 45% correct
     When I click the "Submit" button
@@ -141,7 +141,7 @@ Feature: Baseline Assessment
     And "Module 4" is NOT added to weak_modules (score ≥70%)
     And my profile.weak_modules is updated
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Auto-save progress to localStorage every 5 seconds
     Given I have started the baseline assessment
     And I have answered 3 questions
@@ -150,7 +150,7 @@ Feature: Baseline Assessment
     And the save includes currentIndex, answers, and timestamp
     And the localStorage key is "assessment_baseline_{user_id}"
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Resume baseline from saved localStorage progress
     Given I previously started the baseline and answered questions 1-3
     And my progress was auto-saved to localStorage
@@ -160,14 +160,14 @@ Feature: Baseline Assessment
     And I am taken to question 4 (next unanswered)
     And my previous answers for questions 1-3 are still selected
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Tab switch detection triggers first warning
     Given I have started the baseline assessment
     When I switch to another browser tab
     Then the tab switch count increments to 1
     And I see a warning toast "Warning: Switching tabs is recorded during assessment."
 
-  @chunk @positive
+  @chunk @positive @regression
   Scenario: Tab switch detection triggers second warning
     Given I have already switched tabs once
     When I switch to another browser tab again
@@ -237,21 +237,21 @@ Feature: Baseline Assessment
 
   # ── NEGATIVE SCENARIOS ───────────────────────────────────────────────────────
 
-  @chunk @negative
+  @chunk @negative @regression
   Scenario: Cannot access baseline assessment if already completed
     Given I have already completed the baseline assessment
     When I navigate to "/assessment/baseline"
     Then I am immediately redirected to "/dashboard"
     And I do not see the baseline questions
 
-  @chunk @negative
+  @chunk @negative  @regression
   Scenario: Cannot submit baseline when questions are not all answered
     Given I have answered 15 out of 18 questions
     Then I do not see a "Submit" button
     And I see a "Next" button instead
     And the "Next" button jumps to the first unanswered question
 
-  @chunk @negative
+  @chunk @negative @regression
   Scenario: Submit button is disabled while submitting
     Given I have answered all questions
     And I am on the last question
@@ -260,14 +260,14 @@ Feature: Baseline Assessment
     And the button is disabled
     And I cannot click it again until submission completes
 
-  @chunk @negative
+  @chunk @negative @regression
   Scenario: Cannot navigate to training modules without completing baseline
     Given I have not completed the baseline assessment
     When I view the dashboard
     Then all training module units are locked
     And I see lock icons on units
 
-  @chunk @negative
+  @chunk @negative @regression
   Scenario: Profile update fails during submission
     Given I have answered all baseline questions
     And the database update will fail
