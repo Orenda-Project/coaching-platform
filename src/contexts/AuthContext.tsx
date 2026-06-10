@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, phone: string, fullName?: string) => {
-    // Step 1: Create the auth user
+    // Step 1: Create the auth user in Supabase
     const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -83,50 +83,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: authError };
     }
 
-    // Step 2: Create the profile row using RPC function with elevated privileges
-    // The RPC function uses SECURITY DEFINER to bypass RLS, allowing profile creation
-    // immediately after signup even before email verification or session is fully active
+    // Step 2: Create the profile in PostgreSQL via backend API
+    // Uses the REST API endpoint which queries PostgreSQL directly
+    // This ensures PostgreSQL is the single source of truth for user profiles
     if (signUpData.user?.id) {
-      // Give the database a moment to fully create the auth user
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-      // Call RPC function that uses SECURITY DEFINER (bypasses RLS)
-      const { data: profileData, error: profileError } = await supabase.rpc(
-        'create_profile_after_signup',
-        {
-          user_id: signUpData.user.id,
-          phone_value: phone,
-          full_name_value: fullName || null,
-        }
-      );
-
-      if (profileError) {
-        console.error('Profile creation error:', {
-          message: profileError.message,
-          code: (profileError as Record<string, unknown>).code,
-          details: (profileError as Record<string, unknown>).details,
+      try {
+        const response = await fetch(`${apiUrl}/api/auth/signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            full_name: fullName || null,
+            phone,
+          }),
         });
 
-        // Handle specific database errors
-        const code = (profileError as Record<string, unknown>).code;
-        if (code === '23505') {
-          // Duplicate key violation
-          const message = profileError.message || '';
-          if (message.includes('phone')) {
+        if (!response.ok) {
+          const errorData = await response.json();
+          const errorMessage = errorData.detail || `API error: ${response.status}`;
+          console.error('Profile creation error:', {
+            status: response.status,
+            message: errorMessage,
+          });
+
+          // Handle specific HTTP errors
+          if (response.status === 409) {
             const userFriendlyError = new Error('This phone number is already registered. Please use a different phone number.');
             return { error: userFriendlyError };
           }
-          if (message.includes('profiles_pkey') || message.includes('id')) {
-            // This shouldn't happen but handle gracefully
-            const userFriendlyError = new Error('An account with this information already exists. Please try again.');
+          if (response.status === 400) {
+            const userFriendlyError = new Error(errorMessage || 'Invalid profile data. Please try again.');
             return { error: userFriendlyError };
           }
+
+          const apiError = new Error(errorMessage);
+          return { error: apiError };
         }
 
-        return { error: profileError };
-      }
+        const profileData = await response.json();
+        console.log('Profile created successfully for user:', signUpData.user.id, profileData);
 
-      console.log('Profile created successfully for user:', signUpData.user.id, profileData);
+        // Fetch the profile to populate the context
+        await fetchProfile(signUpData.user.id);
+      } catch (networkError) {
+        console.error('Network error during profile creation:', networkError);
+        const error = new Error('Failed to create profile. Please check your connection and try again.');
+        return { error };
+      }
     }
 
     return { error: null };
