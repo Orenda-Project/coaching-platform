@@ -495,27 +495,6 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const totalCount = teachers.length;
   const progressPercent = totalCount > 0 ? Math.round((visitedCount / totalCount) * 100) : 0;
 
-  // School-level observation frequency (14-day window)
-  const schoolFrequency = teachers.reduce((acc, teacher) => {
-    if (!acc[teacher.school]) {
-      acc[teacher.school] = { total: 0, visited: 0 };
-    }
-    acc[teacher.school].total += 1;
-    if (visitedTeachers.has(teacher.user_id)) {
-      acc[teacher.school].visited += 1;
-    }
-    return acc;
-  }, {} as Record<string, { total: number; visited: number }>);
-
-  const schoolStatus = Object.entries(schoolFrequency).map(([school, data]) => {
-    const visitedPercent = (data.visited / data.total) * 100;
-    let status: 'red' | 'yellow' | 'green';
-    if (visitedPercent < 60) status = 'red';
-    else if (visitedPercent < 85) status = 'yellow';
-    else status = 'green';
-    return { school, visited: data.visited, total: data.total, visitedPercent, status };
-  }).sort((a, b) => a.visitedPercent - b.visitedPercent);
-
   return (
     <div className="space-y-4">
       <div>
@@ -552,38 +531,6 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
           >
             Start New Cycle
           </button>
-        </div>
-      )}
-
-      {/* School-level observation frequency traffic light */}
-      {schoolStatus.length > 0 && (
-        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">School Status (14-day window)</h3>
-          <div className="space-y-2">
-            {schoolStatus.map((s) => {
-              const bgColor = s.status === 'red' ? 'bg-red-50 border-red-200' : s.status === 'yellow' ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200';
-              const textColor = s.status === 'red' ? 'text-red-900' : s.status === 'yellow' ? 'text-amber-900' : 'text-green-900';
-              const statusLabel = s.status === 'red' ? '🔴 Urgent' : s.status === 'yellow' ? '🟡 Warning' : '🟢 On Track';
-              return (
-                <div key={s.school} className={`border rounded-lg p-3 ${bgColor}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${textColor}`}>{s.school}</p>
-                      <p className={`text-xs ${textColor} opacity-80`}>
-                        {s.visited} of {s.total} teachers observed ({Math.round(s.visitedPercent)}%)
-                      </p>
-                    </div>
-                    <span className={`text-sm font-bold ${textColor}`}>{statusLabel}</span>
-                  </div>
-                  {s.status === 'red' && (
-                    <p className={`text-xs ${textColor} mt-2`}>
-                      ⚠️ {s.total - s.visited} teacher{s.total - s.visited !== 1 ? 's' : ''} haven't been observed in 14 days. Prioritize them today.
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
