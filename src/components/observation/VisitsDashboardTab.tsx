@@ -190,16 +190,9 @@ export function VisitsDashboardTab({
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground">Subject · Grade</p>
-              <div className="flex items-center gap-2">
-                <p className="text-foreground">
-                  {obs.subject} · {obs.grade}
-                </p>
-                {obs.is_multi_grade && (
-                  <span className="inline-block bg-blue-100 border border-blue-300 text-blue-800 text-xs px-2 py-0.5 rounded font-medium">
-                    Multi-grade
-                  </span>
-                )}
-              </div>
+              <p className="text-foreground">
+                {obs.subject} · {obs.grade}
+              </p>
             </div>
             {obs.planned_date && (
               <div>
