@@ -23,6 +23,7 @@ export interface ScheduleVisitPayload {
   planned_date?: string;
   arrival_time?: string;
   departure_time?: string;
+  is_multi_grade?: boolean;
 }
 
 export async function scheduleVisit(payload: ScheduleVisitPayload): Promise<CotObservation> {

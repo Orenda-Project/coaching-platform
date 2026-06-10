@@ -391,6 +391,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         planned_date: formData.planned_date,
         arrival_time: formData.arrival_time,
         departure_time: formData.departure_time,
+        is_multi_grade: formData.is_multi_grade,
       });
 
       console.log('[handleScheduleVisit] Visit created successfully:', data);

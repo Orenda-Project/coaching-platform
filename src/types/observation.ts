@@ -74,6 +74,7 @@ export interface CotObservation {
   planned_date?: string | null;
   arrival_time?: string | null;
   departure_time?: string | null;
+  is_multi_grade?: boolean | null;
   created_at: string;
   updated_at: string;
 }
