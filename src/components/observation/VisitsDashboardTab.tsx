@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, Trash2, Mic, Check, FileText, ChevronDown, MessageSquare, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Clock, CheckCircle2, Trash2, Mic, Check, FileText, ChevronDown, MessageSquare, AlertTriangle, ThumbsUp, ThumbsDown, MoreVertical } from 'lucide-react';
 import { TeacherAbsentModal } from './TeacherAbsentModal';
 import type { CotObservation } from '@/types/observation';
 import { supabase } from '@/integrations/supabase/client';
@@ -263,86 +264,79 @@ export function VisitsDashboardTab({
             </div>
           )}
 
-          <div className="flex gap-3 pt-2 justify-end">
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setAbsentObsId(obs.id)}
-                title="Teacher absent or unavailable"
-                className="h-8 w-8 p-0"
-              >
-                <AlertTriangle className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Absent</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  const date = new Date(obs.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-                  const time = obs.arrival_time?.slice(0, 5) || '—';
-                  const message = `Assalam o Alaikum ${obs.teacher_name}! Aap ko batana tha ke main ${date} ko ${time} baje ${obs.school_name} mein aap ki class visit ke liye aaon ga/gi. Visit type: ${obs.visit_type || 'FICO'}. Shukria! 🙏`;
-                  const encodedMsg = encodeURIComponent(message);
-                  window.open(`https://wa.me/?text=${encodedMsg}`, '_blank');
-                }}
-                title="Notify teacher on WhatsApp"
-                className="h-8 w-8 p-0"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">WhatsApp</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onStartDebrief(obs)}
-                disabled={obs.status === 'Draft' && obs.neo_status === 'processing'}
-                title="Give Neo Feedback"
-                className="h-8 w-8 p-0"
-              >
-                <Mic className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Feedback</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleSaveDraft(obs.id)}
-                title="Save as draft"
-                className="h-8 w-8 p-0"
-              >
-                <FileText className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Draft</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleMarkComplete(obs.id)}
-                title="Mark as complete"
-                className="h-8 w-8 p-0"
-              >
-                <Check className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Complete</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setDeleteConfirmId(obs.id)}
-                disabled={deleting === obs.id}
-                className="h-8 w-8 p-0"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Delete</span>
-            </div>
+          <div className="flex items-center justify-between pt-2">
+            <div />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48 p-2">
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setAbsentObsId(obs.id)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
+                    title="Teacher absent or unavailable"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>Absent</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const date = new Date(obs.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                      const time = obs.arrival_time?.slice(0, 5) || '—';
+                      const message = `Assalam o Alaikum ${obs.teacher_name}! Aap ko batana tha ke main ${date} ko ${time} baje ${obs.school_name} mein aap ki class visit ke liye aaon ga/gi. Visit type: ${obs.visit_type || 'FICO'}. Shukria! 🙏`;
+                      const encodedMsg = encodeURIComponent(message);
+                      window.open(`https://wa.me/?text=${encodedMsg}`, '_blank');
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
+                    title="Notify teacher on WhatsApp"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={() => onStartDebrief(obs)}
+                    disabled={obs.status === 'Draft' && obs.neo_status === 'processing'}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2 disabled:opacity-50"
+                    title="Give Neo Feedback"
+                  >
+                    <Mic className="w-4 h-4" />
+                    <span>Feedback</span>
+                  </button>
+                  <button
+                    onClick={() => handleSaveDraft(obs.id)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
+                    title="Save as draft"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Draft</span>
+                  </button>
+                  <button
+                    onClick={() => handleMarkComplete(obs.id)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
+                    title="Mark as complete"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Complete</span>
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmId(obs.id)}
+                    disabled={deleting === obs.id}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    title="Delete visit"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Feedback */}
