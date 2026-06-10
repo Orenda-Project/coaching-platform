@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, Text, ForeignKey, ARRAY, JSON, DateTime
+from sqlalchemy import Column, String, Integer, Boolean, Text, ForeignKey, ARRAY, JSON, DateTime, CheckConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -16,9 +16,13 @@ class Module(Base):
     order_number = Column(Integer)
     competencies = Column(String)
     persona_required = Column(ARRAY(String), default=[])
+    # Audience/track this module belongs to. NULL stays allowed for safety;
+    # existing rows are backfilled to the 'coach' track by the migration.
+    role_id = Column(String, ForeignKey("roles.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     trainings = relationship("Training", back_populates="module", cascade="all, delete-orphan")
+    role = relationship("Role", back_populates="modules")
 
     def to_dict(self):
         return {
@@ -29,6 +33,7 @@ class Module(Base):
             "order_number": self.order_number,
             "competencies": self.competencies,
             "persona_required": self.persona_required,
+            "role_id": self.role_id,
             "trainings": [t.to_dict() for t in self.trainings],
         }
 
@@ -43,9 +48,13 @@ class Training(Base):
     title = Column(String, nullable=False)
     description = Column(Text)
     order_number = Column(Integer)
+    # Audience/track this training belongs to. NULL stays allowed for safety;
+    # existing rows are backfilled to the 'coach' track by the migration.
+    role_id = Column(String, ForeignKey("roles.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     module = relationship("Module", back_populates="trainings")
+    role = relationship("Role", back_populates="trainings")
     content = relationship("TrainingContent", back_populates="training", cascade="all, delete-orphan")
     questions = relationship("Question", back_populates="training", cascade="all, delete-orphan")
     scenarios = relationship("Scenario", back_populates="training", cascade="all, delete-orphan")
@@ -57,6 +66,7 @@ class Training(Base):
             "title": self.title,
             "description": self.description,
             "order_number": self.order_number,
+            "role_id": self.role_id,
             "content": [c.to_dict() for c in self.content],
             "quiz": {
                 "passing_score_percent": 80,
@@ -103,12 +113,25 @@ class TrainingContent(Base):
 
 
 class Question(Base):
-    """Quiz question for a training."""
+    """Quiz question belonging to EITHER a training OR a test (exactly one).
+
+    A DB CHECK constraint (ck_questions_one_parent) enforces that exactly one of
+    training_id / test_id is set. Existing rows keep training_id and have a NULL
+    test_id, so they satisfy the constraint unchanged.
+    """
 
     __tablename__ = "export_questions"
+    __table_args__ = (
+        CheckConstraint(
+            "num_nonnulls(training_id, test_id) = 1",
+            name="ck_questions_one_parent",
+        ),
+    )
 
     id = Column(String, primary_key=True)
-    training_id = Column(String, ForeignKey("export_trainings.id"), nullable=False)
+    # Relaxed to nullable: a question now belongs to a training OR a test.
+    training_id = Column(String, ForeignKey("export_trainings.id"), nullable=True, index=True)
+    test_id = Column(String, ForeignKey("tests.id"), nullable=True, index=True)
     question_type = Column(String)  # 'mcq', 'open'
     question_text = Column(Text, nullable=False)
     order_number = Column(Integer)
@@ -116,11 +139,14 @@ class Question(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     training = relationship("Training", back_populates="questions")
+    test = relationship("Test", back_populates="questions")
     options = relationship("Option", back_populates="question", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
             "id": self.id,
+            "training_id": self.training_id,
+            "test_id": self.test_id,
             "question_text": self.question_text,
             "question_type": self.question_type,
             "order_number": self.order_number,
