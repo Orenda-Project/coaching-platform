@@ -374,7 +374,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
 
     setSchedulingTeacherId(teacher.user_id);
     try {
-      const data = await scheduleVisit({
+      const payload: any = {
         observer_id: user.id,
         teacher_name: teacher.teacher_name,
         school_name: teacher.school,
@@ -391,8 +391,13 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         planned_date: formData.planned_date,
         arrival_time: formData.arrival_time,
         departure_time: formData.departure_time,
-        is_multi_grade: formData.is_multi_grade,
-      });
+      };
+
+      if (formData.is_multi_grade) {
+        payload.is_multi_grade = true;
+      }
+
+      const data = await scheduleVisit(payload);
 
       console.log('[handleScheduleVisit] Visit created successfully:', data);
       toast.success('Visit scheduled!');
