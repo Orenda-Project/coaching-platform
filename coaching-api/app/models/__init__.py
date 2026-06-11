@@ -8,6 +8,8 @@ from app.models.training import (
     ScenarioOption as ExportScenarioOption,
 )
 from app.models.user import User, UserProfile
+from app.models.role import Role
+from app.models.test import Test
 from app.models.assessment import Assessment, AssessmentResponse, AssessmentAttempt
 from app.models.training_progress import TrainingProgress
 from app.models.analytics import AnalyticsEvent, UserMetrics
@@ -24,6 +26,8 @@ __all__ = [
     "ExportScenarioOption",
     "User",
     "UserProfile",
+    "Role",
+    "Test",
     "Assessment",
     "AssessmentResponse",
     "AssessmentAttempt",
