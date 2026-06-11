@@ -1,19 +1,16 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { authApiClient, CertificateData } from "@/lib/apiClients/authApiClient";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PersonaBadge } from "@/components/PersonaBadge";
 import { ArrowLeft, Download, GraduationCap, Award } from "lucide-react";
-import { Tables } from "@/integrations/supabase/types";
-
-type Certificate = Tables<"certificates">;
 
 export default function CertificatePage() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const [certificate, setCertificate] = useState<Certificate | null>(null);
+  const [certificate, setCertificate] = useState<CertificateData | null>(null);
   const [loading, setLoading] = useState(true);
   const certRef = useRef<HTMLDivElement>(null);
 
@@ -23,21 +20,20 @@ export default function CertificatePage() {
 
   const loadCertificate = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("certificates")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    setCertificate(data);
+    try {
+      const data = await authApiClient.getCertificate(user.id);
+      setCertificate(data);
+    } catch {
+      setCertificate(null);
+    }
     setLoading(false);
   };
 
   const handleDownload = () => {
     if (!certRef.current) return;
-    // Use print CSS to generate PDF
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      toast("Please allow popups to download the certificate");
+      alert("Please allow popups to download the certificate");
       return;
     }
     printWindow.document.write(`
@@ -69,7 +65,7 @@ export default function CertificatePage() {
           <div class="name">${profile?.full_name || profile?.phone || "Coach"}</div>
           <p class="details">has successfully completed the Coach Training & Certification Program</p>
           <p class="details">Persona: ${certificate?.persona || profile?.persona || "N/A"} | Score: ${profile?.endline_score ? Math.round(profile.endline_score) + '%' : 'N/A'}</p>
-          <p class="details">Date: ${certificate ? new Date(certificate.issued_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString()}</p>
+          <p class="details">Date: ${certificate?.issued_at ? new Date(certificate.issued_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : new Date().toLocaleDateString()}</p>
           <br/><br/>
           <p class="details">____________________________</p>
           <p class="details">Authorized Signature</p>
@@ -133,7 +129,6 @@ export default function CertificatePage() {
             </Button>
           </div>
 
-          {/* Certificate preview */}
           <Card className="glass-card overflow-hidden" ref={certRef}>
             <div className="p-8 sm:p-12 text-center border-4 border-primary m-3 relative">
               <div className="absolute inset-2 border border-secondary pointer-events-none" />
@@ -154,9 +149,9 @@ export default function CertificatePage() {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                {new Date(certificate.issued_at).toLocaleDateString("en-US", {
+                {certificate.issued_at ? new Date(certificate.issued_at).toLocaleDateString("en-US", {
                   year: "numeric", month: "long", day: "numeric",
-                })}
+                }) : ""}
               </p>
               <div className="mt-8">
                 <div className="w-40 border-b border-foreground/30 mx-auto mb-1" />
@@ -169,9 +164,4 @@ export default function CertificatePage() {
       </main>
     </div>
   );
-}
-
-function toast(msg: string) {
-  // Fallback simple toast
-  alert(msg);
 }

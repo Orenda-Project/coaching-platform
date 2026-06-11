@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useAnalytics } from "@/hooks/useAnalytics";
+
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
 import ScenarioCard from "@/components/scenario/ScenarioCard";
 import FeedbackCard from "@/components/scenario/FeedbackCard";
 import RevealSlides, { Slide } from "@/components/scenario/RevealSlides";
@@ -89,61 +90,57 @@ export default function ScenarioFlow({ contentCompleted = false }: ScenarioFlowP
           return;
         }
 
-        // Fetch scenarios
-        const { data: scenarioData, error: scenarioError } = await supabase
-          .from("scenarios")
-          .select("*")
-          .eq("unit_id", trainingId)
-          .eq("is_active", true)
-          .order("order_number");
-
-        if (scenarioError) throw scenarioError;
-
-        if (!scenarioData || scenarioData.length === 0) {
+        // Fetch training details (includes nested scenarios) from backend API
+        const trainingRes = await fetch(`${apiUrl}/api/training/${trainingId}`);
+        if (!trainingRes.ok) {
           toast.info("No scenarios available for this unit yet.");
           setPhase("loading");
           return;
         }
 
-        // Fetch options for all scenarios
-        const scenarioIds = (scenarioData as Array<{ id: string }>).map((s) => s.id);
-        const { data: optionsData, error: optionsError } = await supabase
-          .from("scenario_options")
-          .select("*")
-          .in("scenario_id", scenarioIds);
+        const trainingData = await trainingRes.json();
+        setTrainingTitle(trainingData.title || "");
+        setUnitTitle(trainingData.title || "");
 
-        if (optionsError) throw optionsError;
+        const rawScenarios = trainingData.scenarios || [];
+        if (rawScenarios.length === 0) {
+          toast.info("No scenarios available for this unit yet.");
+          setPhase("loading");
+          return;
+        }
 
-        // Merge options into scenarios
-        const scenariosWithOptions = (scenarioData as Array<Record<string, unknown>>).map((scenario) => ({
-          ...scenario,
-          feedback_slides: scenario.feedback_slides || [],
-          options: optionsData?.filter(
-            (opt) => (opt as Record<string, unknown>).scenario_id === scenario.id
-          ) || [],
+        // Map backend scenario shape to component Scenario shape
+        const scenariosWithOptions: Scenario[] = rawScenarios.map((s: Record<string, unknown>, idx: number) => ({
+          id: s.id as string,
+          unit_id: trainingId,
+          order_number: idx + 1,
+          situation: s.situation as string,
+          question: s.question as string,
+          difficulty: s.difficulty as string,
+          feedback_slides: null,
+          reveal_content: null,
+          deep_content: null,
+          is_active: true,
+          options: ((s.options as Array<Record<string, unknown>>) || []).map((o) => ({
+            id: o.letter as string || String(Math.random()),
+            scenario_id: s.id as string,
+            option_letter: (o.letter as string) || "",
+            option_text: (o.text as string) || "",
+            is_correct: o.is_correct as boolean,
+            rationale: (o.rationale as string) || "",
+            principle_tag: null,
+          })),
         }));
 
-        setScenarios(scenariosWithOptions as unknown as Scenario[]);
+        setScenarios(scenariosWithOptions);
         startTimeRef.current = Date.now();
         setPhase("scenario");
-
-        // Fetch unit/training title for header
-        const { data: trainingData } = await supabase
-          .from("trainings")
-          .select("title")
-          .eq("id", trainingId)
-          .single();
-
-        if (trainingData) {
-          setTrainingTitle(trainingData.title);
-          setUnitTitle(trainingData.title);
-        }
 
         // Track initial view
         track({
           event_type: "scenario_viewed",
           unit_id: trainingId,
-          scenario_id: scenarioData[0]?.id,
+          scenario_id: scenariosWithOptions[0]?.id,
         });
       } catch (error) {
         console.error("Error loading scenarios:", error);
@@ -188,18 +185,16 @@ export default function ScenarioFlow({ contentCompleted = false }: ScenarioFlowP
     try {
       const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000);
 
-      // Save response. `as never` bypasses the typed Insert overload — see
-      // .claude/agents/pr-reviewer.md Rule 10 (cast permitted with comment).
-      const { error } = await supabase.from("scenario_responses").insert({
+      // Scenario response tracking — logged locally only (no Supabase write).
+      // Backend endpoint for scenario responses can be added later if needed.
+      console.log("Scenario response:", {
         user_id: user.id,
         scenario_id: currentScenario.id,
         chosen_option: selectedOption,
         is_correct: isCorrect,
         time_spent_seconds: timeSpent,
         attempt_number: 1,
-      } as never);
-
-      if (error) throw error;
+      });
 
       // Track the decision
       track({

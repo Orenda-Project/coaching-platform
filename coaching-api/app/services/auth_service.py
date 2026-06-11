@@ -4,8 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
-from typing import Optional, Dict, Any
-from app.models import User, UserProfile
+from typing import Optional, Dict, Any, List
+from app.models import User, UserProfile, UserRole
+from app.models.certificate import Certificate
+import uuid
 
 
 class AuthService:
@@ -15,16 +17,6 @@ class AuthService:
         self.db = db
 
     def create_user(self, user_id: str, email: str) -> Optional[User]:
-        """
-        Create a new user record.
-
-        Args:
-            user_id: UUID from Supabase auth
-            email: User's email address
-
-        Returns:
-            Created User object or None if error
-        """
         try:
             user = User(id=user_id, email=email)
             self.db.add(user)
@@ -42,18 +34,6 @@ class AuthService:
         phone: Optional[str] = None,
         role: str = "learner"
     ) -> Optional[UserProfile]:
-        """
-        Create a user profile after signup.
-
-        Args:
-            user_id: UUID from user creation
-            full_name: User's full name
-            phone: User's phone number
-            role: User role (learner, coach, admin)
-
-        Returns:
-            Created UserProfile object or None if error
-        """
         try:
             profile = UserProfile(
                 id=user_id,
@@ -71,44 +51,33 @@ class AuthService:
             return None
 
     def get_user_by_id(self, user_id: str) -> Optional[User]:
-        """Get user by ID."""
         return self.db.execute(
             select(User).filter(User.id == user_id)
         ).scalar_one_or_none()
 
     def get_user_by_email(self, email: str) -> Optional[User]:
-        """Get user by email address."""
         return self.db.execute(
             select(User).filter(User.email == email)
         ).scalar_one_or_none()
 
     def get_profile(self, user_id: str) -> Optional[UserProfile]:
-        """Get user profile by user ID."""
         return self.db.execute(
             select(UserProfile).filter(UserProfile.user_id == user_id)
         ).scalar_one_or_none()
 
-    def update_profile(
-        self,
-        user_id: str,
-        **kwargs
-    ) -> Optional[UserProfile]:
-        """
-        Update user profile.
-
-        Args:
-            user_id: User ID
-            **kwargs: Fields to update (full_name, phone, avatar_url, bio, role, is_active)
-
-        Returns:
-            Updated UserProfile or None if not found
-        """
+    def update_profile(self, user_id: str, **kwargs) -> Optional[UserProfile]:
         profile = self.get_profile(user_id)
         if not profile:
             return None
 
-        # Allowed fields to update
-        allowed_fields = {"full_name", "phone", "avatar_url", "bio", "role", "is_active"}
+        allowed_fields = {
+            "full_name", "phone", "avatar_url", "bio", "role", "is_active",
+            "persona", "baseline_completed", "baseline_score",
+            "endline_completed", "endline_score", "weak_modules",
+            "baseline_attempt_count", "endline_attempt_count",
+            "region", "sub_region", "school_id", "teacher_ids",
+            "qualifications", "experiences",
+        }
         for key, value in kwargs.items():
             if key in allowed_fields:
                 setattr(profile, key, value)
@@ -122,19 +91,9 @@ class AuthService:
             return None
 
     def confirm_email(self, user_id: str) -> Optional[User]:
-        """
-        Mark email as confirmed.
-
-        Args:
-            user_id: User ID
-
-        Returns:
-            Updated User or None if not found
-        """
         user = self.get_user_by_id(user_id)
         if not user:
             return None
-
         user.email_confirmed_at = datetime.utcnow()
         try:
             self.db.commit()
@@ -145,19 +104,9 @@ class AuthService:
             return None
 
     def delete_user(self, user_id: str) -> bool:
-        """
-        Delete user and profile.
-
-        Args:
-            user_id: User ID
-
-        Returns:
-            True if deleted, False if not found
-        """
         user = self.get_user_by_id(user_id)
         if not user:
             return False
-
         try:
             self.db.delete(user)
             self.db.commit()
@@ -167,32 +116,58 @@ class AuthService:
             return False
 
     def list_users(self, limit: int = 100, offset: int = 0) -> tuple[list[User], int]:
-        """
-        List all users with pagination.
-
-        Args:
-            limit: Number of results
-            offset: Results offset
-
-        Returns:
-            Tuple of (users list, total count)
-        """
         from sqlalchemy import func
-
-        # Get total count
         total = self.db.execute(
             select(func.count(User.id))
         ).scalar() or 0
-
-        # Get paginated results
         users = self.db.execute(
             select(User).limit(limit).offset(offset)
         ).scalars().all()
-
         return list(users), total
 
     def user_exists(self, email: str) -> bool:
-        """Check if user with email exists."""
         return self.db.execute(
             select(User).filter(User.email == email)
         ).scalar_one_or_none() is not None
+
+    # --- Roles ---
+    def get_user_roles(self, user_id: str) -> List[str]:
+        roles = self.db.execute(
+            select(UserRole.role).filter(UserRole.user_id == user_id)
+        ).scalars().all()
+        # Also check profile.role for admin/coach
+        profile = self.get_profile(user_id)
+        role_set = set(roles)
+        if profile and profile.role in ("admin", "coach"):
+            role_set.add(profile.role)
+        return list(role_set)
+
+    # --- Certificates ---
+    def get_certificate(self, user_id: str) -> Optional[Certificate]:
+        return self.db.execute(
+            select(Certificate).filter(Certificate.user_id == user_id)
+        ).scalar_one_or_none()
+
+    def upsert_certificate(self, user_id: str, certificate_id: str, persona: Optional[str] = None) -> Optional[Certificate]:
+        existing = self.get_certificate(user_id)
+        now = datetime.utcnow()
+        if existing:
+            existing.certificate_id = certificate_id
+            existing.persona = persona
+            existing.issued_at = now
+        else:
+            existing = Certificate(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                certificate_id=certificate_id,
+                persona=persona,
+                issued_at=now,
+            )
+            self.db.add(existing)
+        try:
+            self.db.commit()
+            self.db.refresh(existing)
+            return existing
+        except Exception:
+            self.db.rollback()
+            return None

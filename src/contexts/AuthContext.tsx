@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { Tables } from "@/integrations/supabase/types";
+import { authApiClient, UserProfile } from "@/lib/apiClients/authApiClient";
 
-type Profile = Tables<"profiles">;
+type Profile = UserProfile;
 type SignUpError = AuthError | Error | null;
 
 interface AuthContextType {
@@ -26,16 +26,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    setProfile(data);
+    try {
+      const data = await authApiClient.getProfile(userId);
+      setProfile(data);
+    } catch (err: unknown) {
+      // Profile not found in PostgreSQL — auto-create for pre-migration Supabase users
+      if ((err as { status?: number }).status === 404) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const email = session?.user?.email;
+          if (email) {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const res = await fetch(`${apiUrl}/api/auth/signup`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, user_id: userId }),
+            });
+            if (res.ok || res.status === 409) {
+              // Profile created or user already exists — retry fetch
+              const data = await authApiClient.getProfile(userId);
+              setProfile(data);
+              return;
+            }
+          }
+        } catch (createErr) {
+          console.error("Failed to auto-create profile:", createErr);
+        }
+      }
+      console.error("Failed to fetch profile from backend:", err);
+      setProfile(null);
+    }
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) {
+      authApiClient.clearCache();
+      await fetchProfile(user.id);
+    }
   };
 
   useEffect(() => {
@@ -84,55 +111,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Step 2: Create the profile in PostgreSQL via backend API
-    // Uses the REST API endpoint which queries PostgreSQL directly
-    // This ensures PostgreSQL is the single source of truth for user profiles
     if (signUpData.user?.id) {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
       try {
         const response = await fetch(`${apiUrl}/api/auth/signup`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email,
             full_name: fullName || null,
             phone,
+            user_id: signUpData.user.id,
           }),
         });
 
         if (!response.ok) {
           const errorData = await response.json();
           const errorMessage = errorData.detail || `API error: ${response.status}`;
-          console.error('Profile creation error:', {
-            status: response.status,
-            message: errorMessage,
-          });
+          console.error('Profile creation error:', { status: response.status, message: errorMessage });
 
-          // Handle specific HTTP errors
           if (response.status === 409) {
-            const userFriendlyError = new Error('This phone number is already registered. Please use a different phone number.');
-            return { error: userFriendlyError };
+            return { error: new Error('This phone number is already registered. Please use a different phone number.') };
           }
           if (response.status === 400) {
-            const userFriendlyError = new Error(errorMessage || 'Invalid profile data. Please try again.');
-            return { error: userFriendlyError };
+            return { error: new Error(errorMessage || 'Invalid profile data. Please try again.') };
           }
-
-          const apiError = new Error(errorMessage);
-          return { error: apiError };
+          return { error: new Error(errorMessage) };
         }
 
         const profileData = await response.json();
         console.log('Profile created successfully for user:', signUpData.user.id, profileData);
-
-        // Fetch the profile to populate the context
         await fetchProfile(signUpData.user.id);
       } catch (networkError) {
         console.error('Network error during profile creation:', networkError);
-        const error = new Error('Failed to create profile. Please check your connection and try again.');
-        return { error };
+        return { error: new Error('Failed to create profile. Please check your connection and try again.') };
       }
     }
 
