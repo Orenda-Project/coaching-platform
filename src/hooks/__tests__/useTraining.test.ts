@@ -327,6 +327,7 @@ describe("useTraining Hook", () => {
     });
 
     it("should provide user-friendly error message on server error", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const apiError = new Error("Failed to fetch trainings") as any;
       apiError.status = 500;
       const mockGetTrainings = vi.fn().mockRejectedValue(apiError);

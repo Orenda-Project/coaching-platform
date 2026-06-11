@@ -65,7 +65,9 @@ export function VisitsDashboardTab({
 
       const weak: string[] = [];
       if (latest.dc_results?.section_b) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const indicators = latest.dc_results.section_b as Record<string, any>;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(indicators).forEach(([key, val]: [string, any]) => {
           if (val?.score === 'no' || val?.score === 'partial') {
             weak.push(key.replace(/_/g, ' '));
@@ -455,6 +457,7 @@ export function VisitsDashboardTab({
                 <div>
                   <p className="font-medium text-foreground mb-1">NEO Section Scores</p>
                   <div className="grid grid-cols-2 gap-2">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {Object.entries(obs.neo_results.section_scores).map(([section, score]: [string, any]) => (
                       <div key={section} className="bg-muted p-2 rounded">
                         <span className="text-xs text-muted-foreground">{section}</span>

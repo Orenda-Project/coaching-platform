@@ -780,6 +780,7 @@ describe("AssessmentApiClient", () => {
         await client.getAssessment("assessment-123");
         expect.fail("Should have thrown");
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const error = err as any;
         expect(error.status).toBe(403);
       }
