@@ -136,34 +136,34 @@ export default function DCDashboard({ teachers, onScheduleVisit, coachName, subR
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Teachers</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teachers.length}</div>
+            <div className="text-3xl font-bold">{teachers.length}</div>
             <p className="text-xs text-muted-foreground mt-1">with DC observations</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold">
               {(teachers.reduce((sum, t) => sum + t.overall_percentage, 0) / teachers.length).toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">across all indicators</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow border-l-4 border-l-red-600">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Needs Support</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-3xl font-bold text-red-600">
               {teachers.filter(t => t.overall_percentage < 60).length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">below 60% threshold</p>

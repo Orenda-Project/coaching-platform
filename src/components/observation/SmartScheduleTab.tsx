@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import DCDashboard from './DCDashboard';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { scheduleVisit, listObservationsForObserver } from '@/data/observations';
@@ -527,12 +529,14 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <button
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => setShowCycleResetModal(true)}
-            className="text-xs font-medium text-slate-600 hover:text-slate-800 mt-2 underline"
+            className="mt-2"
           >
             Start New Cycle
-          </button>
+          </Button>
         </div>
       )}
 
@@ -551,8 +555,9 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
       {/* Cycle Reset Confirmation Modal */}
       {showCycleResetModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full space-y-4">
-            <h3 className="font-semibold text-foreground">Start New Cycle?</h3>
+          <Card className="w-full max-w-sm">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold text-foreground">Start New Cycle?</h3>
             <p className="text-sm text-muted-foreground">
               Your progress will reset to 0. Previous cycle data will be saved.
             </p>
@@ -580,7 +585,8 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
                 Start New Cycle
               </Button>
             </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

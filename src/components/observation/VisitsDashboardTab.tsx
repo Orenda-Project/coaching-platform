@@ -168,13 +168,13 @@ export function VisitsDashboardTab({
     const isDraft = obs.status === 'Draft';
 
     return (
-    <Card className={`hover:shadow-md transition-shadow ${isDraft ? 'border-2 border-dashed border-amber-300 bg-amber-50/30' : ''}`}>
+    <Card className={`hover:shadow-lg transition-all duration-200 ${isDraft ? 'border-2 border-dashed border-amber-300 bg-amber-50/30' : ''}`}>
       <CardContent className="p-5">
         <div className="space-y-3">
           <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold text-foreground">{obs.teacher_name}</h3>
-              <p className="text-sm text-muted-foreground">{obs.school_name}</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-foreground truncate">{obs.teacher_name}</h3>
+              <p className="text-sm text-muted-foreground truncate">{obs.school_name}</p>
             </div>
             {isDraft && (
               <span className="inline-block bg-amber-100 border border-amber-300 text-amber-800 text-xs px-2 py-1 rounded font-medium">
@@ -368,6 +368,7 @@ export function VisitsDashboardTab({
   };
 
   const CompletedVisitCard = ({ obs }: { obs: CotObservation }) => {
+    const history = teacherHistory.get(obs.teacher_name);
     const [expanded, setExpanded] = useState(false);
 
     const score = obs.neo_results?.overall_score ?? obs.total_score ?? null;
@@ -376,16 +377,16 @@ export function VisitsDashboardTab({
     const scoreLabelColor = scoreBand === 'green' ? 'text-green-700 bg-green-50 border-green-200' : scoreBand === 'yellow' ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-red-700 bg-red-50 border-red-200';
 
     return (
-    <Card>
+    <Card className="hover:shadow-lg transition-all duration-200">
       <CardContent className="p-5">
         <div className="space-y-3">
           {/* Context first: who, what, when */}
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold text-foreground">{obs.teacher_name}</h3>
-              <p className="text-sm text-muted-foreground">{obs.school_name}</p>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-foreground truncate">{obs.teacher_name}</h3>
+              <p className="text-sm text-muted-foreground truncate">{obs.school_name}</p>
             </div>
-            <div className="flex items-center gap-1 text-green-600">
+            <div className="flex items-center gap-1 text-green-600 shrink-0">
               <CheckCircle2 className="w-4 h-4" />
               <span className="text-sm font-medium">Visited</span>
             </div>
