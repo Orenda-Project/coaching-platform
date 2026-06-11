@@ -85,22 +85,9 @@ export default function Dashboard() {
     const allTrainings = (trainingsRes.trainings || []) as Training[];
     const progressData = (progressRes.progress || []) as TrainingProgress[];
 
-    // Module visibility logic:
-    // - Coaches: Always show all modules (regardless of persona or vacation mode)
-    // - Persona E: Always show all modules
-    // - Other personas: Show Module 1 (mandatory) + modules matching weak_modules from baseline
+    // All users see all modules after baseline completion (vacation lock mode)
+    // Persona determines the learning path recommendation, not module access
     let assignedModules = allModules;
-    if (isCoach || profile.persona === "E") {
-      // Coaches and Persona E see all modules
-      assignedModules = allModules;
-    } else {
-      // Everyone else: show persona-based filtering (Module 1 + weak_modules)
-      const weakModules = profile.weak_modules || [];
-      assignedModules = allModules.filter(
-        (m) =>
-          m.is_mandatory || weakModules.some((wm) => m.title.startsWith(wm)),
-      );
-    }
     const assignedModuleIds = new Set(assignedModules.map((m) => m.id));
     const assignedTrainings = allTrainings.filter(
       (t) => t.module_id && assignedModuleIds.has(t.module_id),

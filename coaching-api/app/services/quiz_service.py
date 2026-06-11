@@ -1,3 +1,5 @@
+import random
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.models import Module, Question, ExportScenario, Training, AssessmentContent
@@ -190,7 +192,7 @@ class QuizService:
                     "question_id": question.id,
                     "order_number": opt.order_number,
                 }
-                for opt in sorted(question.options, key=lambda x: x.order_number or 0)
+                for opt in self._shuffled(question.options)
             ],
         }
 
@@ -208,7 +210,7 @@ class QuizService:
                     "text": opt.option_text,
                     "is_correct": opt.is_correct,
                 }
-                for i, opt in enumerate(sorted(question.options, key=lambda x: x.order_number or 0))
+                for i, opt in enumerate(self._shuffled(question.options))
             ],
         }
 
@@ -228,6 +230,13 @@ class QuizService:
                     "is_correct": opt.is_correct,
                     "rationale": opt.rationale,
                 }
-                for opt in sorted(scenario.options, key=lambda x: x.letter or "")
+                for opt in self._shuffled(scenario.options)
             ],
         }
+
+    @staticmethod
+    def _shuffled(items) -> list:
+        """Return a shuffled copy of items (does not mutate the original)."""
+        copied = list(items)
+        random.shuffle(copied)
+        return copied
