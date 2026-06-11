@@ -121,7 +121,7 @@ export function VisitsDashboardTab({
       if (error) throw error;
 
       toast.success('Visit saved to draft');
-      onRefresh();
+      setTimeout(() => onRefresh(), 800);
     } catch (err) {
       console.error('Failed to save draft:', err);
       toast.error('Failed to save draft');
@@ -143,7 +143,7 @@ export function VisitsDashboardTab({
       if (error) throw error;
 
       toast.success('Visit marked complete');
-      onRefresh();
+      setTimeout(() => onRefresh(), 800);
     } catch (err) {
       console.error('Failed to mark visit complete:', err);
       toast.error('Failed to mark visit complete');
@@ -214,6 +214,12 @@ export function VisitsDashboardTab({
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Departure</p>
                 <p className="text-foreground">{obs.departure_time.slice(0, 5)}</p>
+              </div>
+            )}
+            {history?.lastDate && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Last Visited</p>
+                <p className="text-foreground">{history.lastDate}</p>
               </div>
             )}
           </div>
