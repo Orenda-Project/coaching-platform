@@ -1,0 +1,8 @@
+# AEO Baseline Assessment feature scope
+
+# Frontend — assessment flow, scoring/persona logic, results, and dashboard gating
+src/pages/Assessment.tsx
+src/hooks/useAssessment.ts
+src/lib/apiClients/assessmentApiClient.ts
+src/components/BaselineResultsCard.tsx
+src/pages/Dashboard.tsx
