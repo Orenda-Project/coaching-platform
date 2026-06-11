@@ -50,12 +50,30 @@ export function getVisitInterval(tier: PriorityTier): number {
   return intervals[tier];
 }
 
-// Determine score trend by comparing last two observations
+// Determine score trend by comparing last three observations (3-obs rolling)
+// Only flag as 'falling' or 'improving' if the pattern holds across 3 visits
 export function getScoreTrend(
   currentScore: number | null,
-  previousScore: number | null
+  previousScore: number | null,
+  twoVisitsBackScore: number | null = null
 ): 'falling' | 'flat' | 'improving' | null {
   if (currentScore === null || previousScore === null) return null;
+
+  // If we have 3 observations, use 3-obs rolling trend
+  if (twoVisitsBackScore !== null) {
+    const current = currentScore;
+    const prev = previousScore;
+    const twoBacks = twoVisitsBackScore;
+
+    // Falling: 3 observations show consistent decline
+    if (current < prev - 5 && prev < twoBacks - 5) return 'falling';
+    // Improving: 3 observations show consistent improvement
+    if (current > prev + 5 && prev > twoBacks + 5) return 'improving';
+    // Otherwise flat even if one obs varies
+    return 'flat';
+  }
+
+  // Fallback to 2-obs comparison if only 2 observations available
   if (currentScore < previousScore - 5) return 'falling';
   if (currentScore > previousScore + 5) return 'improving';
   return 'flat';
