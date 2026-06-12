@@ -24,6 +24,7 @@ _cors_origins = [
     "https://coaching-platform-staging.up.railway.app",
     # Railway production
     "https://coaching-platform-production.up.railway.app",
+    "https://coaching-platform-production-43ff.up.railway.app",
 ]
 # Allow extra origins from env (comma-separated)
 _extra = os.environ.get("CORS_ORIGINS", "")

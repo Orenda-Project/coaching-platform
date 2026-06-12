@@ -79,3 +79,10 @@ export async function updateObservationStatus(
     { method: 'PUT', body: JSON.stringify({ status }) },
   );
 }
+
+export async function deleteObservation(observation_id: string): Promise<void> {
+  await apiFetch<unknown>(
+    `${API_URL}/api/coaching/observations/${observation_id}`,
+    { method: 'DELETE' },
+  );
+}

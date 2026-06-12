@@ -33,7 +33,7 @@ class User(Base):
 class UserProfile(Base):
     """User profile and metadata."""
 
-    __tablename__ = "user_profiles"
+    __tablename__ = "profiles"
 
     id = Column(String, primary_key=True)  # Same as user.id
     user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True, index=True)

@@ -457,6 +457,21 @@ async def create_observation(
     return observation.to_dict()
 
 
+@router.delete("/observations/{observation_id}", status_code=200)
+async def delete_observation(
+    observation_id: str,
+    db: DbSession = Depends(get_db),
+):
+    """Delete an observation by ID."""
+    observation = db.query(CotObservation).filter(CotObservation.id == observation_id).first()
+    if not observation:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    db.delete(observation)
+    db.commit()
+    return {"message": "Observation deleted", "id": observation_id}
+
+
 @router.put("/observations/{observation_id}/status")
 async def update_observation_status(
     observation_id: str,
