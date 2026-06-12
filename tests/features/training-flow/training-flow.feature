@@ -11,7 +11,7 @@ Feature: Training Flow
 
   # ── POSITIVE SCENARIOS ───────────────────────────────────────────────────────
 
-  @chunk
+  @chunk @regression
   Scenario: User views all slides and completes training without scenarios
     Given the training module has only slides, no practice scenarios
     When I view all slides in the training
@@ -19,7 +19,7 @@ Feature: Training Flow
     Then the training is marked as complete
     And I can proceed to the next module
 
-  @chunk
+  @chunk @regression
   Scenario: User completes slides, auto-navigates to practice, and completes scenario
     Given the training module has slides followed by a practice scenario
     When I view and complete all training slides
@@ -28,7 +28,7 @@ Feature: Training Flow
     When I complete the practice scenario
     Then the entire training is marked as complete
 
-  @chunk
+  @chunk @regression
   Scenario: User views slides, completes scenarios, and returns to slides
     When I view and complete all training slides
     And I navigate to the practice scenario section
@@ -36,7 +36,7 @@ Feature: Training Flow
     Then I can view the slides again
     And my slide completion status is preserved
 
-  @chunk
+  @chunk @regression
   Scenario: User completes training with multiple practice scenarios in sequence
     Given the training has three practice scenarios to complete
     When I complete all training slides
@@ -47,7 +47,7 @@ Feature: Training Flow
     And I complete the third practice scenario
     Then the training is fully marked as complete
 
-  @chunk
+  @chunk @regression
   Scenario: User completes training and progress persists on return
     When I view and complete all training slides
     And I complete the practice scenario
@@ -58,28 +58,28 @@ Feature: Training Flow
 
   # ── NEGATIVE SCENARIOS ───────────────────────────────────────────────────────
 
-  @chunk
+  @chunk @regression
   Scenario: User cannot access practice section before completing slides
     When I attempt to navigate directly to the practice section without completing slides
     Then I am prevented from accessing the practice section
     And I see a message "Please complete all training slides before attempting the practice section."
 
-  @chunk
+  @chunk @regression
   Scenario: User sees locked practice section when slides are incomplete
     Given I have viewed only half of the training slides
     When I look for the practice section
     Then the practice section is displayed as locked
     And I cannot click to enter the practice section
 
-  @chunk
+  @chunk @regression
   Scenario: User cannot mark training complete with only slides done when scenarios exist
     Given the training has required practice scenarios
     When I complete all training slides
     And I do not complete any practice scenarios
     Then the training is not marked as complete
     And the module cannot be submitted for progression
-
-  @chunk
+ 
+  @chunk @regression
   Scenario: User navigates away from training and returns to incomplete scenario
     When I complete all training slides
     And I start but do not complete the practice scenario
@@ -88,14 +88,14 @@ Feature: Training Flow
     Then I am at the practice scenario section
     And my partial progress in the scenario is preserved
 
-  @chunk
+  @chunk @regression
   Scenario: User cannot access subsequent modules if training is incomplete
     Given this is a module that must be completed before the next module
     When I only complete the training slides but not the practice scenarios
     Then the next module remains locked
     And I see a message indicating the current module must be fully completed
 
-  @chunk
+  @chunk @regression
   Scenario: Training state degrades if user attempts to access practice after logout
     Given I completed all training slides
     And I was navigated to the practice section
@@ -106,21 +106,21 @@ Feature: Training Flow
 
   # ── EDGE SCENARIOS ──────────────────────────────────────────────────────────
 
-  @chunk
+  @chunk @regression
   Scenario: User completes training with only slides and no scenarios
     Given a training module exists with only slides and zero scenarios
     When I complete viewing all the slides
     Then the training is immediately marked as complete
     And I can proceed to the next module
 
-  @chunk
+  @chunk @regression
   Scenario: User rapidly navigates between slides and practice section
     When I quickly switch between viewing slides and attempting to access practice
     And I complete slides during this switching
     Then the practice section becomes accessible after slide completion
     And the rapid navigation does not cause state corruption
 
-  @chunk
+  @chunk @regression
   Scenario: User completes scenarios in different order than presented
     Given the practice has multiple independent scenarios
     When I complete the scenarios in a different order than the UI sequence
@@ -161,7 +161,7 @@ Feature: Training Flow
     Then I see an error message "Practice content is unavailable. Please contact support."
     And the training can be retried later
 
-  @chunk
+  @chunk @regression
   Scenario: Training state becomes inconsistent if client and server disagree
     Given the server marks training as complete
     When the client still shows incomplete status

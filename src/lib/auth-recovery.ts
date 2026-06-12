@@ -14,6 +14,7 @@
  * @param session - The session object, may be null or undefined
  * @returns true if the recovery session is ready, false otherwise
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isRecoverySessionReady(event: string, session: any): boolean {
   // PASSWORD_RECOVERY event indicates Supabase has processed the recovery token
   // SIGNED_IN event indicates a valid authenticated session exists

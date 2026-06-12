@@ -36,6 +36,7 @@ export function ScheduleVisitModal({
   const [visitDate, setVisitDate] = useState('');
   const [arrivalTime, setArrivalTime] = useState('09:00');
   const [departureTime, setDepartureTime] = useState('14:00');
+  const [isMultiGrade, setIsMultiGrade] = useState(false);
 
   const today = (() => {
     const d = new Date();
@@ -58,6 +59,7 @@ export function ScheduleVisitModal({
         date: visitDate,
         arrival_time: arrivalTime,
         departure_time: departureTime,
+        is_multi_grade: isMultiGrade,
       });
     }
   };
@@ -159,6 +161,23 @@ export function ScheduleVisitModal({
                   </option>
                 ))}
               </select>
+            {/* Multi-grade flag */}
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-md p-3">
+              <input
+                id="multi-grade"
+                type="checkbox"
+                checked={isMultiGrade}
+                onChange={(e) => setIsMultiGrade(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-input accent-amber-600"
+              />
+              <div>
+                <label htmlFor="multi-grade" className="text-sm font-medium text-foreground cursor-pointer">
+                  Multi-grade class
+                </label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Tick if this teacher teaches multiple grades in the same classroom (MG-B1/B2/C1/C2 will apply)
+                </p>
+              </div>
             </div>
 
             {/* Visit Date */}

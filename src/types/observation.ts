@@ -112,4 +112,5 @@ export interface ScheduleVisitFormData {
   departure_time: string;
   visit_purpose: string;
   lesson_topic?: string;
+  is_multi_grade?: boolean;
 }
