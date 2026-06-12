@@ -17,6 +17,7 @@ from app.models.analytics import AnalyticsEvent, UserMetrics
 # These are for Phase 3 Coaching APIs (not yet in use)
 # from app.models.scenario import Scenario, ScenarioOption, ScenarioResponse
 from app.models.admin import AdminUser, AdminRole, FieldIssue, FieldIssueStatus, Region
+from app.models.observation import CotObservation, TeacherDcScore
 
 __all__ = [
     "Module",
@@ -46,4 +47,6 @@ __all__ = [
     "FieldIssue",
     "FieldIssueStatus",
     "Region",
+    "CotObservation",
+    "TeacherDcScore",
 ]

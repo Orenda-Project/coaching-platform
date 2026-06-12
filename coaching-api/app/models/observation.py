@@ -1,109 +1,97 @@
-"""Observation models for tracking coaching observations and reflections."""
+"""Observation scheduling and Teacher DC Score models.
 
-from sqlalchemy import Column, String, DateTime, Integer, Text, ForeignKey, Index, TIMESTAMP
-from sqlalchemy.orm import relationship
+These map to the Supabase production tables used by the observation scheduler.
+The previous Phase 3 COT reflection models (category/response/rating) were unused
+and had a conflicting schema — they have been replaced with the actual production schema.
+"""
+
+import uuid
+from sqlalchemy import Column, String, Float, DateTime, JSON, Index
 from sqlalchemy.sql import func
 from app.database import Base
 
 
-class Observation(Base):
-    """Coaching observation record."""
-
-    __tablename__ = "observations"
-
-    id = Column(String, primary_key=True)  # UUID
-    user_id = Column(String, nullable=False, index=True)  # Who the observation is about
-    date = Column(DateTime(timezone=True), nullable=False)  # When the observation occurred
-    notes = Column(Text, nullable=True)  # General observation notes
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-    # Relationships
-    cot_observations = relationship(
-        "COTObservation",
-        back_populates="observation",
-        cascade="all, delete-orphan"
-    )
-    observation_notes = relationship(
-        "ObservationNotes",
-        back_populates="observation",
-        cascade="all, delete-orphan"
-    )
-
-    __table_args__ = (
-        Index('idx_observations_user_date', 'user_id', 'date'),
-    )
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "date": self.date.isoformat(),
-            "notes": self.notes,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-            "cot_observations": [cot.to_dict() for cot in self.cot_observations] if self.cot_observations else [],
-            "observation_notes": [note.to_dict() for note in self.observation_notes] if self.observation_notes else [],
-        }
-
-
-class COTObservation(Base):
-    """Coaching Over Time (COT) observation - structured reflection framework."""
+class CotObservation(Base):
+    """Classroom observation visit — used by the observation scheduler."""
 
     __tablename__ = "cot_observations"
 
-    id = Column(String, primary_key=True)  # UUID
-    observation_id = Column(String, ForeignKey("observations.id"), nullable=False, index=True)
-    category = Column(String, nullable=False)  # strengths, areas_for_growth, mindset, behaviors, etc.
-    response = Column(Text, nullable=True)  # Coach's reflection on this category
-    rating = Column(Integer, nullable=True)  # 1-5 rating for this category
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    observer_id = Column(String, nullable=False, index=True)
+    teacher_name = Column(String, nullable=False)
+    school_name = Column(String, nullable=False)
+    subject = Column(String)
+    grade = Column(String)
+    topic = Column(String, nullable=True)
+    framework = Column(String)  # FICO, HOTS
+    date = Column(String)
+    visit_purpose = Column(String)
+    status = Column(String, default="Scheduled")  # Scheduled, Draft, Submitted, Approved
+    region = Column(String)
+    week = Column(String, nullable=True)
+    visit_type = Column(String, nullable=True)
+    planned_date = Column(String, nullable=True)
+    arrival_time = Column(String, nullable=True)
+    departure_time = Column(String, nullable=True)
+    total_score = Column(Float, nullable=True)
+    submitted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-    # Relationships
-    observation = relationship("Observation", back_populates="cot_observations")
-
-    __table_args__ = (
-        Index('idx_cot_observations_observation_category', 'observation_id', 'category'),
-    )
 
     def to_dict(self):
         return {
             "id": self.id,
-            "observation_id": self.observation_id,
-            "category": self.category,
-            "response": self.response,
-            "rating": self.rating,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "observer_id": self.observer_id,
+            "teacher_name": self.teacher_name,
+            "school_name": self.school_name,
+            "subject": self.subject,
+            "grade": self.grade,
+            "topic": self.topic,
+            "framework": self.framework,
+            "date": self.date,
+            "visit_purpose": self.visit_purpose,
+            "status": self.status,
+            "region": self.region,
+            "week": self.week,
+            "visit_type": self.visit_type,
+            "planned_date": self.planned_date,
+            "arrival_time": self.arrival_time,
+            "departure_time": self.departure_time,
+            "total_score": self.total_score,
+            "submitted_at": self.submitted_at.isoformat() if self.submitted_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
-class ObservationNotes(Base):
-    """Additional notes and reflections on an observation."""
+class TeacherDcScore(Base):
+    """Teacher DC score record from classroom observations."""
 
-    __tablename__ = "observation_notes"
+    __tablename__ = "teacher_dc_scores"
 
-    id = Column(String, primary_key=True)  # UUID
-    observation_id = Column(String, ForeignKey("observations.id"), nullable=False, index=True)
-    note_text = Column(Text, nullable=False)
-    created_by = Column(String, nullable=False)  # User ID of who created this note
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    teacher_name = Column(String, nullable=False)
+    school_name = Column(String, nullable=False)
+    region = Column(String, nullable=False, index=True)
+    grade = Column(String)
+    subject = Column(String)
+    total_score = Column(Float, nullable=False)
+    framework = Column(String)
+    scored_at = Column(DateTime(timezone=True))
+    raw_results = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-    # Relationships
-    observation = relationship("Observation", back_populates="observation_notes")
-
-    __table_args__ = (
-        Index('idx_observation_notes_observation_creator', 'observation_id', 'created_by'),
-    )
 
     def to_dict(self):
         return {
             "id": self.id,
-            "observation_id": self.observation_id,
-            "note_text": self.note_text,
-            "created_by": self.created_by,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "teacher_name": self.teacher_name,
+            "school_name": self.school_name,
+            "region": self.region,
+            "grade": self.grade,
+            "subject": self.subject,
+            "total_score": self.total_score,
+            "framework": self.framework,
+            "scored_at": self.scored_at.isoformat() if self.scored_at else None,
+            "raw_results": self.raw_results,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }

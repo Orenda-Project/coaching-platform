@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.controllers import export_controller, quiz_controller, auth_controller, assessment_controller, training_controller, analytics_controller, admin_controller
+from app.controllers import export_controller, quiz_controller, auth_controller, assessment_controller, training_controller, analytics_controller, admin_controller, coaching_controller
 # Temporarily disabled: scenario_controller has import error (depends on Scenario model conflict)
 # from app.controllers import scenario_controller
 
@@ -37,9 +37,9 @@ app.include_router(analytics_controller.router)
 # Phase 5: Admin Management APIs
 app.include_router(admin_controller.router)
 
-# Phase 3: Coaching APIs - to be integrated after testing
-# app.include_router(observation_controller.router)
-# app.include_router(coaching_controller.router)
+# Phase 3: Coaching APIs
+# app.include_router(observation_controller.router)  # Old Phase 3 observation controller (disabled)
+app.include_router(coaching_controller.router)
 
 
 @app.on_event("startup")

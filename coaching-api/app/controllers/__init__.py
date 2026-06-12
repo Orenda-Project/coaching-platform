@@ -9,6 +9,7 @@ from . import (
     # Temporarily disabled: has import error
     # scenario_controller,
     admin_controller,
+    coaching_controller,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "analytics_controller",
     # "scenario_controller",  # Temporarily disabled
     "admin_controller",
+    "coaching_controller",
 ]
