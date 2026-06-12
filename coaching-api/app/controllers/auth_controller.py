@@ -20,11 +20,11 @@ class SignupRequest(BaseModel):
 
 class SignupResponse(BaseModel):
     id: str
-    email: str
-    full_name: Optional[str]
-    phone: Optional[str]
-    role: str
-    created_at: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    role: Optional[str] = "learner"
+    created_at: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -54,29 +54,29 @@ class ProfileRequest(BaseModel):
 
 class ProfileResponse(BaseModel):
     id: str
-    user_id: str
-    full_name: Optional[str]
-    phone: Optional[str]
-    avatar_url: Optional[str]
-    bio: Optional[str]
-    role: str
-    is_active: bool
-    persona: Optional[str]
-    baseline_completed: bool
-    baseline_score: Optional[float]
-    endline_completed: bool
-    endline_score: Optional[float]
-    weak_modules: Optional[List[str]]
-    baseline_attempt_count: int
-    endline_attempt_count: int
-    region: Optional[str]
-    sub_region: Optional[str]
-    school_id: Optional[str]
-    teacher_ids: Optional[List[str]]
-    qualifications: Optional[Any]
-    experiences: Optional[Any]
-    created_at: str
-    updated_at: str
+    user_id: Optional[str] = None
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+    role: Optional[str] = "learner"
+    is_active: Optional[bool] = True
+    persona: Optional[str] = None
+    baseline_completed: Optional[bool] = False
+    baseline_score: Optional[float] = None
+    endline_completed: Optional[bool] = False
+    endline_score: Optional[float] = None
+    weak_modules: Optional[List[str]] = None
+    baseline_attempt_count: Optional[int] = 0
+    endline_attempt_count: Optional[int] = 0
+    region: Optional[str] = None
+    sub_region: Optional[str] = None
+    school_id: Optional[str] = None
+    teacher_ids: Optional[List[str]] = None
+    qualifications: Optional[Any] = None
+    experiences: Optional[Any] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -84,10 +84,10 @@ class ProfileResponse(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
-    email: str
-    email_confirmed_at: Optional[str]
-    created_at: str
-    updated_at: str
+    email: Optional[str] = None
+    email_confirmed_at: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     profile: Optional[ProfileResponse] = None
 
     class Config:
