@@ -161,6 +161,8 @@ export function ScheduleVisitModal({
                   </option>
                 ))}
               </select>
+            </div>
+
             {/* Multi-grade flag */}
             <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-md p-3">
               <input
