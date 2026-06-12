@@ -28,9 +28,9 @@ class QuestionOptionResponse(BaseModel):
     """Question option."""
 
     id: str
-    text: str
-    is_correct: bool
-    order: int
+    text: Optional[str] = None
+    is_correct: Optional[bool] = False
+    order: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -40,10 +40,10 @@ class QuestionResponse(BaseModel):
     """Quiz question."""
 
     id: str
-    question_text: str
-    question_type: str
-    order_number: int
-    options: List[QuestionOptionResponse]
+    question_text: Optional[str] = None
+    question_type: Optional[str] = None
+    order_number: Optional[int] = None
+    options: List[QuestionOptionResponse] = []
 
     class Config:
         from_attributes = True
@@ -52,9 +52,9 @@ class QuestionResponse(BaseModel):
 class ScenarioOptionResponse(BaseModel):
     """Scenario option."""
 
-    letter: str
-    text: str
-    is_correct: bool
+    letter: Optional[str] = None
+    text: Optional[str] = None
+    is_correct: Optional[bool] = False
     rationale: Optional[str] = None
 
     class Config:
@@ -65,10 +65,10 @@ class ScenarioResponse(BaseModel):
     """Scenario-based learning content."""
 
     id: str
-    situation: str
-    question: str
-    difficulty: str
-    options: List[ScenarioOptionResponse]
+    situation: Optional[str] = None
+    question: Optional[str] = None
+    difficulty: Optional[str] = None
+    options: List[ScenarioOptionResponse] = []
 
     class Config:
         from_attributes = True
@@ -78,13 +78,13 @@ class TrainingResponse(BaseModel):
     """Full training response."""
 
     id: str
-    module_id: str
+    module_id: Optional[str] = None
     title: str
-    description: str
-    order_number: int
-    content: List[TrainingContentResponse]
-    quiz: dict  # Contains questions
-    scenarios: List[ScenarioResponse]
+    description: Optional[str] = None
+    order_number: Optional[int] = None
+    content: List[TrainingContentResponse] = []
+    quiz: Optional[dict] = None
+    scenarios: List[ScenarioResponse] = []
 
     class Config:
         from_attributes = True
