@@ -14,6 +14,13 @@ interface ScheduleVisitModalProps {
 }
 
 const VISIT_TYPES = ['FICO', 'Head-Co Observation', 'M&H', 'General Visit', 'RM Visit'] as const;
+const VISIT_PURPOSES = [
+  'Classroom Observation',
+  'Coaching Follow-up',
+  'Teacher Mentoring',
+  'Assessment',
+  'General Support',
+] as const;
 
 export function ScheduleVisitModal({
   teacher,
@@ -24,6 +31,7 @@ export function ScheduleVisitModal({
 }: ScheduleVisitModalProps) {
   const [week, setWeek] = useState('');
   const [visitType, setVisitType] = useState<'FICO' | 'Head-Co Observation' | 'M&H' | 'General Visit' | 'RM Visit'>('FICO');
+  const [visitPurpose, setVisitPurpose] = useState('Classroom Observation');
   const [plannedDate, setPlannedDate] = useState('');
   const [visitDate, setVisitDate] = useState('');
   const [arrivalTime, setArrivalTime] = useState('09:00');
@@ -37,7 +45,7 @@ export function ScheduleVisitModal({
     return `${year}-${month}-${day}`;
   })();
 
-  const isFormValid = Boolean(visitType && plannedDate && visitDate && arrivalTime && departureTime);
+  const isFormValid = Boolean(visitType && visitPurpose && plannedDate && visitDate && arrivalTime && departureTime);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +53,7 @@ export function ScheduleVisitModal({
       onConfirm({
         week: week || undefined,
         visit_type: visitType,
+        visit_purpose: visitPurpose,
         planned_date: plannedDate,
         date: visitDate,
         arrival_time: arrivalTime,
@@ -128,6 +137,25 @@ export function ScheduleVisitModal({
                 {VISIT_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Visit Purpose */}
+            <div>
+              <label htmlFor="visit-purpose" className="text-sm font-medium text-foreground block mb-1.5">
+                Visit Purpose <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="visit-purpose"
+                value={visitPurpose}
+                onChange={(e) => setVisitPurpose(e.target.value)}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {VISIT_PURPOSES.map((purpose) => (
+                  <option key={purpose} value={purpose}>
+                    {purpose}
                   </option>
                 ))}
               </select>
