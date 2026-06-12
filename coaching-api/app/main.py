@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
@@ -13,9 +14,25 @@ app = FastAPI(
 )
 
 # CORS middleware - must be added FIRST for proper precedence
+_cors_origins = [
+    # Local development
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://localhost:8081",
+    "http://localhost:3000",
+    # Railway staging
+    "https://coaching-platform-staging.up.railway.app",
+    # Railway production
+    "https://coaching-platform-production.up.railway.app",
+]
+# Allow extra origins from env (comma-separated)
+_extra = os.environ.get("CORS_ORIGINS", "")
+if _extra:
+    _cors_origins.extend([o.strip() for o in _extra.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:8080", "http://localhost:8081", "http://localhost:3000"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
