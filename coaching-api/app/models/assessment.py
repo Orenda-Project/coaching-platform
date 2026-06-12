@@ -1,4 +1,4 @@
-"""Assessment and quiz-related models."""
+"""Assessment user tracking models (renamed from 'assessments' to avoid conflict with content table)."""
 
 from sqlalchemy import Column, String, Integer, Float, DateTime, Boolean, ForeignKey, Text, JSON
 from sqlalchemy.orm import relationship
@@ -7,9 +7,9 @@ from app.database import Base
 
 
 class Assessment(Base):
-    """Assessment record for module quizzes."""
+    """Assessment record for module quizzes (user tracking)."""
 
-    __tablename__ = "assessments"
+    __tablename__ = "assessments_user_tracking"
 
     id = Column(String, primary_key=True)  # UUID
     user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
@@ -47,10 +47,10 @@ class AssessmentResponse(Base):
     __tablename__ = "assessment_responses"
 
     id = Column(String, primary_key=True)  # UUID
-    assessment_id = Column(String, ForeignKey("assessments.id"), nullable=False, index=True)
+    assessment_id = Column(String, ForeignKey("assessments_user_tracking.id"), nullable=False, index=True)
     question_id = Column(String, nullable=False, index=True)
-    user_answer = Column(Text, nullable=True)  # User's answer (text or JSON for complex answers)
-    is_correct = Column(Boolean, nullable=True)  # True/False after grading, None if not graded
+    user_answer = Column(Text, nullable=True)
+    is_correct = Column(Boolean, nullable=True)
     points_earned = Column(Float, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -77,10 +77,10 @@ class AssessmentAttempt(Base):
     __tablename__ = "assessment_attempts"
 
     id = Column(String, primary_key=True)  # UUID
-    assessment_id = Column(String, ForeignKey("assessments.id"), nullable=False, index=True)
+    assessment_id = Column(String, ForeignKey("assessments_user_tracking.id"), nullable=False, index=True)
     attempt_number = Column(Integer, nullable=False)
     score = Column(Float, nullable=True)
-    passed = Column(Boolean, nullable=True)  # True/False after grading
+    passed = Column(Boolean, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     submitted_at = Column(DateTime(timezone=True), nullable=True)
 

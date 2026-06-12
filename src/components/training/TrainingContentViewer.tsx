@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, CheckCircle2, Layers, GitBranch } from "lucide-react";
-import { Tables } from "@/integrations/supabase/types";
 import SlidesPlayer, { Slide } from "./SlidesPlayer";
 import ScenarioPlayer, { ScenarioStep } from "./ScenarioPlayer";
 import { isTrainingComplete, getActivePhase } from "@/domain/trainingRules";
 
-type TrainingContent = Tables<"training_content">;
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+interface ContentItem {
+  id: string;
+  format_type: string;
+  content_url: string;
+  metadata: { duration_minutes: number | null; type_label: string };
+}
 
 interface TrainingContentViewerProps {
   trainingId: string;
@@ -16,7 +21,7 @@ interface TrainingContentViewerProps {
 }
 
 export default function TrainingContentViewer({ trainingId, trainingTitle, onContentCompleted }: TrainingContentViewerProps) {
-  const [contents, setContents] = useState<TrainingContent[]>([]);
+  const [contents, setContents] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [slidesCompleted, setSlidesCompleted] = useState(false);
   const [scenarioCompleted, setScenarioCompleted] = useState(false);
@@ -30,12 +35,17 @@ export default function TrainingContentViewer({ trainingId, trainingTitle, onCon
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
-        .from("training_content")
-        .select("*")
-        .eq("training_id", trainingId)
-        .neq("format_type", "audio");
-      setContents(data || []);
+      try {
+        const res = await fetch(`${apiUrl}/api/training/${trainingId}/content`);
+        if (res.ok) {
+          const data = await res.json();
+          setContents(data || []);
+        } else {
+          setContents([]);
+        }
+      } catch {
+        setContents([]);
+      }
       setLoading(false);
     };
     load();
