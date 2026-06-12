@@ -24,8 +24,8 @@ class User(Base):
             "id": self.id,
             "email": self.email,
             "email_confirmed_at": self.email_confirmed_at.isoformat() if self.email_confirmed_at else None,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "profile": self.profile.to_dict() if self.profile else None,
         }
 
@@ -89,8 +89,8 @@ class UserProfile(Base):
             "teacher_ids": self.teacher_ids,
             "qualifications": self.qualifications,
             "experiences": self.experiences,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
