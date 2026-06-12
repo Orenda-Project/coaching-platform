@@ -16,9 +16,9 @@ class TrainingContentResponse(BaseModel):
     """Training content item."""
 
     id: str
-    format_type: str
-    content_url: str
-    metadata: dict
+    format_type: Optional[str] = None
+    content_url: Optional[str] = None
+    metadata: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -103,19 +103,19 @@ class TrainingProgressResponse(BaseModel):
     """User progress for a training."""
 
     id: str
-    user_id: str
-    training_id: str
-    progress_percentage: float
-    is_completed: bool
-    completed_at: Optional[str]
+    user_id: Optional[str] = None
+    training_id: Optional[str] = None
+    progress_percentage: Optional[float] = 0.0
+    is_completed: Optional[bool] = False
+    completed_at: Optional[str] = None
     passed: Optional[bool] = False
     score: Optional[float] = None
     attempt_count: Optional[int] = 0
     tab_switch_count: Optional[int] = 0
     flagged_for_review: Optional[bool] = False
     content_completed: Optional[bool] = False
-    created_at: str
-    updated_at: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -130,10 +130,10 @@ class UpdateProgressRequest(BaseModel):
 class ModuleProgressResponse(BaseModel):
     """Aggregated progress for a module."""
 
-    module_id: str
-    total_trainings: int
-    completed_trainings: int
-    overall_progress: float
+    module_id: Optional[str] = None
+    total_trainings: Optional[int] = 0
+    completed_trainings: Optional[int] = 0
+    overall_progress: Optional[float] = 0.0
 
 
 # Endpoints
