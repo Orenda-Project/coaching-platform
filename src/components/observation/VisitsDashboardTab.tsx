@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Clock, CheckCircle2, Trash2, Mic, Check, FileText, ChevronDown, MessageSquare, AlertTriangle, ThumbsUp, ThumbsDown, MoreVertical } from 'lucide-react';
 import { TeacherAbsentModal } from './TeacherAbsentModal';
 import type { CotObservation } from '@/types/observation';
-import { supabase } from '@/integrations/supabase/client';
+import { deleteObservation, updateObservationStatus } from '@/data/observations';
 import { toast } from 'sonner';
 import { getScoreTrend } from '@/lib/scheduler-utils';
 
@@ -89,15 +89,7 @@ export function VisitsDashboardTab({
   const handleDelete = async (id: string) => {
     setDeleting(id);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const typedSupabase = supabase as any;
-      const { error } = await typedSupabase
-        .from('cot_observations')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await deleteObservation(id);
       toast.success('Visit deleted');
       onRefresh();
     } catch (err) {
@@ -110,18 +102,7 @@ export function VisitsDashboardTab({
 
   const handleSaveDraft = async (id: string) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const typedSupabase = supabase as any;
-      const { error } = await typedSupabase
-        .from('cot_observations')
-        .update({
-          status: 'Draft',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await updateObservationStatus(id, 'Draft');
       toast.success('Visit saved to draft');
       setTimeout(() => onRefresh(), 800);
     } catch (err) {
@@ -132,18 +113,7 @@ export function VisitsDashboardTab({
 
   const handleMarkComplete = async (id: string) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const typedSupabase = supabase as any;
-      const { error } = await typedSupabase
-        .from('cot_observations')
-        .update({
-          status: 'Submitted',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await updateObservationStatus(id, 'Submitted');
       toast.success('Visit marked complete');
       setTimeout(() => onRefresh(), 800);
     } catch (err) {
