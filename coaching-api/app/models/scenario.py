@@ -37,8 +37,8 @@ class Scenario(Base):
             "description": self.description,
             "situation": self.situation,
             "order_number": self.order_number,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "options": [o.to_dict() for o in self.options] if self.options else [],
         }
 
@@ -74,8 +74,8 @@ class ScenarioOption(Base):
             "feedback": self.feedback,
             "is_optimal": self.is_optimal,
             "order_number": self.order_number,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -106,5 +106,5 @@ class ScenarioResponse(Base):
             "user_id": self.user_id,
             "scenario_id": self.scenario_id,
             "selected_option_id": self.selected_option_id,
-            "timestamp": self.timestamp.isoformat(),
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
         }

@@ -66,7 +66,13 @@ async def startup_event():
     from app.database import engine, Base
     # Import all models to register them
     import app.models  # noqa: F401
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        # Non-fatal: tables may already exist with different column types
+        # (e.g. UUID vs VARCHAR from Supabase migrations)
+        import logging
+        logging.getLogger(__name__).warning(f"create_all partially failed (tables may already exist): {e}")
 
 
 @app.get("/")

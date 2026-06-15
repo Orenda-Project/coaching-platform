@@ -16,9 +16,9 @@ class TrainingContentResponse(BaseModel):
     """Training content item."""
 
     id: str
-    format_type: str
-    content_url: str
-    metadata: dict
+    format_type: Optional[str] = None
+    content_url: Optional[str] = None
+    metadata: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -28,9 +28,9 @@ class QuestionOptionResponse(BaseModel):
     """Question option."""
 
     id: str
-    text: str
-    is_correct: bool
-    order: int
+    text: Optional[str] = None
+    is_correct: Optional[bool] = False
+    order: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -40,10 +40,10 @@ class QuestionResponse(BaseModel):
     """Quiz question."""
 
     id: str
-    question_text: str
-    question_type: str
-    order_number: int
-    options: List[QuestionOptionResponse]
+    question_text: Optional[str] = None
+    question_type: Optional[str] = None
+    order_number: Optional[int] = None
+    options: List[QuestionOptionResponse] = []
 
     class Config:
         from_attributes = True
@@ -52,9 +52,9 @@ class QuestionResponse(BaseModel):
 class ScenarioOptionResponse(BaseModel):
     """Scenario option."""
 
-    letter: str
-    text: str
-    is_correct: bool
+    letter: Optional[str] = None
+    text: Optional[str] = None
+    is_correct: Optional[bool] = False
     rationale: Optional[str] = None
 
     class Config:
@@ -65,10 +65,10 @@ class ScenarioResponse(BaseModel):
     """Scenario-based learning content."""
 
     id: str
-    situation: str
-    question: str
-    difficulty: str
-    options: List[ScenarioOptionResponse]
+    situation: Optional[str] = None
+    question: Optional[str] = None
+    difficulty: Optional[str] = None
+    options: List[ScenarioOptionResponse] = []
 
     class Config:
         from_attributes = True
@@ -78,13 +78,13 @@ class TrainingResponse(BaseModel):
     """Full training response."""
 
     id: str
-    module_id: str
+    module_id: Optional[str] = None
     title: str
-    description: str
-    order_number: int
-    content: List[TrainingContentResponse]
-    quiz: dict  # Contains questions
-    scenarios: List[ScenarioResponse]
+    description: Optional[str] = None
+    order_number: Optional[int] = None
+    content: List[TrainingContentResponse] = []
+    quiz: Optional[dict] = None
+    scenarios: List[ScenarioResponse] = []
 
     class Config:
         from_attributes = True
@@ -103,19 +103,19 @@ class TrainingProgressResponse(BaseModel):
     """User progress for a training."""
 
     id: str
-    user_id: str
-    training_id: str
-    progress_percentage: float
-    is_completed: bool
-    completed_at: Optional[str]
+    user_id: Optional[str] = None
+    training_id: Optional[str] = None
+    progress_percentage: Optional[float] = 0.0
+    is_completed: Optional[bool] = False
+    completed_at: Optional[str] = None
     passed: Optional[bool] = False
     score: Optional[float] = None
     attempt_count: Optional[int] = 0
     tab_switch_count: Optional[int] = 0
     flagged_for_review: Optional[bool] = False
     content_completed: Optional[bool] = False
-    created_at: str
-    updated_at: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -130,10 +130,10 @@ class UpdateProgressRequest(BaseModel):
 class ModuleProgressResponse(BaseModel):
     """Aggregated progress for a module."""
 
-    module_id: str
-    total_trainings: int
-    completed_trainings: int
-    overall_progress: float
+    module_id: Optional[str] = None
+    total_trainings: Optional[int] = 0
+    completed_trainings: Optional[int] = 0
+    overall_progress: Optional[float] = 0.0
 
 
 # Endpoints

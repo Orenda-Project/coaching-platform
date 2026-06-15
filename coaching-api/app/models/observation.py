@@ -6,7 +6,7 @@ and had a conflicting schema — they have been replaced with the actual product
 """
 
 import uuid
-from sqlalchemy import Column, String, Float, DateTime, JSON, Index
+from sqlalchemy import Column, String, Float, Text, DateTime, JSON, Index
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -38,6 +38,31 @@ class CotObservation(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    # Rubric & scoring
+    fico_rubric = Column(JSON, nullable=True)
+    hots_rubric = Column(JSON, nullable=True)
+    proficiency_level = Column(String, nullable=True)
+    notes_for_teacher = Column(Text, nullable=True)
+    hots_notes = Column(Text, nullable=True)
+
+    # Neo (debrief) integration
+    neo_status = Column(String, nullable=True)
+    neo_task_id = Column(String, nullable=True)
+    neo_requested_at = Column(DateTime(timezone=True), nullable=True)
+    neo_completed_at = Column(DateTime(timezone=True), nullable=True)
+    neo_results = Column(JSON, nullable=True)
+    neo_error = Column(Text, nullable=True)
+    neo_audio_url = Column(Text, nullable=True)
+
+    # DC (Digital Coach) integration
+    dc_status = Column(String, nullable=True)
+    dc_task_id = Column(String, nullable=True)
+    dc_requested_at = Column(DateTime(timezone=True), nullable=True)
+    dc_completed_at = Column(DateTime(timezone=True), nullable=True)
+    dc_results = Column(JSON, nullable=True)
+    dc_error = Column(Text, nullable=True)
+    dc_audio_s3_key = Column(String, nullable=True)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -61,6 +86,28 @@ class CotObservation(Base):
             "submitted_at": self.submitted_at.isoformat() if self.submitted_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            # Rubric & scoring
+            "fico_rubric": self.fico_rubric,
+            "hots_rubric": self.hots_rubric,
+            "proficiency_level": self.proficiency_level,
+            "notes_for_teacher": self.notes_for_teacher,
+            "hots_notes": self.hots_notes,
+            # Neo integration
+            "neo_status": self.neo_status,
+            "neo_task_id": self.neo_task_id,
+            "neo_requested_at": self.neo_requested_at.isoformat() if self.neo_requested_at else None,
+            "neo_completed_at": self.neo_completed_at.isoformat() if self.neo_completed_at else None,
+            "neo_results": self.neo_results,
+            "neo_error": self.neo_error,
+            "neo_audio_url": self.neo_audio_url,
+            # DC integration
+            "dc_status": self.dc_status,
+            "dc_task_id": self.dc_task_id,
+            "dc_requested_at": self.dc_requested_at.isoformat() if self.dc_requested_at else None,
+            "dc_completed_at": self.dc_completed_at.isoformat() if self.dc_completed_at else None,
+            "dc_results": self.dc_results,
+            "dc_error": self.dc_error,
+            "dc_audio_s3_key": self.dc_audio_s3_key,
         }
 
 

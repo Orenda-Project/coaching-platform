@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { patchObservation } from '@/data/observations';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -25,26 +25,19 @@ export function DebriefForm({ observation, onSaved }: Props) {
 
   const handleSave = async () => {
     setSaving(true);
-    const { data, error } = await (supabase as any)
-      .from('cot_observations')
-      .update({
+    try {
+      const updated = await patchObservation(observation.id, {
         hots_notes: hotsNotes.trim() || null,
         notes_for_teacher: notes.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', observation.id)
-      .select()
-      .single();
+      });
 
-    setSaving(false);
-
-    if (error) {
+      toast.success('Debrief notes saved!');
+      onSaved(updated);
+    } catch {
       toast.error('Failed to save notes');
-      return;
+    } finally {
+      setSaving(false);
     }
-
-    toast.success('Debrief notes saved!');
-    onSaved(data as CotObservation);
   };
 
   return (

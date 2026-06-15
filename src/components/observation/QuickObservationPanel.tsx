@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { patchObservation } from '@/data/observations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,20 +33,10 @@ export function QuickObservationPanel({
   const saveToDraft = async () => {
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
-        .from('cot_observations')
-        .update({
-          status: 'Draft',
-          ...(visitNotes ? { notes_for_teacher: visitNotes } : {}),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', current.id);
-
-      if (error) {
-        toast.error('Failed to save to draft');
-        setSaving(false);
-        return;
-      }
+      await patchObservation(current.id, {
+        status: 'Draft',
+        ...(visitNotes ? { notes_for_teacher: visitNotes } : {}),
+      });
 
       toast.success('Saved to draft');
       setSaving(false);
@@ -61,21 +50,11 @@ export function QuickObservationPanel({
   const markVisitComplete = async () => {
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
-        .from('cot_observations')
-        .update({
-          status: 'Submitted',
-          submitted_at: new Date().toISOString(),
-          ...(visitNotes ? { notes_for_teacher: visitNotes } : {}),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', current.id);
-
-      if (error) {
-        toast.error('Failed to complete visit');
-        setSaving(false);
-        return;
-      }
+      await patchObservation(current.id, {
+        status: 'Submitted',
+        submitted_at: new Date().toISOString(),
+        ...(visitNotes ? { notes_for_teacher: visitNotes } : {}),
+      });
 
       toast.success('Visit marked complete!');
       setSaving(false);

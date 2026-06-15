@@ -31,7 +31,7 @@ class AnalyticsEvent(Base):
             "user_id": self.user_id,
             "event_type": self.event_type,
             "event_data": self.event_data or {},
-            "timestamp": self.timestamp.isoformat(),
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
         }
 
 
@@ -58,6 +58,6 @@ class UserMetrics(Base):
             "quiz_attempts": self.quiz_attempts,
             "modules_passed": self.modules_passed,
             "total_score": self.total_score,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

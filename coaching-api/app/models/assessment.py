@@ -34,8 +34,8 @@ class Assessment(Base):
             "score": self.score,
             "status": self.status,
             "attempt_number": self.attempt_number,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "submitted_at": self.submitted_at.isoformat() if self.submitted_at else None,
             "responses": [r.to_dict() for r in self.responses] if self.responses else [],
         }
@@ -66,8 +66,8 @@ class AssessmentResponse(Base):
             "user_answer": self.user_answer,
             "is_correct": self.is_correct,
             "points_earned": self.points_earned,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -94,6 +94,6 @@ class AssessmentAttempt(Base):
             "attempt_number": self.attempt_number,
             "score": self.score,
             "passed": self.passed,
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
             "submitted_at": self.submitted_at.isoformat() if self.submitted_at else None,
         }
