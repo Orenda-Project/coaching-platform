@@ -175,14 +175,11 @@ async def get_profile(user_id: str, db: Session = Depends(get_db)):
 @router.put("/profile/{user_id}", response_model=ProfileResponse)
 async def update_profile(user_id: str, request: ProfileRequest, db: Session = Depends(get_db)):
     service = AuthService(db)
-    user = service.get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
 
     update_data = {k: v for k, v in request.dict().items() if v is not None}
     profile = service.update_profile(user_id, **update_data)
     if not profile:
-        raise HTTPException(status_code=400, detail="Failed to update profile (duplicate phone?)")
+        raise HTTPException(status_code=404, detail="Profile not found")
     return profile.to_dict()
 
 
