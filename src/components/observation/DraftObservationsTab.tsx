@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { deleteObservation, updateObservationStatus } from '@/data/observations';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +20,6 @@ import { toast } from 'sonner';
 import { NeoAnalysis } from './NeoAnalysis';
 import type { CotObservation } from '@/types/observation';
 import { getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
-import { updateObservationStatus } from '@/data/observations';
 
 interface Props {
   observations: CotObservation[];
@@ -35,19 +35,17 @@ export function DraftObservationsTab({ observations, onRefresh }: Props) {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
-    const { error } = await (supabase as any)
-      .from('cot_observations')
-      .delete()
-      .eq('id', id);
-    setDeletingId(null);
-    setConfirmDeleteId(null);
-    if (error) {
+    try {
+      await deleteObservation(id);
+      toast.success('Observation deleted');
+      setExpanded(null);
+      onRefresh();
+    } catch {
       toast.error('Failed to delete observation');
-      return;
+    } finally {
+      setDeletingId(null);
+      setConfirmDeleteId(null);
     }
-    toast.success('Observation deleted');
-    setExpanded(null);
-    onRefresh();
   };
 
   const drafts = observations.filter(o => o.status === 'Draft' || o.status === 'Scheduled');

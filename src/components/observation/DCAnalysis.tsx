@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getObservation } from '@/data/observations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -184,12 +185,10 @@ export function DCAnalysis({ observation, onSaved }: Props) {
           if (row.status === 'completed') {
             setResults(row.results);
             setPhase('completed');
-            // Refresh parent observation
-            supabase.from('cot_observations' as any)
-              .select('*')
-              .eq('id', observation.id)
-              .single()
-              .then(({ data }) => { if (data) onSaved(data as CotObservation); });
+            // Refresh parent observation via backend API
+            getObservation(observation.id)
+              .then((obs) => { onSaved(obs); })
+              .catch(() => {});
           } else if (row.status === 'failed') {
             setErrorMsg(row.error ?? 'Analysis failed');
             setPhase('failed');
@@ -212,12 +211,12 @@ export function DCAnalysis({ observation, onSaved }: Props) {
         setResults(data.results);
         setPhase('completed');
         clearInterval(poll);
-        const { data: obs } = await (supabase as any)
-          .from('cot_observations')
-          .select('*')
-          .eq('id', observation.id)
-          .single();
-        if (obs) onSaved(obs as CotObservation);
+        try {
+          const obs = await getObservation(observation.id);
+          onSaved(obs);
+        } catch {
+          // Observation refresh failed, but DC results are already shown
+        }
       } else if (data.status === 'failed') {
         setErrorMsg(data.error ?? 'Analysis failed');
         setPhase('failed');
