@@ -24,7 +24,8 @@ export default function ObservationScheduler() {
   const [quickObs, setQuickObs] = useState<CotObservation | null>(null);
   const [showDayEndSummary, setShowDayEndSummary] = useState(false);
 
-  const userRegion = (profile as Record<string, unknown>)?.region as string | null;
+  const userSubRegion = (profile as Record<string, unknown>)?.sub_region as string | null;
+  const userRegion = userSubRegion || ((profile as Record<string, unknown>)?.region as string | null);
 
   const loadObservations = useCallback(async () => {
     if (!user) return;
