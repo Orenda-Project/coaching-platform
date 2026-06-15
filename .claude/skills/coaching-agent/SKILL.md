@@ -56,9 +56,40 @@ capture evidence for failures, produce a regression report, and update `LEARNING
 
 ## How to execute (live, via the browser)
 
-Drive a real browser session — through the connected **chrome-devtools MCP**
-(`/mcp`), or a headed Chrome on remote-debugging port 9222. No bundled scripts;
-the agent performs these steps live and records what it observes.
+Drive a real browser session. The canonical, reusable driver lives in
+[`runs/lib.mjs`](runs/lib.mjs) (browser + login + helpers + learning store) and
+[`runs/baseline-agent.mjs`](runs/baseline-agent.mjs) (completion-aware orchestrator).
+(A connected chrome-devtools MCP, if present, may be used instead — but the
+bundled driver is the default and is self-contained via the project's `puppeteer`.)
+
+**Run modes:**
+
+| Command | What it does |
+|---------|--------------|
+| `node runs/baseline-agent.mjs` | Configured account (noor). Completion-aware: verification-only (S18) + skip, since noor's baseline is already done. **Non-destructive.** |
+| `node runs/baseline-agent.mjs --fresh` | Signs up a **throwaway** account and runs the **full** new-user baseline flow (S1–S8, S13–S17, S19–S21). **Destructive:** creates a staging user and submits a baseline. Records the new account's completion into `baseline-completion.json`. |
+| `HEADLESS=1 node runs/baseline-agent.mjs [...]` | Same as above but headless (for CI / no display). |
+
+### Headed mode (always-on)
+
+- The browser **always launches in headed mode** (a visible Chrome window) so the
+  run can be watched at all times. The window opens **immediately** as the first step.
+- **Do not run headless** unless explicitly requested. The only opt-in is the
+  `HEADLESS=1` environment variable (`HEADLESS=1 node runs/baseline-agent.mjs`).
+
+### Fast startup (optimized)
+
+The driver is tuned to become usable as quickly as possible:
+
+- Launch the browser **first**, before any feature parsing or setup.
+- Navigate with `waitUntil: 'domcontentloaded'` — **never** `networkidle2`.
+- **No blanket `sleep()`s** for readiness — wait on the exact element/condition
+  (`waitForSelector` / `waitText`). Login waits on the URL leaving `/login`, not a timer.
+- Lean Chrome launch flags (`--no-first-run`, `--disable-background-networking`,
+  `--disable-extensions`, `--disable-sync`, `--disable-component-update`, …) and
+  `defaultViewport: null` (native window, no emulation overhead). Typing uses no delay.
+
+**Browser facts learned (use these to drive the UI):**
 
 **Browser facts learned (use these to drive the UI):**
 - Login: fields are `input[type=email]` and `input[type=password]`; submit button text `Sign In`.
@@ -77,16 +108,56 @@ the agent performs these steps live and records what it observes.
 After a run, write the report (format below) and update `LEARNING.md`
 (history, trends, known issues, summary).
 
+## Baseline completion-aware execution (do not re-run a completed baseline)
+
+The agent remembers which users have completed the baseline and **must not**
+re-run the full baseline flow for them. Completion is cached in the learning
+store [`baseline-completion.json`](baseline-completion.json) — a list of
+`{ email, userId, baselineCompleted, persona, score, recordedAt, source }`.
+
+**Required behaviour (baseline only):**
+
+- Once a user completes the baseline, persist `baselineCompleted: true` for that
+  user in `baseline-completion.json` (the driver does this automatically on submit).
+- On every future run, **check learning first** before executing baseline scenarios.
+- If the baseline is already completed for the logged-in user:
+  - **Do not** execute the full set of baseline scenarios again.
+  - **Only verify** that the baseline is completed and **inaccessible**:
+    - verify completion status on the dashboard (persona/score profile card shown),
+    - verify the baseline **cannot be re-accessed or retaken** — navigating to
+      `/assessment/baseline` immediately redirects to `/dashboard` with no questions
+      (this is scenario **S18**).
+  - Mark the remaining baseline-flow scenarios `⏭️ SKIPPED` ("already completed").
+  - **Immediately proceed to the training section.**
+- If the baseline is **not** completed, execute the normal full baseline flow,
+  and record completion when it is submitted.
+
+> The learning cache is a fast path, **not** the source of truth: if learning says
+> "completed" the agent still performs the live verification (S18) so a reset/stale
+> cache is caught. If learning is empty/stale but the live check shows the baseline
+> redirects, the agent records the completion and switches to verification-only.
+
+**Expected flow (baseline):**
+
+1. Check learning/history (`baseline-completion.json`) for the logged-in user.
+2. Determine whether that user has already completed the baseline.
+3. **If completed:** verify completion status → verify baseline cannot be retaken
+   (S18) → skip baseline execution → continue to the next training module.
+4. **If not completed:** execute the normal baseline assessment flow → record
+   completion on submission.
+
 ## Execution Flow
 
-1. Open the application; ensure headed Chrome on port 9222.
-2. Log in with the provided credentials.
-3. Navigate to `/assessment/baseline`.
-4. Parse `baseline-assessment.feature`; select only `@regression` scenarios.
-5. Execute each; record pass/fail.
-6. Capture screenshots for failures.
+1. **Launch a headed browser immediately** (visible window; `HEADLESS=1` to override).
+2. Log in with the provided credentials (fast — waits on URL leaving `/login`).
+3. **Check `baseline-completion.json`** for the logged-in user (completion-aware step).
+4. **If baseline already completed →** run verification-only (S18: dashboard profile +
+   `/assessment/baseline` redirect), mark the rest `SKIPPED`, then proceed to training.
+5. **If not completed →** parse `baseline-assessment.feature`, select only
+   `@regression` scenarios, and execute the full baseline flow; record completion on submit.
+6. Capture screenshots for failures (and key states).
 7. Generate execution statistics + the report.
-8. Append results to `LEARNING.md`.
+8. Append results to `LEARNING.md` and update `baseline-completion.json`.
 
 ## @regression Scenario Inventory (22)
 

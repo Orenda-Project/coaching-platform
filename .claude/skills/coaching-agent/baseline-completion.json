@@ -1,0 +1,14 @@
+{
+  "_comment": "Coaching Agent learning store — baseline completion cache. Read at the start of every run. If a logged-in user's email is marked baselineCompleted=true, the agent runs verification-only (confirm completed + not retakeable) and skips the full baseline flow, proceeding to the training section. Updated automatically by runs/baseline-agent.mjs after a submission or when live state reveals a completed baseline.",
+  "users": [
+    {
+      "email": "noor@yopmail.com",
+      "userId": "f1c8caeb-5f54-429d-96a1-edce436e46f7",
+      "baselineCompleted": true,
+      "persona": "E",
+      "score": 33,
+      "recordedAt": "2026-06-12",
+      "source": "verified (live run 2026-06-12)"
+    }
+  ]
+}

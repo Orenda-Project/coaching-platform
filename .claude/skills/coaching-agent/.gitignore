@@ -1,0 +1,16 @@
+# Coaching Agent — disposable per-run output (do NOT commit).
+# These are regenerated on every run; only the agent code + memory are versioned.
+# NOTE: git only treats '#' as a comment at the START of a line, so patterns
+# must sit on their own lines (no trailing comments).
+
+# Screenshots captured during a run
+runs/evidence/
+
+# Results of the most recent run
+runs/results.json
+
+# Any run logs
+runs/*.log
+
+# Versioned (kept on purpose): SKILL.md, LEARNING.md, baseline-completion.json,
+# runs/lib.mjs, runs/baseline-agent.mjs
