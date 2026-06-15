@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { PersonaBadge } from "@/components/PersonaBadge";
 import { ModuleCard } from "@/components/ModuleCard";
 import { BaselineResultsCard } from "@/components/BaselineResultsCard";
@@ -24,15 +23,32 @@ import {
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useCoachRole } from "@/hooks/useCoachRole";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { Tables } from "@/integrations/supabase/types";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 
-type Training = Tables<"trainings">;
-type TrainingProgress = Tables<"training_progress">;
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+interface Training {
+  id: string;
+  module_id: string;
+  title: string;
+  description: string | null;
+  order_number: number;
+  [key: string]: unknown;
+}
+
+interface TrainingProgress {
+  id: string;
+  user_id: string;
+  training_id: string;
+  passed: boolean;
+  score: number | null;
+  attempt_count: number;
+  [key: string]: unknown;
+}
 
 interface Module {
   id: string;
@@ -59,35 +75,19 @@ export default function Dashboard() {
   const loadData = useCallback(async () => {
     if (!user || !profile) return;
 
-    const [
-      { data: modulesData },
-      { data: trainingsData },
-      { data: progressData },
-    ] = await Promise.all([
-      supabase.from("modules").select("*").order("order_number"),
-      supabase.from("trainings").select("*").order("order_number"),
-      supabase.from("training_progress").select("*").eq("user_id", user.id),
+    const [modulesRes, trainingsRes, progressRes] = await Promise.all([
+      fetch(`${apiUrl}/api/training/modules`).then(r => r.json()),
+      fetch(`${apiUrl}/api/training?limit=1000`).then(r => r.json()),
+      fetch(`${apiUrl}/api/training/user/${user.id}?limit=1000`).then(r => r.json()),
     ]);
 
-    const allModules: Module[] = (modulesData as Module[]) || [];
-    const allTrainings = trainingsData || [];
+    const allModules: Module[] = (modulesRes.modules || []) as Module[];
+    const allTrainings = (trainingsRes.trainings || []) as Training[];
+    const progressData = (progressRes.progress || []) as TrainingProgress[];
 
-    // Module visibility logic:
-    // - Coaches: Always show all modules (regardless of persona or vacation mode)
-    // - Persona E: Always show all modules
-    // - Other personas: Show Module 1 (mandatory) + modules matching weak_modules from baseline
+    // All users see all modules after baseline completion (vacation lock mode)
+    // Persona determines the learning path recommendation, not module access
     let assignedModules = allModules;
-    if (isCoach || profile.persona === "E") {
-      // Coaches and Persona E see all modules
-      assignedModules = allModules;
-    } else {
-      // Everyone else: show persona-based filtering (Module 1 + weak_modules)
-      const weakModules = profile.weak_modules || [];
-      assignedModules = allModules.filter(
-        (m) =>
-          m.is_mandatory || weakModules.some((wm) => m.title.startsWith(wm)),
-      );
-    }
     const assignedModuleIds = new Set(assignedModules.map((m) => m.id));
     const assignedTrainings = allTrainings.filter(
       (t) => t.module_id && assignedModuleIds.has(t.module_id),
@@ -95,7 +95,7 @@ export default function Dashboard() {
 
     setModules(assignedModules);
     setTrainings(assignedTrainings);
-    setProgress(progressData || []);
+    setProgress(progressData);
     setLoading(false);
   }, [user, profile, isCoach]);
 

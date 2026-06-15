@@ -1,0 +1,9 @@
+# AEO Authentication feature scope
+
+# Frontend — sign in / sign up / password reset UI and session management
+src/pages/Login.tsx
+src/pages/Signup.tsx
+src/contexts/AuthContext.tsx
+src/hooks/useAuthAPI.ts
+src/lib/apiClients/authApiClient.ts
+src/lib/auth-recovery.ts

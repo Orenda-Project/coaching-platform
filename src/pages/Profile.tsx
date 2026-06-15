@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { authApiClient } from "@/lib/apiClients/authApiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { PersonaBadge } from "@/components/PersonaBadge";
 import { ArrowLeft, User, Mail, Phone, School, BookOpen, Trophy, Edit2, Save, X, GraduationCap, Building2, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
 
 interface Qualification {
   degree_type: string;
@@ -65,7 +64,7 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
-        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
+        sub_region: profile.sub_region || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
@@ -87,21 +86,15 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: form.full_name,
-          phone: form.phone,
-          school_id: form.school_id,
-          region: form.region,
-          sub_region: form.sub_region,
-          // See Onboarding.tsx — local interfaces lack a Json index signature.
-          qualifications: qualifications as unknown as Json,
-          experiences: experiences as unknown as Json,
-        })
-        .eq("id", user.id);
-
-      if (error) throw error;
+      await authApiClient.updateProfile(user.id, {
+        full_name: form.full_name,
+        phone: form.phone,
+        school_id: form.school_id,
+        region: form.region,
+        sub_region: form.sub_region,
+        qualifications: qualifications,
+        experiences: experiences,
+      });
 
       await refreshProfile();
       setEditing(false);
@@ -121,7 +114,7 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
-        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
+        sub_region: profile.sub_region || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);

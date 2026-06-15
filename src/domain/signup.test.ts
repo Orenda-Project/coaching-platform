@@ -38,6 +38,7 @@ describe("Signup trigger: extract phone and full_name from auth metadata", () =>
     const rawUserMetaData = { full_name: "John Doe" }; // phone is missing
     const authEmail = "test@example.com";
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const phone = (rawUserMetaData as any).phone || authEmail;
     expect(phone).toBe("test@example.com");
   });
@@ -45,6 +46,7 @@ describe("Signup trigger: extract phone and full_name from auth metadata", () =>
   it("trigger should read full_name from auth.users.raw_user_meta_data", () => {
     const rawUserMetaData = { phone: "+923001234567", full_name: "John Doe" };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fullName = (rawUserMetaData as any).full_name;
     expect(fullName).toBe("John Doe");
   });
@@ -52,6 +54,7 @@ describe("Signup trigger: extract phone and full_name from auth metadata", () =>
   it("trigger should handle null full_name (nullable column)", () => {
     const rawUserMetaData = { phone: "+923001234567" }; // full_name is missing
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fullName = (rawUserMetaData as any).full_name;
     expect(fullName).toBeUndefined();
   });

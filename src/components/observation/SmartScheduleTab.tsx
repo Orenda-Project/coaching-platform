@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCoaching } from '@/hooks/useCoaching';
 import DCDashboard from './DCDashboard';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { scheduleVisit } from '@/data/observations';
@@ -22,9 +24,32 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const [isOffline, setIsOffline] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState(false);
+  const [visitedTeachers] = useState<Set<string>>(new Set());
+  const [showCycleResetModal, setShowCycleResetModal] = useState(false);
 
   const coachName = profile?.full_name || user?.email || 'Coach';
-  const coachSubRegion = profile?.sub_region || null;
+  const coachSubRegion = (profile as Record<string, unknown>)?.sub_region as string | null || null;
+
+  // Coaching cycle management
+  const getCycleStartDate = () => {
+    if (!user?.id) return null;
+    const stored = localStorage.getItem(`cycle_start_${user.id}`);
+    return stored ? new Date(stored) : null;
+  };
+
+  const resetCycle = () => {
+    if (!user?.id) return;
+    const existing = getCycleStartDate();
+    if (existing) {
+      const prev = JSON.parse(localStorage.getItem(`cycle_history_${user.id}`) || '[]');
+      prev.unshift({ startDate: existing.toISOString(), endDate: new Date().toISOString(), visitedCount: visitedTeachers.size, totalCount: teachers.length });
+      localStorage.setItem(`cycle_history_${user.id}`, JSON.stringify(prev.slice(0, 10)));
+    }
+    localStorage.setItem(`cycle_start_${user.id}`, new Date().toISOString());
+    toast.success('New cycle started');
+  };
+
+  const cycleStart = getCycleStartDate();
 
   // Cache management helpers
   const getCacheKey = useCallback((suffix: string) => `scheduler_${suffix}_${user?.id}`, [user?.id]);
@@ -252,6 +277,10 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   }
 
   // Teacher list view
+  const visitedCount = visitedTeachers.size;
+  const totalCount = teachers.length;
+  const progressPercent = totalCount > 0 ? Math.round((visitedCount / totalCount) * 100) : 0;
+
   return (
     <div className="space-y-4">
       <div>
@@ -262,6 +291,32 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         </p>
       </div>
 
+      {/* Progress bar */}
+      {totalCount > 0 && (
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">
+              {visitedCount} / {totalCount} teachers visited
+            </span>
+            <span className="text-xs text-muted-foreground">{progressPercent}%</span>
+          </div>
+          <div className="w-full bg-slate-200 rounded-full h-2">
+            <div
+              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowCycleResetModal(true)}
+            className="mt-2"
+          >
+            Start New Cycle
+          </Button>
+        </div>
+      )}
+
       <DCDashboard
         teachers={teachers}
         loading={loading}
@@ -271,7 +326,46 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         isOffline={isOffline}
         lastSynced={lastSynced}
         onRetry={loadData}
+        visitedTeachers={visitedTeachers}
       />
+
+      {/* Cycle Reset Confirmation Modal */}
+      {showCycleResetModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-sm">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold text-foreground">Start New Cycle?</h3>
+            <p className="text-sm text-muted-foreground">
+              Your progress will reset to 0. Previous cycle data will be saved.
+            </p>
+            {cycleStart && (
+              <div className="bg-slate-50 border border-slate-200 rounded p-3 text-sm">
+                <p className="font-medium text-foreground">Current cycle</p>
+                <p className="text-muted-foreground">
+                  {visitedTeachers.size}/{teachers.length} teachers visited
+                  · since {cycleStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </p>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCycleResetModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  resetCycle();
+                  setShowCycleResetModal(false);
+                  window.location.reload();
+                }}
+              >
+                Start New Cycle
+              </Button>
+            </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

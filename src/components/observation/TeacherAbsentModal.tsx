@@ -34,11 +34,11 @@ export function TeacherAbsentModal({
             <div className="flex gap-2">
               <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-amber-900">
-                  {observation.teacher_name} is unavailable
+                <p className="text-lg font-bold text-amber-900">
+                  {observation.teacher_name}
                 </p>
                 <p className="text-sm text-amber-800 mt-1">
-                  {observation.school_name} · {new Date(observation.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  is unavailable on {new Date(observation.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at {observation.school_name}
                 </p>
               </div>
             </div>

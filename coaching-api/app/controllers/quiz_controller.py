@@ -81,3 +81,34 @@ async def get_randomized_quiz(module_id: str, db: Session = Depends(get_db)):
             "exported_at": datetime.utcnow().isoformat(),
         },
     }
+
+
+@router.get("/assessment/{assessment_type}/questions")
+async def get_assessment_questions(assessment_type: str, db: Session = Depends(get_db)):
+    """Get questions with options for a baseline or endline assessment.
+
+    Looks up assessment_definitions by type, fetches questions from export_questions
+    for matching training_ids, and returns them with nested options.
+    """
+    if assessment_type not in ("baseline", "endline"):
+        raise HTTPException(status_code=400, detail="Invalid assessment type. Must be 'baseline' or 'endline'.")
+
+    service = QuizService(db)
+    result = service.get_assessment_questions(assessment_type)
+
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"No {assessment_type} assessment found.")
+
+    return result
+
+
+@router.get("/training/{training_id}/questions")
+async def get_training_questions(training_id: str, db: Session = Depends(get_db)):
+    """Get all questions + options for a specific training (for TrainingModule quiz)."""
+    service = QuizService(db)
+    result = service.get_training_questions(training_id)
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="Training not found")
+
+    return result

@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { authApiClient } from "@/lib/apiClients/authApiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { GraduationCap, MapPin, Building2, Users, ArrowRight, CheckCircle2 } from "lucide-react";
-import type { Json } from "@/integrations/supabase/types";
 
 interface Qualification {
   degree_type: string;
@@ -87,30 +86,17 @@ export default function Onboarding() {
     setLoading(true);
     submitting.current = true;
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          region: region,
-          sub_region: subRegion,
-          school_id: school,
-          teacher_ids: teachers
-            .split(",")
-            .map((t) => t.trim())
-            .filter((t) => t.length > 0),
-          // Local Qualification/Experience shapes are stored as JSON columns;
-          // cast through `unknown` because TS lacks an index signature on the
-          // local interfaces, but the runtime payload is JSON-serialisable.
-          qualifications: qualifications.filter((q) => q.degree_type || q.degree || q.passing_year) as unknown as Json,
-          experiences: experiences.filter((e) => e.org || e.designation || e.joining) as unknown as Json,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", user.id)
-        .select();
-
-      if (error) {
-        console.error("Onboarding update error:", error);
-        throw error;
-      }
+      await authApiClient.updateProfile(user.id, {
+        region: region,
+        sub_region: subRegion,
+        school_id: school,
+        teacher_ids: teachers
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0),
+        qualifications: qualifications.filter((q) => q.degree_type || q.degree || q.passing_year),
+        experiences: experiences.filter((e) => e.org || e.designation || e.joining),
+      });
 
       toast.success("Onboarding complete! Welcome to RABT");
       navigated.current = true;

@@ -366,6 +366,7 @@ describe("useAssessment Hook", () => {
     });
 
     it("should provide user-friendly error message on server error", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const apiError = new Error("Failed to fetch assessment") as any;
       apiError.status = 500;
       const mockGetAssessment = vi.fn().mockRejectedValue(apiError);

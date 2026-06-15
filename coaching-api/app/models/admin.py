@@ -41,8 +41,8 @@ class AdminUser(Base):
             "id": self.id,
             "user_id": self.user_id,
             "role": self.role.value if isinstance(self.role, AdminRole) else self.role,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -70,8 +70,8 @@ class FieldIssue(Base):
             "status": self.status.value if isinstance(self.status, FieldIssueStatus) else self.status,
             "reported_by": self.reported_by,
             "assigned_to": self.assigned_to,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
         }
 
@@ -97,6 +97,6 @@ class Region(Base):
             "name": self.name,
             "parent_id": self.parent_id,
             "is_active": self.is_active,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

@@ -28,6 +28,15 @@ const mockTeacher: DCTeacher = {
   non_verbal_communication: 3,
 };
 
+function getFutureDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 describe('ScheduleVisitModal', () => {
   const mockOnConfirm = vi.fn();
   const mockOnClose = vi.fn();
@@ -50,6 +59,76 @@ describe('ScheduleVisitModal', () => {
 
     expect(screen.getByText('Ahmed Khan')).toBeInTheDocument();
     expect(screen.getByText('Government School #5')).toBeInTheDocument();
+  });
+
+  it('renders visit purpose field', () => {
+    render(
+      <ScheduleVisitModal
+        teacher={mockTeacher}
+        coachName="Fatima Ali"
+        subRegion="Islamabad"
+        onConfirm={mockOnConfirm}
+        onClose={mockOnClose}
+      />
+    );
+
+    const purposeSelect = screen.getByLabelText(/Visit Purpose/i) as HTMLSelectElement;
+    expect(purposeSelect).toBeInTheDocument();
+    expect(purposeSelect.value).toBe('Classroom Observation');
+  });
+
+  it('includes visit_purpose in submitted form data', () => {
+    render(
+      <ScheduleVisitModal
+        teacher={mockTeacher}
+        coachName="Fatima Ali"
+        subRegion="Islamabad"
+        onConfirm={mockOnConfirm}
+        onClose={mockOnClose}
+      />
+    );
+
+    // Fill required fields
+    const dateInput = screen.getByLabelText(/Visit Date/i);
+    fireEvent.change(dateInput, { target: { value: getFutureDate() } });
+
+    // Change visit purpose
+    const purposeSelect = screen.getByLabelText(/Visit Purpose/i);
+    fireEvent.change(purposeSelect, { target: { value: 'Coaching Follow-up' } });
+
+    // Submit
+    const submitButton = screen.getByRole('button', { name: /Schedule Visit/i });
+    fireEvent.click(submitButton);
+
+    expect(mockOnConfirm).toHaveBeenCalledTimes(1);
+    const submittedData = mockOnConfirm.mock.calls[0][0];
+    expect(submittedData.visit_purpose).toBe('Coaching Follow-up');
+  });
+
+  it('includes default visit_purpose when not changed', () => {
+    render(
+      <ScheduleVisitModal
+        teacher={mockTeacher}
+        coachName="Fatima Ali"
+        subRegion="Islamabad"
+        onConfirm={mockOnConfirm}
+        onClose={mockOnClose}
+      />
+    );
+
+    // Fill required fields
+    const dateInput = screen.getByLabelText(/Visit Date/i);
+    fireEvent.change(dateInput, { target: { value: getFutureDate() } });
+
+    // Submit without changing purpose
+    const submitButton = screen.getByRole('button', { name: /Schedule Visit/i });
+    fireEvent.click(submitButton);
+
+    expect(mockOnConfirm).toHaveBeenCalledTimes(1);
+    const submittedData = mockOnConfirm.mock.calls[0][0];
+    expect(submittedData.visit_purpose).toBe('Classroom Observation');
+    expect(typeof submittedData.visit_purpose).toBe('string');
+    expect(submittedData.visit_purpose.length).toBeGreaterThan(0);
   });
 
   it('prevents selecting past dates', () => {
@@ -107,5 +186,38 @@ describe('ScheduleVisitModal', () => {
     }
 
     expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('disables submit button when visit date is empty', () => {
+    render(
+      <ScheduleVisitModal
+        teacher={mockTeacher}
+        coachName="Fatima Ali"
+        subRegion="Islamabad"
+        onConfirm={mockOnConfirm}
+        onClose={mockOnClose}
+      />
+    );
+
+    const submitButton = screen.getByRole('button', { name: /Schedule Visit/i });
+    expect(submitButton).toBeDisabled();
+  });
+
+  it('enables submit button when all required fields are filled', () => {
+    render(
+      <ScheduleVisitModal
+        teacher={mockTeacher}
+        coachName="Fatima Ali"
+        subRegion="Islamabad"
+        onConfirm={mockOnConfirm}
+        onClose={mockOnClose}
+      />
+    );
+
+    const dateInput = screen.getByLabelText(/Visit Date/i);
+    fireEvent.change(dateInput, { target: { value: getFutureDate() } });
+
+    const submitButton = screen.getByRole('button', { name: /Schedule Visit/i });
+    expect(submitButton).not.toBeDisabled();
   });
 });

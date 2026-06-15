@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { useObservation } from '@/hooks/useObservation';
 import { Card, CardContent } from '@/components/ui/card';

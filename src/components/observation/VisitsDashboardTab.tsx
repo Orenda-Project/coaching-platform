@@ -2,11 +2,13 @@ import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle2, Trash2, Mic, Check, FileText, ChevronDown, MessageSquare, AlertTriangle } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Clock, CheckCircle2, Trash2, Mic, Check, FileText, ChevronDown, MessageSquare, AlertTriangle, ThumbsUp, ThumbsDown, MoreVertical } from 'lucide-react';
 import { TeacherAbsentModal } from './TeacherAbsentModal';
 import type { CotObservation } from '@/types/observation';
-import { supabase } from '@/integrations/supabase/client';
+import { deleteObservation, updateObservationStatus } from '@/data/observations';
 import { toast } from 'sonner';
+import { getScoreTrend } from '@/lib/scheduler-utils';
 
 interface VisitsDashboardTabProps {
   observations: CotObservation[];
@@ -23,6 +25,8 @@ export function VisitsDashboardTab({
 }: VisitsDashboardTabProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [absentObsId, setAbsentObsId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Record<string, 'up' | 'down'>>({});
 
   const scheduledVisits = observations.filter(
     (o) => o.status === 'Scheduled'
@@ -50,16 +54,20 @@ export function VisitsDashboardTab({
       obs.sort((a, b) => new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime());
       const latest = obs[0];
       const prev = obs[1];
+      const twoBacks = obs[2];
 
       let scoreTrend = '';
       if (latest.total_score && prev?.total_score) {
-        if (latest.total_score < prev.total_score - 5) scoreTrend = '↓ Falling';
-        else if (latest.total_score > prev.total_score + 5) scoreTrend = '↑ Improving';
+        const trend = getScoreTrend(latest.total_score, prev.total_score, twoBacks?.total_score ?? null);
+        if (trend === 'falling') scoreTrend = '↓ Falling';
+        else if (trend === 'improving') scoreTrend = '↑ Improving';
       }
 
       const weak: string[] = [];
       if (latest.dc_results?.section_b) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const indicators = latest.dc_results.section_b as Record<string, any>;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         Object.entries(indicators).forEach(([key, val]: [string, any]) => {
           if (val?.score === 'no' || val?.score === 'partial') {
             weak.push(key.replace(/_/g, ' '));
@@ -79,21 +87,9 @@ export function VisitsDashboardTab({
   }, [completedVisits]);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this visit?')) {
-      return;
-    }
-
     setDeleting(id);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const typedSupabase = supabase as any;
-      const { error } = await typedSupabase
-        .from('cot_observations')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await deleteObservation(id);
       toast.success('Visit deleted');
       onRefresh();
     } catch (err) {
@@ -106,20 +102,9 @@ export function VisitsDashboardTab({
 
   const handleSaveDraft = async (id: string) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const typedSupabase = supabase as any;
-      const { error } = await typedSupabase
-        .from('cot_observations')
-        .update({
-          status: 'Draft',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await updateObservationStatus(id, 'Draft');
       toast.success('Visit saved to draft');
-      onRefresh();
+      setTimeout(() => onRefresh(), 800);
     } catch (err) {
       console.error('Failed to save draft:', err);
       toast.error('Failed to save draft');
@@ -128,20 +113,9 @@ export function VisitsDashboardTab({
 
   const handleMarkComplete = async (id: string) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const typedSupabase = supabase as any;
-      const { error } = await typedSupabase
-        .from('cot_observations')
-        .update({
-          status: 'Submitted',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) throw error;
-
+      await updateObservationStatus(id, 'Submitted');
       toast.success('Visit marked complete');
-      onRefresh();
+      setTimeout(() => onRefresh(), 800);
     } catch (err) {
       console.error('Failed to mark visit complete:', err);
       toast.error('Failed to mark visit complete');
@@ -166,13 +140,13 @@ export function VisitsDashboardTab({
     const isDraft = obs.status === 'Draft';
 
     return (
-    <Card className={`hover:shadow-md transition-shadow ${isDraft ? 'border-2 border-dashed border-amber-300 bg-amber-50/30' : ''}`}>
+    <Card className={`hover:shadow-lg transition-all duration-200 ${isDraft ? 'border-2 border-dashed border-amber-300 bg-amber-50/30' : ''}`}>
       <CardContent className="p-5">
         <div className="space-y-3">
           <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold text-foreground">{obs.teacher_name}</h3>
-              <p className="text-sm text-muted-foreground">{obs.school_name}</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-foreground truncate">{obs.teacher_name}</h3>
+              <p className="text-sm text-muted-foreground truncate">{obs.school_name}</p>
             </div>
             {isDraft && (
               <span className="inline-block bg-amber-100 border border-amber-300 text-amber-800 text-xs px-2 py-1 rounded font-medium">
@@ -212,6 +186,12 @@ export function VisitsDashboardTab({
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Departure</p>
                 <p className="text-foreground">{obs.departure_time.slice(0, 5)}</p>
+              </div>
+            )}
+            {history?.lastDate && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Last Visited</p>
+                <p className="text-foreground">{history.lastDate}</p>
               </div>
             )}
           </div>
@@ -262,86 +242,96 @@ export function VisitsDashboardTab({
             </div>
           )}
 
-          <div className="flex gap-3 pt-2 justify-end">
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setAbsentObsId(obs.id)}
-                title="Teacher absent or unavailable"
-                className="h-8 w-8 p-0"
-              >
-                <AlertTriangle className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Absent</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  const date = new Date(obs.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-                  const time = obs.arrival_time?.slice(0, 5) || '—';
-                  const message = `Hi ${obs.teacher_name}, I have a scheduled observation visit on ${date} at ${time} for ${obs.visit_type || 'HOTS'} at ${obs.school_name}. See you then! 👋`;
-                  const encodedMsg = encodeURIComponent(message);
-                  window.open(`https://wa.me/?text=${encodedMsg}`, '_blank');
-                }}
-                title="Notify teacher on WhatsApp"
-                className="h-8 w-8 p-0"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">WhatsApp</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onStartDebrief(obs)}
-                disabled={obs.status === 'Draft' && obs.neo_status === 'processing'}
-                title="Give Neo Feedback"
-                className="h-8 w-8 p-0"
-              >
-                <Mic className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Feedback</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleSaveDraft(obs.id)}
-                title="Save as draft"
-                className="h-8 w-8 p-0"
-              >
-                <FileText className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Draft</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleMarkComplete(obs.id)}
-                title="Mark as complete"
-                className="h-8 w-8 p-0"
-              >
-                <Check className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Complete</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleDelete(obs.id)}
-                disabled={deleting === obs.id}
-                className="h-8 w-8 p-0"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-              <span className="text-xs text-muted-foreground">Delete</span>
-            </div>
+          <div className="flex items-center justify-between pt-2">
+            <div />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-48 p-2">
+                <div className="space-y-1">
+                  <button
+                    onClick={() => setAbsentObsId(obs.id)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
+                    title="Teacher absent or unavailable"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>Absent</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const date = new Date(obs.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                      const time = obs.arrival_time?.slice(0, 5) || '—';
+                      const message = `Assalam o Alaikum ${obs.teacher_name}! Aap ko batana tha ke main ${date} ko ${time} baje ${obs.school_name} mein aap ki class visit ke liye aaon ga/gi. Visit type: ${obs.visit_type || 'FICO'}. Shukria! 🙏`;
+                      const encodedMsg = encodeURIComponent(message);
+                      window.open(`https://wa.me/?text=${encodedMsg}`, '_blank');
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
+                    title="Notify teacher on WhatsApp"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={() => onStartDebrief(obs)}
+                    disabled={obs.status === 'Draft' && obs.neo_status === 'processing'}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2 disabled:opacity-50"
+                    title="Give Neo Feedback"
+                  >
+                    <Mic className="w-4 h-4" />
+                    <span>Feedback</span>
+                  </button>
+                  <button
+                    onClick={() => handleSaveDraft(obs.id)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
+                    title="Save as draft"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Draft</span>
+                  </button>
+                  <button
+                    onClick={() => handleMarkComplete(obs.id)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
+                    title="Mark as complete"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Complete</span>
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmId(obs.id)}
+                    disabled={deleting === obs.id}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    title="Delete visit"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Feedback */}
+          <div className="flex items-center gap-2 pt-2 border-t mt-1">
+            <span className="text-xs text-muted-foreground flex-1">Was this visit info helpful?</span>
+            <button
+              onClick={() => setFeedback(f => ({ ...f, [obs.id]: 'up' }))}
+              className={`p-1 rounded transition-colors ${feedback[obs.id] === 'up' ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'}`}
+            >
+              <ThumbsUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setFeedback(f => ({ ...f, [obs.id]: 'down' }))}
+              className={`p-1 rounded transition-colors ${feedback[obs.id] === 'down' ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'}`}
+            >
+              <ThumbsDown className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </CardContent>
@@ -350,48 +340,75 @@ export function VisitsDashboardTab({
   };
 
   const CompletedVisitCard = ({ obs }: { obs: CotObservation }) => {
+    const history = teacherHistory.get(obs.teacher_name);
     const [expanded, setExpanded] = useState(false);
 
+    const score = obs.neo_results?.overall_score ?? obs.total_score ?? null;
+    const scoreBand = score === null ? null : score >= 2.8 ? 'green' : score >= 2.0 ? 'yellow' : 'red';
+    const scoreLabel = scoreBand === 'green' ? 'On track' : scoreBand === 'yellow' ? 'Needs support' : 'Urgent support needed';
+    const scoreLabelColor = scoreBand === 'green' ? 'text-green-700 bg-green-50 border-green-200' : scoreBand === 'yellow' ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-red-700 bg-red-50 border-red-200';
+
     return (
-    <Card>
+    <Card className="hover:shadow-lg transition-all duration-200">
       <CardContent className="p-5">
         <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold text-foreground">{obs.teacher_name}</h3>
-              <p className="text-sm text-muted-foreground">{obs.school_name}</p>
+          {/* Context first: who, what, when */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-foreground truncate">{obs.teacher_name}</h3>
+              <p className="text-sm text-muted-foreground truncate">{obs.school_name}</p>
             </div>
-            <div className="flex items-center gap-1 text-green-600">
+            <div className="flex items-center gap-1 text-green-600 shrink-0">
               <CheckCircle2 className="w-4 h-4" />
-              <span className="text-sm font-medium">Completed</span>
+              <span className="text-sm font-medium">Visited</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Visit Type</p>
-              <p className="text-foreground">{obs.visit_type || 'HOTS'}</p>
+              <p className="text-foreground">{obs.visit_type || 'FICO'}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground">Date</p>
               <p className="text-foreground">{formatDate(obs.date)}</p>
             </div>
-            {obs.neo_results?.overall_score !== undefined && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Score</p>
-                <p className="text-lg font-semibold text-foreground">
-                  {obs.neo_results.overall_score.toFixed(1)}
-                </p>
+            {obs.notes_for_teacher && (
+              <div className="col-span-2">
+                <p className="text-xs font-medium text-muted-foreground">What was coached</p>
+                <p className="text-foreground text-xs">{obs.notes_for_teacher}</p>
               </div>
             )}
-            {obs.neo_results?.grade && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground">Grade</p>
-                <p className="text-lg font-semibold text-foreground">
-                  {obs.neo_results.grade}
-                </p>
+          </div>
+
+          {/* Score revealed after context, with reframed label */}
+          {score !== null && (
+            <div className={`border rounded-lg p-3 ${scoreLabelColor}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{scoreLabel}</span>
+                <span className="text-lg font-bold">{score.toFixed(1)}<span className="text-xs font-normal">/4.0</span></span>
               </div>
-            )}
+              {obs.neo_results?.grade && (
+                <p className="text-xs mt-1">Grade: {obs.neo_results.grade}</p>
+              )}
+            </div>
+          )}
+
+          {/* Feedback tap */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground flex-1">Was this visit useful?</span>
+            <button
+              onClick={() => setFeedback(f => ({ ...f, [obs.id]: 'up' }))}
+              className={`p-1 rounded transition-colors ${feedback[obs.id] === 'up' ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'}`}
+            >
+              <ThumbsUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setFeedback(f => ({ ...f, [obs.id]: 'down' }))}
+              className={`p-1 rounded transition-colors ${feedback[obs.id] === 'down' ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'}`}
+            >
+              <ThumbsDown className="w-4 h-4" />
+            </button>
           </div>
 
           <Button
@@ -400,7 +417,7 @@ export function VisitsDashboardTab({
             onClick={() => setExpanded(!expanded)}
             className="w-full justify-between text-xs"
           >
-            <span>{expanded ? 'Hide' : 'View'} Details</span>
+            <span>{expanded ? 'Hide' : 'View'} Full Details</span>
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
           </Button>
 
@@ -410,6 +427,7 @@ export function VisitsDashboardTab({
                 <div>
                   <p className="font-medium text-foreground mb-1">NEO Section Scores</p>
                   <div className="grid grid-cols-2 gap-2">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {Object.entries(obs.neo_results.section_scores).map(([section, score]: [string, any]) => (
                       <div key={section} className="bg-muted p-2 rounded">
                         <span className="text-xs text-muted-foreground">{section}</span>
@@ -539,13 +557,33 @@ export function VisitsDashboardTab({
       {absentObsId && (
         <TeacherAbsentModal
           observation={observations.find(o => o.id === absentObsId)!}
-          onConfirm={() => {
-            setAbsentObsId(null);
-            onRefresh();
-          }}
+          onConfirm={() => { setAbsentObsId(null); onRefresh(); }}
           onClose={() => setAbsentObsId(null)}
           onNavigateToScheduler={() => onNavigateToScheduler?.()}
         />
+      )}
+
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg p-6 w-full max-w-sm shadow-xl space-y-4">
+            <h3 className="font-semibold text-foreground">Delete this visit?</h3>
+            <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 px-4 py-2 border border-input rounded-md text-sm font-medium hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { handleDelete(deleteConfirmId); setDeleteConfirmId(null); }}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Tabs>
   );
