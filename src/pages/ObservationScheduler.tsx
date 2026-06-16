@@ -1,15 +1,16 @@
- 
+
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Clock, CheckCircle2, BarChart2, ArrowLeft, CalendarDays } from 'lucide-react';
+import { GraduationCap, Clock, BarChart2, ArrowLeft, CalendarDays } from 'lucide-react';
 import { listObservationsForObserver } from '@/data/observations';
 import { toast } from 'sonner';
 import { ObservationsOverviewTab } from '@/components/observation/ObservationsOverviewTab';
 import SmartScheduleTab from '@/components/observation/SmartScheduleTab';
+import PunjabSmartScheduleTab from '@/components/observation/PunjabSmartScheduleTab';
 import { VisitsDashboardTab } from '@/components/observation/VisitsDashboardTab';
 import { QuickObservationPanel } from '@/components/observation/QuickObservationPanel';
 import { DayEndSummaryPanel } from '@/components/observation/DayEndSummaryPanel';
@@ -24,27 +25,33 @@ export default function ObservationScheduler() {
   const [quickObs, setQuickObs] = useState<CotObservation | null>(null);
   const [showDayEndSummary, setShowDayEndSummary] = useState(false);
 
-  const userRegion = (profile as Record<string, unknown>)?.region as string | null;
+  const userRegion   = (profile as Record<string, unknown>)?.region         as string | null ?? null;
+  const punjabCluster = (profile as Record<string, unknown>)?.punjab_cluster as string | null ?? null;
+  const subRegion    = (profile as Record<string, unknown>)?.sub_region     as string | null ?? null;
+  const hasBoth      = Boolean(punjabCluster && subRegion);
+
+  const [activeRegion, setActiveRegion] = useState<'ict' | 'punjab'>(
+    punjabCluster && !subRegion ? 'punjab' : 'ict'
+  );
+
+  const observationRegion = activeRegion === 'punjab' ? punjabCluster : userRegion;
 
   const loadObservations = useCallback(async () => {
     if (!user) return;
     try {
-      console.log('[loadObservations] Loading for user:', user.id, 'region:', userRegion);
-      const data = await listObservationsForObserver(user.id, userRegion || undefined);
-      console.log('[loadObservations] Loaded', data.length, 'observations:', data);
+      const data = await listObservationsForObserver(user.id, observationRegion || undefined);
       setObservations(data);
     } catch (err) {
       console.error('Failed to load observations:', err);
     }
     setLoading(false);
-  }, [user, userRegion]);
+  }, [user, observationRegion]);
 
   useEffect(() => {
     loadObservations();
   }, [loadObservations]);
 
   const scheduledCount = observations.filter(o => o.status === 'Scheduled').length;
-  const completedCount = observations.filter(o => o.status === 'Submitted' || o.status === 'Approved').length;
 
   if (loading) {
     return (
@@ -53,6 +60,10 @@ export default function ObservationScheduler() {
       </div>
     );
   }
+
+  const daySummaryRegion = activeRegion === 'punjab'
+    ? (punjabCluster ?? 'Punjab')
+    : (subRegion ?? 'Unknown');
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,14 +116,14 @@ export default function ObservationScheduler() {
         <DayEndSummaryPanel
           observations={observations}
           coachName={profile?.full_name || user?.email || 'Coach'}
-          subRegion={(profile as Record<string, unknown>)?.sub_region as string || 'Unknown'}
+          subRegion={daySummaryRegion}
           onClose={() => setShowDayEndSummary(false)}
         />
       )}
 
       <main className="container px-4 py-6 max-w-3xl">
         {/* Page title */}
-        <div className="mb-6">
+        <div className="mb-4">
           <h1 className="text-2xl font-display font-bold text-foreground">
             Academic Coaching &amp; Observations
           </h1>
@@ -120,6 +131,32 @@ export default function ObservationScheduler() {
             Schedule school visits, conduct HOTS observations, and track your coaching impact
           </p>
         </div>
+
+        {/* Region toggle — only shown when user has both ICT and Punjab assignments */}
+        {hasBoth && (
+          <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit mb-4">
+            <button
+              onClick={() => setActiveRegion('ict')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeRegion === 'ict'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              ICT — {subRegion}
+            </button>
+            <button
+              onClick={() => setActiveRegion('punjab')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeRegion === 'punjab'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Punjab — {punjabCluster}
+            </button>
+          </div>
+        )}
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -146,20 +183,21 @@ export default function ObservationScheduler() {
           </TabsList>
 
           <TabsContent value="scheduler">
-            <SmartScheduleTab
-              onNewObservation={(obs) => {
-                loadObservations();
-                setActiveTab('visits');
-              }}
-            />
+            {activeRegion === 'punjab' ? (
+              <PunjabSmartScheduleTab
+                onNewObservation={() => { loadObservations(); setActiveTab('visits'); }}
+              />
+            ) : (
+              <SmartScheduleTab
+                onNewObservation={() => { loadObservations(); setActiveTab('visits'); }}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="visits">
             <VisitsDashboardTab
               observations={observations}
-              onStartDebrief={(obs) => {
-                setQuickObs(obs);
-              }}
+              onStartDebrief={(obs) => setQuickObs(obs)}
               onRefresh={loadObservations}
               onNavigateToScheduler={() => setActiveTab('scheduler')}
             />
