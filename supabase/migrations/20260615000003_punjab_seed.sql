@@ -112,4 +112,21 @@ VALUES
   -- attock (cc: Mubashir Ali)
   ('sehir nawaz','GBPS DHOK FATEH','37110093','attock','Mubashir Ali','03111545249','Grade 3','English',5,7,10,5,5,0,32,51,62.7,'2026-05-18',1)
 
-ON CONFLICT DO NOTHING;
+ON CONFLICT (teacher_name, school_name, cluster_name) DO UPDATE SET
+  emis = EXCLUDED.emis,
+  cc_name = EXCLUDED.cc_name,
+  cc_mobile = EXCLUDED.cc_mobile,
+  grade = EXCLUDED.grade,
+  subject = EXCLUDED.subject,
+  classroom_management = EXCLUDED.classroom_management,
+  lesson_planning = EXCLUDED.lesson_planning,
+  instructional_strategies = EXCLUDED.instructional_strategies,
+  student_engagement = EXCLUDED.student_engagement,
+  assessment_feedback = EXCLUDED.assessment_feedback,
+  multigrade_setup = EXCLUDED.multigrade_setup,
+  total_score = EXCLUDED.total_score,
+  max_total_score = EXCLUDED.max_total_score,
+  overall_percentage = EXCLUDED.overall_percentage,
+  last_observation_date = EXCLUDED.last_observation_date,
+  observation_count = EXCLUDED.observation_count,
+  synced_at = NOW();

@@ -18,6 +18,13 @@ import { ScheduleVisitModal } from './ScheduleVisitModal';
 import type { PunjabTeacher } from '@/types/teacher';
 import type { DCTeacher } from '@/types/teacher';
 import type { CotObservation, ScheduleVisitFormData } from '@/types/observation';
+import {
+  PUNJAB_CRITICAL_PCT,
+  PUNJAB_ON_TRACK_PCT,
+  PUNJAB_WEEKLY_VISIT_TARGET,
+  PUNJAB_STAGNATION_OBS_MIN,
+  PUNJAB_ESCALATION_OBS_MIN,
+} from '@/domain/thresholds';
 
 // Indicator max scores (sum = 51 = max_total_score)
 const PUNJAB_INDICATORS = [
@@ -58,22 +65,22 @@ function toModalTeacher(t: PunjabTeacher): DCTeacher {
 }
 
 function scoreBadgeClass(pct: number) {
-  if (pct >= 75) return 'text-green-700 bg-green-50 border-green-200';
-  if (pct >= 60) return 'text-yellow-700 bg-yellow-50 border-yellow-200';
+  if (pct >= PUNJAB_ON_TRACK_PCT) return 'text-green-700 bg-green-50 border-green-200';
+  if (pct >= PUNJAB_CRITICAL_PCT) return 'text-yellow-700 bg-yellow-50 border-yellow-200';
   return 'text-red-700 bg-red-50 border-red-200';
 }
 
 function tierLabel(pct: number) {
-  if (pct >= 75) return { label: 'On Track', className: 'text-green-700 bg-green-50 border-green-200' };
-  if (pct >= 60) return { label: 'Needs Follow-up', className: 'text-yellow-700 bg-yellow-50 border-yellow-200' };
+  if (pct >= PUNJAB_ON_TRACK_PCT) return { label: 'On Track', className: 'text-green-700 bg-green-50 border-green-200' };
+  if (pct >= PUNJAB_CRITICAL_PCT) return { label: 'Needs Follow-up', className: 'text-yellow-700 bg-yellow-50 border-yellow-200' };
   return { label: 'Needs Visit', className: 'text-red-700 bg-red-50 border-red-200' };
 }
 
 // HOTS rubric level labels per CC-Tool document: Low/Medium/High
 function indicatorLevel(score: number, max: number): { label: 'Low' | 'Medium' | 'High'; className: string } {
   const pct = (score / max) * 100;
-  if (pct >= 75) return { label: 'High', className: 'text-green-700' };
-  if (pct >= 60) return { label: 'Medium', className: 'text-yellow-700' };
+  if (pct >= PUNJAB_ON_TRACK_PCT) return { label: 'High', className: 'text-green-700' };
+  if (pct >= PUNJAB_CRITICAL_PCT) return { label: 'Medium', className: 'text-yellow-700' };
   return { label: 'Low', className: 'text-red-700' };
 }
 
@@ -284,9 +291,9 @@ export default function PunjabSmartScheduleTab({ onNewObservation }: Props) {
     );
   }
 
-  const critical = teachers.filter(t => t.overall_percentage < 60);
-  const watch = teachers.filter(t => t.overall_percentage >= 60 && t.overall_percentage < 75);
-  const onTrack = teachers.filter(t => t.overall_percentage >= 75);
+  const critical = teachers.filter(t => t.overall_percentage < PUNJAB_CRITICAL_PCT);
+  const watch = teachers.filter(t => t.overall_percentage >= PUNJAB_CRITICAL_PCT && t.overall_percentage < PUNJAB_ON_TRACK_PCT);
+  const onTrack = teachers.filter(t => t.overall_percentage >= PUNJAB_ON_TRACK_PCT);
 
   // Change A: first unvisited teacher for "Visit Next" card
   const nextTeacher =
@@ -344,8 +351,8 @@ export default function PunjabSmartScheduleTab({ onNewObservation }: Props) {
               <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Visit Next</p>
               <div className="flex items-start gap-3">
                 <div className={`shrink-0 w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                  nextTeacher.overall_percentage >= 75 ? 'border-green-400 text-green-700 bg-green-50' :
-                  nextTeacher.overall_percentage >= 60 ? 'border-yellow-400 text-yellow-700 bg-yellow-50' :
+                  nextTeacher.overall_percentage >= PUNJAB_ON_TRACK_PCT ? 'border-green-400 text-green-700 bg-green-50' :
+                  nextTeacher.overall_percentage >= PUNJAB_CRITICAL_PCT ? 'border-yellow-400 text-yellow-700 bg-yellow-50' :
                   'border-red-400 text-red-700 bg-red-50'
                 }`}>
                   {Math.round(nextTeacher.overall_percentage)}%
@@ -390,10 +397,10 @@ export default function PunjabSmartScheduleTab({ onNewObservation }: Props) {
             <p className="text-xs text-muted-foreground mt-0.5">Total Teachers</p>
           </CardContent>
         </Card>
-        <Card className={`glass-card border-l-4 ${visitedThisWeek >= 3 ? 'border-l-green-500' : visitedThisWeek >= 1 ? 'border-l-amber-500' : 'border-l-red-400'}`}>
+        <Card className={`glass-card border-l-4 ${visitedThisWeek >= PUNJAB_WEEKLY_VISIT_TARGET ? 'border-l-green-500' : visitedThisWeek >= 1 ? 'border-l-amber-500' : 'border-l-red-400'}`}>
           <CardContent className="p-3 text-center">
-            <div className={`text-2xl font-bold ${visitedThisWeek >= 3 ? 'text-green-600' : visitedThisWeek >= 1 ? 'text-amber-600' : 'text-red-600'}`}>
-              {visitedThisWeek}/3
+            <div className={`text-2xl font-bold ${visitedThisWeek >= PUNJAB_WEEKLY_VISIT_TARGET ? 'text-green-600' : visitedThisWeek >= 1 ? 'text-amber-600' : 'text-red-600'}`}>
+              {visitedThisWeek}/{PUNJAB_WEEKLY_VISIT_TARGET}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">This Week</p>
           </CardContent>
@@ -493,10 +500,10 @@ export default function PunjabSmartScheduleTab({ onNewObservation }: Props) {
               const tier_ = tierLabel(teacher.overall_percentage);
               const isVisited = visitedTeachers.has(teacher.teacher_name);
               // Two-tier escalation per CC-Tool document:
-              // obs ≥ 2 + score < 60 → stagnation warning (amber)
-              // obs ≥ 3 + score < 60 → escalate to Regional Office (red)
-              const isStagnant = teacher.observation_count >= 2 && teacher.overall_percentage < 60;
-              const needsEscalation = teacher.observation_count >= 3 && teacher.overall_percentage < 60;
+              // obs ≥ STAGNATION_OBS_MIN + score < CRITICAL_PCT → stagnation warning (amber)
+              // obs ≥ ESCALATION_OBS_MIN + score < CRITICAL_PCT → escalate to Regional Office (red)
+              const isStagnant = teacher.observation_count >= PUNJAB_STAGNATION_OBS_MIN && teacher.overall_percentage < PUNJAB_CRITICAL_PCT;
+              const needsEscalation = teacher.observation_count >= PUNJAB_ESCALATION_OBS_MIN && teacher.overall_percentage < PUNJAB_CRITICAL_PCT;
               const isFlagged = flaggedTeachers.has(teacher.teacher_name);
 
               return (
@@ -505,8 +512,8 @@ export default function PunjabSmartScheduleTab({ onNewObservation }: Props) {
                     {/* Top row: score bubble + info */}
                     <div className="flex items-start gap-3">
                       <div className={`shrink-0 w-11 h-11 rounded-full border-2 flex items-center justify-center text-xs font-bold ${
-                        teacher.overall_percentage >= 75 ? 'border-green-400 text-green-700 bg-green-50' :
-                        teacher.overall_percentage >= 60 ? 'border-yellow-400 text-yellow-700 bg-yellow-50' :
+                        teacher.overall_percentage >= PUNJAB_ON_TRACK_PCT ? 'border-green-400 text-green-700 bg-green-50' :
+                        teacher.overall_percentage >= PUNJAB_CRITICAL_PCT ? 'border-yellow-400 text-yellow-700 bg-yellow-50' :
                         'border-red-400 text-red-700 bg-red-50'
                       }`}>
                         {Math.round(teacher.overall_percentage)}%
@@ -563,7 +570,7 @@ export default function PunjabSmartScheduleTab({ onNewObservation }: Props) {
                               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                                 <div
                                   className={`h-full rounded-full transition-all ${
-                                    pct >= 75 ? 'bg-green-500' : pct >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                    pct >= PUNJAB_ON_TRACK_PCT ? 'bg-green-500' : pct >= PUNJAB_CRITICAL_PCT ? 'bg-yellow-500' : 'bg-red-500'
                                   }`}
                                   style={{ width: `${pct}%` }}
                                 />

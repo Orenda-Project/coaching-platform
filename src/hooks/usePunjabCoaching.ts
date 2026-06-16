@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { listPunjabTeachersByCluster } from '@/data/punjabTeachers';
 import type { PunjabTeacher } from '@/types/teacher';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -65,16 +65,7 @@ export function usePunjabCoaching(): UsePunjabCoachingState & UsePunjabCoachingA
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error: dbError } = await (supabase as any)
-        .from('punjab_teacher_scores')
-        .select('*')
-        .eq('cluster_name', cluster)
-        .order('overall_percentage', { ascending: true });
-
-      if (dbError) throw dbError;
-
-      const fresh = (data ?? []) as unknown as PunjabTeacher[];
+      const fresh = await listPunjabTeachersByCluster(cluster);
       setTeachers(fresh);
       setIsOffline(false);
 

@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS punjab_teacher_scores (
   overall_percentage FLOAT NOT NULL DEFAULT 0,
   last_observation_date DATE,
   observation_count INTEGER NOT NULL DEFAULT 1,
-  synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (teacher_name, school_name, cluster_name)
 );
 
 ALTER TABLE punjab_teacher_scores ENABLE ROW LEVEL SECURITY;
