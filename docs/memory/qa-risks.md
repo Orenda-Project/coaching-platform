@@ -24,6 +24,11 @@ Last updated: 2026-04-23
 - Fix requires: `ALTER TABLE profiles DROP CONSTRAINT profiles_persona_check; ALTER TABLE profiles ADD CONSTRAINT profiles_persona_check CHECK (persona IN ('A','B','C','D','E'));`
 - Regression test: `src/domain/persona-e-constraint.test.ts` — intentionally fails until migration applied; test title: "succeeds when persona is E (fails on old DB with missing E in constraint)"
 
+## Regression: Option Shuffle (2026-06-11)
+- **_shuffled() mutation guard** — `random.shuffle()` mutates in-place; `_shuffled()` must copy first or options on the SQLAlchemy model object are permanently reordered for the lifetime of the DB session
+- **Shuffle set-identity** — any bug that drops or duplicates an option during shuffle produces silent wrong answers; always assert `sorted(ids_before) == sorted(ids_after)`
+- **Vacation lock: persona filter regression** — if a persona-based module filter is re-introduced, Persona E (and other non-A personas) will silently see fewer than 6 modules; pin count == 6 per persona
+
 ## Edge Cases Rarely Tested
 - User with no modules assigned (dashboard shows "no modules")
 - Persona score exactly at threshold (75.0 = A, 74.9 = B)
