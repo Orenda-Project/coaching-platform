@@ -87,7 +87,7 @@ export default function Dashboard() {
 
     // All users see all modules after baseline completion (vacation lock mode)
     // Persona determines the learning path recommendation, not module access
-    let assignedModules = allModules;
+    const assignedModules = allModules;
     const assignedModuleIds = new Set(assignedModules.map((m) => m.id));
     const assignedTrainings = allTrainings.filter(
       (t) => t.module_id && assignedModuleIds.has(t.module_id),
