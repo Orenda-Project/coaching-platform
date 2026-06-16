@@ -41,3 +41,20 @@ export const PERSONA_THRESHOLDS = {
   C: 65,
   D: 60,
 } as const;
+
+// ─── Punjab Cluster Coordinator thresholds ───────────────────────────────────
+
+/** Punjab teacher score: at/above = on track (green tier). */
+export const PUNJAB_ON_TRACK_PCT = 75;
+
+/** Punjab teacher score: below = critical (red tier); between critical and on-track = watch (amber). */
+export const PUNJAB_CRITICAL_PCT = 60;
+
+/** Punjab CC coaching: weekly visit target. */
+export const PUNJAB_WEEKLY_VISIT_TARGET = 3;
+
+/** Punjab stagnation flag: minimum observation count before flagging stagnation. */
+export const PUNJAB_STAGNATION_OBS_MIN = 2;
+
+/** Punjab escalation flag: minimum observation count before RO escalation. */
+export const PUNJAB_ESCALATION_OBS_MIN = 3;

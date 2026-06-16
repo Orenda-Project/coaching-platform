@@ -1,0 +1,16 @@
+import { supabase } from '@/integrations/supabase/client';
+import type { PunjabTeacher } from '@/types/teacher';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
+export async function listPunjabTeachersByCluster(cluster: string): Promise<PunjabTeacher[]> {
+  const { data, error } = await db
+    .from('punjab_teacher_scores')
+    .select('*')
+    .eq('cluster_name', cluster)
+    .order('overall_percentage', { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as PunjabTeacher[];
+}
