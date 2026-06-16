@@ -42,11 +42,11 @@ class CoachingSession(Base):
             "id": self.id,
             "coach_id": self.coach_id,
             "coachee_id": self.coachee_id,
-            "date": self.date.isoformat(),
+            "date": self.date.isoformat() if self.date else None,
             "status": self.status,
             "notes": self.notes,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "feedback": [f.to_dict() for f in self.feedback] if self.feedback else [],
             "session_notes": [note.to_dict() for note in self.session_notes] if self.session_notes else [],
         }
@@ -79,8 +79,8 @@ class Feedback(Base):
             "category": self.category,
             "rating": self.rating,
             "comments": self.comments,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -109,6 +109,6 @@ class SessionNote(Base):
             "session_id": self.session_id,
             "content": self.content,
             "created_by": self.created_by,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

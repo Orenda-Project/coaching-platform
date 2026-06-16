@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from app.database import get_db
 from app.services.training_service import TrainingService
+from datetime import datetime
 
 router = APIRouter(prefix="/api/training", tags=["training"])
 
@@ -15,9 +16,9 @@ class TrainingContentResponse(BaseModel):
     """Training content item."""
 
     id: str
-    format_type: str
-    content_url: str
-    metadata: dict
+    format_type: Optional[str] = None
+    content_url: Optional[str] = None
+    metadata: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -27,9 +28,9 @@ class QuestionOptionResponse(BaseModel):
     """Question option."""
 
     id: str
-    text: str
-    is_correct: bool
-    order: int
+    text: Optional[str] = None
+    is_correct: Optional[bool] = False
+    order: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -39,10 +40,10 @@ class QuestionResponse(BaseModel):
     """Quiz question."""
 
     id: str
-    question_text: str
-    question_type: str
-    order_number: int
-    options: List[QuestionOptionResponse]
+    question_text: Optional[str] = None
+    question_type: Optional[str] = None
+    order_number: Optional[int] = None
+    options: List[QuestionOptionResponse] = []
 
     class Config:
         from_attributes = True
@@ -51,10 +52,10 @@ class QuestionResponse(BaseModel):
 class ScenarioOptionResponse(BaseModel):
     """Scenario option."""
 
-    letter: str
-    text: str
-    is_correct: bool
-    rationale: str
+    letter: Optional[str] = None
+    text: Optional[str] = None
+    is_correct: Optional[bool] = False
+    rationale: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -64,10 +65,10 @@ class ScenarioResponse(BaseModel):
     """Scenario-based learning content."""
 
     id: str
-    situation: str
-    question: str
-    difficulty: str
-    options: List[ScenarioOptionResponse]
+    situation: Optional[str] = None
+    question: Optional[str] = None
+    difficulty: Optional[str] = None
+    options: List[ScenarioOptionResponse] = []
 
     class Config:
         from_attributes = True
@@ -77,13 +78,13 @@ class TrainingResponse(BaseModel):
     """Full training response."""
 
     id: str
-    module_id: str
+    module_id: Optional[str] = None
     title: str
-    description: str
-    order_number: int
-    content: List[TrainingContentResponse]
-    quiz: dict  # Contains questions
-    scenarios: List[ScenarioResponse]
+    description: Optional[str] = None
+    order_number: Optional[int] = None
+    content: List[TrainingContentResponse] = []
+    quiz: Optional[dict] = None
+    scenarios: List[ScenarioResponse] = []
 
     class Config:
         from_attributes = True
@@ -102,13 +103,19 @@ class TrainingProgressResponse(BaseModel):
     """User progress for a training."""
 
     id: str
-    user_id: str
-    training_id: str
-    progress_percentage: float
-    is_completed: bool
-    completed_at: Optional[str]
-    created_at: str
-    updated_at: str
+    user_id: Optional[str] = None
+    training_id: Optional[str] = None
+    progress_percentage: Optional[float] = 0.0
+    is_completed: Optional[bool] = False
+    completed_at: Optional[str] = None
+    passed: Optional[bool] = False
+    score: Optional[float] = None
+    attempt_count: Optional[int] = 0
+    tab_switch_count: Optional[int] = 0
+    flagged_for_review: Optional[bool] = False
+    content_completed: Optional[bool] = False
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -123,13 +130,21 @@ class UpdateProgressRequest(BaseModel):
 class ModuleProgressResponse(BaseModel):
     """Aggregated progress for a module."""
 
-    module_id: str
-    total_trainings: int
-    completed_trainings: int
-    overall_progress: float
+    module_id: Optional[str] = None
+    total_trainings: Optional[int] = 0
+    completed_trainings: Optional[int] = 0
+    overall_progress: Optional[float] = 0.0
 
 
 # Endpoints
+@router.get("/modules", response_model=dict)
+async def get_all_modules(db: Session = Depends(get_db)):
+    """Get all modules ordered by order_number."""
+    service = TrainingService(db)
+    modules = service.get_all_modules()
+    return {"modules": [m.to_dict() for m in modules]}
+
+
 @router.get("", response_model=TrainingListResponse)
 async def get_all_trainings(
     limit: int = Query(100, ge=1, le=1000),
@@ -406,3 +421,66 @@ async def reset_progress(
         )
 
     return progress.to_dict()
+
+
+# --- Training Content endpoint ---
+
+@router.get("/{training_id}/content")
+async def get_training_content(training_id: str, db: Session = Depends(get_db)):
+    """Get training content (slides, video, scenario JSON) excluding audio."""
+    service = TrainingService(db)
+    contents = service.get_training_content(training_id)
+    return [c.to_dict() for c in contents]
+
+
+# --- Module Quiz Attempt endpoints ---
+
+class ModuleQuizAttemptRequest(BaseModel):
+    user_id: str
+    module_id: str
+    score: float
+    passed: bool
+
+
+@router.post("/module-quiz-attempt")
+async def upsert_module_quiz_attempt(
+    request: ModuleQuizAttemptRequest,
+    db: Session = Depends(get_db)
+):
+    """Create or update a module quiz attempt."""
+    service = TrainingService(db)
+    attempt = service.upsert_module_quiz_attempt(
+        user_id=request.user_id,
+        module_id=request.module_id,
+        score=request.score,
+        passed=request.passed,
+    )
+
+    if not attempt:
+        raise HTTPException(status_code=400, detail="Failed to save quiz attempt")
+
+    return attempt.to_dict()
+
+
+@router.get("/module-quiz-attempt/{user_id}/{module_id}")
+async def get_module_quiz_attempt(
+    user_id: str,
+    module_id: str,
+    db: Session = Depends(get_db)
+):
+    """Get module quiz attempt for a user."""
+    service = TrainingService(db)
+    attempt = service.get_module_quiz_attempt(user_id, module_id)
+
+    if not attempt:
+        return {
+            "user_id": user_id,
+            "module_id": module_id,
+            "score": 0,
+            "best_score": 0,
+            "passed": False,
+            "attempt_count": 0,
+            "completed_at": None,
+        }
+
+    return attempt.to_dict()

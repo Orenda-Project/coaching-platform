@@ -7,7 +7,7 @@ from app.database import Base
 class Module(Base):
     """Training module."""
 
-    __tablename__ = "export_modules"
+    __tablename__ = "modules"
 
     id = Column(String, primary_key=True)
     title = Column(String, nullable=False)
@@ -29,25 +29,29 @@ class Module(Base):
             "order_number": self.order_number,
             "competencies": self.competencies,
             "persona_required": self.persona_required,
-            "trainings": [t.to_dict() for t in self.trainings],
         }
 
 
 class Training(Base):
     """Training unit (formerly called modules in UI)."""
 
-    __tablename__ = "export_trainings"
+    __tablename__ = "trainings"
 
     id = Column(String, primary_key=True)
-    module_id = Column(String, ForeignKey("export_modules.id"), nullable=False)
+    module_id = Column(String, ForeignKey("modules.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text)
     order_number = Column(Integer)
+    is_common = Column(Boolean, default=False)
+    persona_required = Column(String, nullable=True)
+    main_concepts = Column(Text, nullable=True)
+    max_attempts = Column(Integer, default=3)
+    quiz_unlock_requires_content = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     module = relationship("Module", back_populates="trainings")
     content = relationship("TrainingContent", back_populates="training", cascade="all, delete-orphan")
-    questions = relationship("Question", back_populates="training", cascade="all, delete-orphan")
+    assessments = relationship("AssessmentContent", back_populates="training", cascade="all, delete-orphan")
     scenarios = relationship("Scenario", back_populates="training", cascade="all, delete-orphan")
 
     def to_dict(self):
@@ -57,11 +61,16 @@ class Training(Base):
             "title": self.title,
             "description": self.description,
             "order_number": self.order_number,
+            "is_common": self.is_common,
+            "persona_required": self.persona_required,
+            "main_concepts": self.main_concepts,
+            "max_attempts": self.max_attempts,
+            "quiz_unlock_requires_content": self.quiz_unlock_requires_content,
             "content": [c.to_dict() for c in self.content],
             "quiz": {
                 "passing_score_percent": 80,
-                "max_attempts": 3,
-                "questions": [q.to_dict() for q in self.questions],
+                "max_attempts": self.max_attempts or 3,
+                "questions": [],  # Questions now fetched via assessments
             },
             "scenarios": [s.to_dict() for s in self.scenarios],
         }
@@ -70,10 +79,10 @@ class Training(Base):
 class TrainingContent(Base):
     """Video, slides, or other content for a training."""
 
-    __tablename__ = "export_training_content"
+    __tablename__ = "training_content"
 
     id = Column(String, primary_key=True)
-    training_id = Column(String, ForeignKey("export_trainings.id"), nullable=False)
+    training_id = Column(String, ForeignKey("trainings.id"), nullable=False)
     format_type = Column(String)  # 'slides', 'video', 'scenario'
     content_url = Column(String)
     duration_minutes = Column(Integer)
@@ -102,20 +111,50 @@ class TrainingContent(Base):
         return labels.get(self.format_type, self.format_type)
 
 
-class Question(Base):
-    """Quiz question for a training."""
+class AssessmentContent(Base):
+    """Assessment/quiz definition (content table, NOT user tracking)."""
 
-    __tablename__ = "export_questions"
+    __tablename__ = "assessments"
 
     id = Column(String, primary_key=True)
-    training_id = Column(String, ForeignKey("export_trainings.id"), nullable=False)
+    type = Column(String)  # baseline, endline, module_quiz
+    training_id = Column(String, ForeignKey("trainings.id"), nullable=True)
+    title = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    passing_score = Column(Integer, default=80)
+    max_attempts = Column(Integer, default=3)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    training = relationship("Training", back_populates="assessments")
+    questions = relationship("Question", back_populates="assessment", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "training_id": self.training_id,
+            "title": self.title,
+            "description": self.description,
+            "passing_score": self.passing_score,
+            "max_attempts": self.max_attempts,
+        }
+
+
+class Question(Base):
+    """Quiz question linked to an assessment."""
+
+    __tablename__ = "questions"
+
+    id = Column(String, primary_key=True)
+    assessment_id = Column(String, ForeignKey("assessments.id"), nullable=False)
     question_type = Column(String)  # 'mcq', 'open'
     question_text = Column(Text, nullable=False)
     order_number = Column(Integer)
     max_score = Column(Integer, default=1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    training = relationship("Training", back_populates="questions")
+    assessment = relationship("AssessmentContent", back_populates="questions")
     options = relationship("Option", back_populates="question", cascade="all, delete-orphan")
 
     def to_dict(self):
@@ -131,10 +170,10 @@ class Question(Base):
 class Option(Base):
     """Answer option for a multiple-choice question."""
 
-    __tablename__ = "export_options"
+    __tablename__ = "options"
 
     id = Column(String, primary_key=True)
-    question_id = Column(String, ForeignKey("export_questions.id"), nullable=False)
+    question_id = Column(String, ForeignKey("questions.id"), nullable=False)
     option_text = Column(Text, nullable=False)
     is_correct = Column(Boolean, default=False)
     order_number = Column(Integer)
@@ -157,7 +196,7 @@ class Scenario(Base):
     __tablename__ = "export_scenarios"
 
     id = Column(String, primary_key=True)
-    training_id = Column(String, ForeignKey("export_trainings.id"), nullable=False)
+    training_id = Column(String, ForeignKey("trainings.id"), nullable=False)
     situation = Column(Text)
     question = Column(Text)
     difficulty = Column(String)  # 'easy', 'medium', 'hard'

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { authApiClient } from "@/lib/apiClients/authApiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { PersonaBadge } from "@/components/PersonaBadge";
 import { ArrowLeft, User, Mail, Phone, School, BookOpen, Trophy, Edit2, Save, X, GraduationCap, Building2, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
 
 interface Qualification {
   degree_type: string;
@@ -250,22 +249,20 @@ export default function Profile() {
                   </select>
                 </div>
 
-                {form.region === "islamabad" && (
-                  <div>
-                    <Label htmlFor="sub_region">Sub-Region</Label>
-                    <select
-                      id="sub_region"
-                      value={form.sub_region}
-                      onChange={(e) => setForm({ ...form, sub_region: e.target.value })}
-                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    >
-                      <option value="">Select sub-region</option>
-                      {SUB_REGIONS.map((sr) => (
-                        <option key={sr} value={sr}>{sr}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                <div>
+                  <Label htmlFor="sub_region">Sub-Region</Label>
+                  <select
+                    id="sub_region"
+                    value={form.sub_region}
+                    onChange={(e) => setForm({ ...form, sub_region: e.target.value })}
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  >
+                    <option value="">Select sub-region</option>
+                    {SUB_REGIONS.map((sr) => (
+                      <option key={sr} value={sr}>{sr}</option>
+                    ))}
+                  </select>
+                </div>
 
                 {form.region === "punjab" && (
                   <div>

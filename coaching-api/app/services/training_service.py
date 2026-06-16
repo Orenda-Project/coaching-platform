@@ -6,7 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from typing import Optional, List
 import uuid
-from app.models import Training, TrainingProgress, Module
+from app.models import Training, TrainingProgress, Module, TrainingContent
+from app.models.training_progress import ModuleQuizAttempt
 
 
 class TrainingService:
@@ -15,24 +16,27 @@ class TrainingService:
     def __init__(self, db: Session):
         self.db = db
 
+    def get_all_modules(self) -> List[Module]:
+        """Get all modules ordered by order_number."""
+        return list(self.db.execute(
+            select(Module).order_by(Module.order_number)
+        ).scalars().all())
+
     def get_training(self, training_id: str) -> Optional[Training]:
         """Get training by ID."""
         return self.db.execute(
             select(Training).filter(Training.id == training_id)
         ).scalar_one_or_none()
 
+    def get_training_content(self, training_id: str) -> List[TrainingContent]:
+        """Get training content excluding audio format type."""
+        return list(self.db.execute(
+            select(TrainingContent)
+            .filter(TrainingContent.training_id == training_id)
+            .filter(TrainingContent.format_type != "audio")
+        ).scalars().all())
+
     def get_module_trainings(self, module_id: str, limit: int = 100, offset: int = 0) -> tuple[List[Training], int]:
-        """
-        Get all trainings for a module.
-
-        Args:
-            module_id: Module ID
-            limit: Number of results
-            offset: Results offset
-
-        Returns:
-            Tuple of (trainings list, total count)
-        """
         from sqlalchemy import func
 
         total = self.db.execute(
@@ -50,16 +54,6 @@ class TrainingService:
         return list(trainings), total
 
     def get_all_trainings(self, limit: int = 100, offset: int = 0) -> tuple[List[Training], int]:
-        """
-        Get all trainings.
-
-        Args:
-            limit: Number of results
-            offset: Results offset
-
-        Returns:
-            Tuple of (trainings list, total count)
-        """
         from sqlalchemy import func
 
         total = self.db.execute(
@@ -75,21 +69,7 @@ class TrainingService:
 
         return list(trainings), total
 
-    def get_user_progress(
-        self,
-        user_id: str,
-        training_id: str
-    ) -> Optional[TrainingProgress]:
-        """
-        Get user's progress for a specific training.
-
-        Args:
-            user_id: User ID
-            training_id: Training ID
-
-        Returns:
-            TrainingProgress object or None
-        """
+    def get_user_progress(self, user_id: str, training_id: str) -> Optional[TrainingProgress]:
         return self.db.execute(
             select(TrainingProgress).filter(
                 TrainingProgress.user_id == user_id,
@@ -97,22 +77,7 @@ class TrainingService:
             )
         ).scalar_one_or_none()
 
-    def create_progress(
-        self,
-        user_id: str,
-        training_id: str
-    ) -> Optional[TrainingProgress]:
-        """
-        Create initial progress record for a user and training.
-
-        Args:
-            user_id: User ID
-            training_id: Training ID
-
-        Returns:
-            Created TrainingProgress or None
-        """
-        # Check if progress already exists
+    def create_progress(self, user_id: str, training_id: str) -> Optional[TrainingProgress]:
         existing = self.get_user_progress(user_id, training_id)
         if existing:
             return existing
@@ -133,27 +98,10 @@ class TrainingService:
             self.db.rollback()
             return None
 
-    def update_progress(
-        self,
-        user_id: str,
-        training_id: str,
-        progress_percentage: float
-    ) -> Optional[TrainingProgress]:
-        """
-        Update user's progress percentage for a training.
-
-        Args:
-            user_id: User ID
-            training_id: Training ID
-            progress_percentage: Progress as percentage (0-100)
-
-        Returns:
-            Updated TrainingProgress or None
-        """
+    def update_progress(self, user_id: str, training_id: str, progress_percentage: float) -> Optional[TrainingProgress]:
         progress = self.get_user_progress(user_id, training_id)
 
         if not progress:
-            # Create if doesn't exist
             progress = self.create_progress(user_id, training_id)
             if not progress:
                 return None
@@ -167,25 +115,10 @@ class TrainingService:
             self.db.rollback()
             return None
 
-    def mark_complete(
-        self,
-        user_id: str,
-        training_id: str
-    ) -> Optional[TrainingProgress]:
-        """
-        Mark training as completed for a user.
-
-        Args:
-            user_id: User ID
-            training_id: Training ID
-
-        Returns:
-            Updated TrainingProgress or None
-        """
+    def mark_complete(self, user_id: str, training_id: str) -> Optional[TrainingProgress]:
         progress = self.get_user_progress(user_id, training_id)
 
         if not progress:
-            # Create if doesn't exist
             progress = self.create_progress(user_id, training_id)
             if not progress:
                 return None
@@ -193,6 +126,8 @@ class TrainingService:
         try:
             progress.progress_percentage = 100.0
             progress.is_completed = True
+            progress.passed = True
+            progress.content_completed = True
             progress.completed_at = datetime.utcnow()
             self.db.commit()
             self.db.refresh(progress)
@@ -201,23 +136,7 @@ class TrainingService:
             self.db.rollback()
             return None
 
-    def get_user_all_progress(
-        self,
-        user_id: str,
-        limit: int = 100,
-        offset: int = 0
-    ) -> tuple[List[TrainingProgress], int]:
-        """
-        Get all training progress for a user.
-
-        Args:
-            user_id: User ID
-            limit: Number of results
-            offset: Results offset
-
-        Returns:
-            Tuple of (progress list, total count)
-        """
+    def get_user_all_progress(self, user_id: str, limit: int = 100, offset: int = 0) -> tuple[List[TrainingProgress], int]:
         from sqlalchemy import func
 
         total = self.db.execute(
@@ -234,22 +153,7 @@ class TrainingService:
 
         return list(progress_list), total
 
-    def get_module_progress(
-        self,
-        user_id: str,
-        module_id: str
-    ) -> dict:
-        """
-        Get user's aggregated progress for all trainings in a module.
-
-        Args:
-            user_id: User ID
-            module_id: Module ID
-
-        Returns:
-            Dict with progress statistics
-        """
-        # Get all trainings in module
+    def get_module_progress(self, user_id: str, module_id: str) -> dict:
         trainings, _ = self.get_module_trainings(module_id, limit=1000)
 
         if not trainings:
@@ -260,7 +164,6 @@ class TrainingService:
                 "overall_progress": 0.0,
             }
 
-        # Get progress for each training
         total = len(trainings)
         completed = 0
         total_progress = 0.0
@@ -271,8 +174,6 @@ class TrainingService:
                 total_progress += progress.progress_percentage
                 if progress.is_completed:
                     completed += 1
-            else:
-                total_progress += 0.0
 
         overall_progress = (total_progress / (total * 100.0) * 100.0) if total > 0 else 0.0
 
@@ -284,16 +185,6 @@ class TrainingService:
         }
 
     def delete_progress(self, user_id: str, training_id: str) -> bool:
-        """
-        Delete progress record.
-
-        Args:
-            user_id: User ID
-            training_id: Training ID
-
-        Returns:
-            True if deleted, False if not found
-        """
         progress = self.get_user_progress(user_id, training_id)
         if not progress:
             return False
@@ -307,16 +198,6 @@ class TrainingService:
             return False
 
     def reset_progress(self, user_id: str, training_id: str) -> Optional[TrainingProgress]:
-        """
-        Reset progress for a training (set to 0%).
-
-        Args:
-            user_id: User ID
-            training_id: Training ID
-
-        Returns:
-            Reset TrainingProgress or None
-        """
         progress = self.get_user_progress(user_id, training_id)
         if not progress:
             return None
@@ -328,6 +209,57 @@ class TrainingService:
             self.db.commit()
             self.db.refresh(progress)
             return progress
+        except Exception:
+            self.db.rollback()
+            return None
+
+    # --- Module Quiz Attempt methods ---
+
+    def get_module_quiz_attempt(self, user_id: str, module_id: str) -> Optional[ModuleQuizAttempt]:
+        """Get existing quiz attempt record for user + module."""
+        return self.db.execute(
+            select(ModuleQuizAttempt).filter(
+                ModuleQuizAttempt.user_id == user_id,
+                ModuleQuizAttempt.module_id == module_id,
+            )
+        ).scalar_one_or_none()
+
+    def upsert_module_quiz_attempt(
+        self,
+        user_id: str,
+        module_id: str,
+        score: float,
+        passed: bool,
+    ) -> Optional[ModuleQuizAttempt]:
+        """Create or update a module quiz attempt record."""
+        existing = self.get_module_quiz_attempt(user_id, module_id)
+
+        try:
+            if existing:
+                existing.score = score
+                existing.best_score = max(score, existing.best_score or 0)
+                existing.passed = passed or existing.passed
+                existing.attempt_count = (existing.attempt_count or 0) + 1
+                if passed and not existing.completed_at:
+                    existing.completed_at = datetime.utcnow()
+                self.db.commit()
+                self.db.refresh(existing)
+                return existing
+            else:
+                attempt = ModuleQuizAttempt(
+                    id=str(uuid.uuid4()),
+                    user_id=user_id,
+                    module_id=module_id,
+                    score=score,
+                    best_score=score,
+                    passed=passed,
+                    attempt_count=1,
+                    completed_at=datetime.utcnow() if passed else None,
+                )
+                self.db.add(attempt)
+                self.db.commit()
+                self.db.refresh(attempt)
+                return attempt
         except Exception:
             self.db.rollback()
             return None

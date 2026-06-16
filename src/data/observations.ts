@@ -1,10 +1,6 @@
-import { supabase } from '@/integrations/supabase/client';
 import type { CotObservation } from '@/types/observation';
 
- 
-// TODO: Regenerate types in src/types/observation.ts to include cot_observations table
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const typedSupabase = supabase as any;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export interface ScheduleVisitPayload {
   observer_id: string;
@@ -25,72 +21,93 @@ export interface ScheduleVisitPayload {
   departure_time?: string;
 }
 
-export async function scheduleVisit(payload: ScheduleVisitPayload): Promise<CotObservation> {
-  console.log('[scheduleVisit] Inserting payload:', payload);
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
 
-  const { data, error } = await typedSupabase
-    .from('cot_observations')
-    .insert(payload)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('[scheduleVisit] Insert error:', error);
-    throw error;
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => '');
+    throw new Error(`API error ${response.status}: ${errorBody || response.statusText}`);
   }
 
+  return response.json() as Promise<T>;
+}
+
+export async function scheduleVisit(payload: ScheduleVisitPayload): Promise<CotObservation> {
+  console.log('[scheduleVisit] Creating observation via backend API:', payload);
+
+  const data = await apiFetch<CotObservation>(
+    `${API_URL}/api/coaching/observations`,
+    { method: 'POST', body: JSON.stringify(payload) },
+  );
+
   console.log('[scheduleVisit] Success, returned data:', data);
-  return data as CotObservation;
+  return data;
 }
 
 export async function listObservationsForObserver(observer_id: string, region?: string): Promise<CotObservation[]> {
-  let query = typedSupabase
-    .from('cot_observations')
-    .select('*')
-    .eq('observer_id', observer_id);
-
+  const params = new URLSearchParams({ observer_id });
   if (region) {
-    query = query.eq('region', region);
+    params.append('region', region);
   }
 
-  const { data, error } = await query
-    .order('created_at', { ascending: false });
+  const data = await apiFetch<{ observations: CotObservation[]; total: number }>(
+    `${API_URL}/api/coaching/observations?${params.toString()}`,
+  );
 
-  if (error) {
-    throw error;
-  }
-
-  return (data || []) as CotObservation[];
+  return data.observations || [];
 }
 
 export async function markObservationDraft(observation_id: string): Promise<void> {
-  const { error } = await typedSupabase
-    .from('cot_observations')
-    .update({
-      status: 'Draft',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', observation_id);
-
-  if (error) {
-    throw error;
-  }
+  await apiFetch<unknown>(
+    `${API_URL}/api/coaching/observations/${observation_id}/status`,
+    { method: 'PUT', body: JSON.stringify({ status: 'Draft' }) },
+  );
 }
 
 export async function updateObservationStatus(
   observation_id: string,
-  status: 'Submitted' | 'Approved' | 'Draft'
+  status: 'Submitted' | 'Approved' | 'Draft',
 ): Promise<void> {
-  const { error } = await typedSupabase
-    .from('cot_observations')
-    .update({
-      status,
-      submitted_at: status === 'Submitted' ? new Date().toISOString() : undefined,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', observation_id);
+  await apiFetch<unknown>(
+    `${API_URL}/api/coaching/observations/${observation_id}/status`,
+    { method: 'PUT', body: JSON.stringify({ status }) },
+  );
+}
 
-  if (error) {
-    throw error;
-  }
+export async function deleteObservation(observation_id: string): Promise<void> {
+  await apiFetch<unknown>(
+    `${API_URL}/api/coaching/observations/${observation_id}`,
+    { method: 'DELETE' },
+  );
+}
+
+export async function getObservation(observation_id: string): Promise<CotObservation> {
+  return apiFetch<CotObservation>(
+    `${API_URL}/api/coaching/observations/${observation_id}`,
+  );
+}
+
+export async function patchObservation(
+  observation_id: string,
+  fields: Partial<Pick<CotObservation,
+    | 'status'
+    | 'notes_for_teacher'
+    | 'hots_notes'
+    | 'hots_rubric'
+    | 'fico_rubric'
+    | 'total_score'
+    | 'proficiency_level'
+    | 'submitted_at'
+  >>,
+): Promise<CotObservation> {
+  return apiFetch<CotObservation>(
+    `${API_URL}/api/coaching/observations/${observation_id}`,
+    { method: 'PATCH', body: JSON.stringify(fields) },
+  );
 }

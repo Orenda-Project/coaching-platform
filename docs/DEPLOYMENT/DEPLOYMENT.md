@@ -267,14 +267,48 @@ jobs:
 
 ### Manual Deploy (if auto-deploy fails)
 
-```bash
-# Deploy staging
-railway environment staging
-railway up --detach
+**CRITICAL: Railway deploys from CWD. Wrong directory = wrong code on wrong service.**
 
-# Deploy production
-railway environment production
-railway up --detach
+#### Railway Service Map (memorize this)
+
+| Environment | Service Name | Deploys From | What It Serves |
+|---|---|---|---|
+| **Production** | `coaching-platform` | repo root `/` | React/Vite frontend |
+| **Production** | `coaching-content-api` | `coaching-api/` | Python FastAPI backend |
+| **Staging** | `coaching-platform-stage` | repo root `/` | React/Vite frontend |
+| **Staging** | `coaching-api-staging` | `coaching-api/` | Python FastAPI backend |
+
+#### Deploy Frontend (React)
+```bash
+# MUST be in repo root — not coaching-api/
+cd /path/to/coaching-platform
+railway environment staging  # or production
+railway service coaching-platform-stage  # or coaching-platform
+railway status  # VERIFY: linked service shows frontend name
+railway up -d
+```
+
+#### Deploy API (FastAPI)
+```bash
+# MUST cd into coaching-api/ first
+cd /path/to/coaching-platform/coaching-api
+railway link --project <id> --environment production --service <api-service-id>
+railway status  # VERIFY: linked service shows API name
+railway up
+```
+
+#### Post-Deploy Smoke Test (MANDATORY)
+```bash
+# Frontend must return HTML
+curl -s https://<frontend-url> | head -1
+# Expected: <!doctype html>
+
+# API must return JSON
+curl -s https://<api-url>/health
+# Expected: {"status":"healthy","version":"1.0"}
+
+# If frontend returns JSON or API returns HTML → WRONG CODE DEPLOYED
+# Fix: redeploy from the correct directory immediately
 ```
 
 ---

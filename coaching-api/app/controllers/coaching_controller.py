@@ -1,13 +1,15 @@
-"""Coaching API endpoints."""
+"""Coaching API endpoints — sessions, observations, and teacher DC scores."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session as DbSession
+from sqlalchemy import desc
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from app.database import get_db
 from app.services.coaching_service import CoachingService
+from app.models.observation import CotObservation, TeacherDcScore
 
 router = APIRouter(prefix="/api/coaching", tags=["coaching"])
 
@@ -88,7 +90,7 @@ class CoachingSessionResponse(BaseModel):
 @router.post("/sessions", response_model=CoachingSessionResponse, status_code=201)
 async def schedule_coaching_session(
     request: ScheduleSessionRequest,
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """
     Schedule a new coaching session.
@@ -119,7 +121,7 @@ async def schedule_coaching_session(
 @router.get("/sessions/{session_id}", response_model=CoachingSessionResponse)
 async def get_coaching_session(
     session_id: str,
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """Get coaching session by ID."""
     service = CoachingService(db)
@@ -138,7 +140,7 @@ async def get_user_coaching_sessions(
     status: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """
     Get coaching sessions for a user.
@@ -168,7 +170,7 @@ async def get_user_coaching_sessions(
 async def update_session_notes(
     session_id: str,
     request: ScheduleSessionRequest,
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """
     Update coaching session notes.
@@ -192,7 +194,7 @@ async def update_session_notes(
 @router.post("/sessions/{session_id}/complete", response_model=CoachingSessionResponse)
 async def complete_coaching_session(
     session_id: str,
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """
     Mark a coaching session as completed.
@@ -215,7 +217,7 @@ async def complete_coaching_session(
 @router.post("/sessions/{session_id}/cancel", response_model=CoachingSessionResponse)
 async def cancel_coaching_session(
     session_id: str,
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """
     Cancel a coaching session.
@@ -239,7 +241,7 @@ async def cancel_coaching_session(
 async def add_session_feedback(
     session_id: str,
     request: AddFeedbackRequest,
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """
     Add feedback to a coaching session.
@@ -273,7 +275,7 @@ async def add_session_feedback(
 @router.get("/sessions/{session_id}/feedback", response_model=dict)
 async def get_session_feedback(
     session_id: str,
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """Get all feedback for a coaching session."""
     service = CoachingService(db)
@@ -296,7 +298,7 @@ async def get_session_feedback(
 async def add_session_note(
     session_id: str,
     request: SessionNoteRequest,
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """
     Add a note to a coaching session.
@@ -327,7 +329,7 @@ async def add_session_note(
 @router.get("/sessions/{session_id}/notes", response_model=dict)
 async def get_session_notes(
     session_id: str,
-    db: Session = Depends(get_db)
+    db: DbSession = Depends(get_db)
 ):
     """Get all notes for a coaching session."""
     service = CoachingService(db)
@@ -353,3 +355,188 @@ async def health_check():
         "status": "healthy",
         "service": "coaching",
     }
+
+
+# ---------------------------------------------------------------------------
+# Observation Scheduler Endpoints
+# ---------------------------------------------------------------------------
+
+class CreateObservationRequest(BaseModel):
+    """Create observation request."""
+    observer_id: str
+    teacher_name: str
+    school_name: str
+    subject: str
+    grade: str
+    topic: Optional[str] = None
+    framework: str  # FICO, HOTS
+    date: str
+    visit_purpose: str
+    status: str = "Scheduled"
+    region: str
+    week: Optional[str] = None
+    visit_type: Optional[str] = None
+    planned_date: Optional[str] = None
+    arrival_time: Optional[str] = None
+    departure_time: Optional[str] = None
+
+
+class UpdateObservationStatusRequest(BaseModel):
+    """Update observation status request."""
+    status: str  # Scheduled, Draft, Submitted, Approved
+
+
+class PatchObservationRequest(BaseModel):
+    """Partial update for an observation. All fields optional."""
+    status: Optional[str] = None
+    notes_for_teacher: Optional[str] = None
+    hots_notes: Optional[str] = None
+    hots_rubric: Optional[dict] = None
+    fico_rubric: Optional[dict] = None
+    total_score: Optional[float] = None
+    proficiency_level: Optional[str] = None
+    submitted_at: Optional[str] = None
+
+
+@router.get("/teachers/dc-scores")
+async def get_teacher_dc_scores(
+    region: Optional[str] = Query(None),
+    db: DbSession = Depends(get_db),
+):
+    """Get teacher DC scores, optionally filtered by region."""
+    query = db.query(TeacherDcScore)
+    if region:
+        query = query.filter(TeacherDcScore.region == region)
+    query = query.order_by(desc(TeacherDcScore.scored_at))
+    scores = query.all()
+
+    return {
+        "teachers": [s.to_dict() for s in scores],
+        "total": len(scores),
+        "region": region,
+    }
+
+
+@router.get("/observations")
+async def list_observations(
+    observer_id: Optional[str] = Query(None),
+    region: Optional[str] = Query(None),
+    db: DbSession = Depends(get_db),
+):
+    """List observations, filtered by observer_id and/or region."""
+    query = db.query(CotObservation)
+    if observer_id:
+        query = query.filter(CotObservation.observer_id == observer_id)
+    if region:
+        query = query.filter(CotObservation.region == region)
+    query = query.order_by(desc(CotObservation.created_at))
+    observations = query.all()
+
+    return {
+        "observations": [o.to_dict() for o in observations],
+        "total": len(observations),
+    }
+
+
+@router.post("/observations", status_code=201)
+async def create_observation(
+    request: CreateObservationRequest,
+    db: DbSession = Depends(get_db),
+):
+    """Create a new observation."""
+    observation = CotObservation(
+        id=str(uuid.uuid4()),
+        observer_id=request.observer_id,
+        teacher_name=request.teacher_name,
+        school_name=request.school_name,
+        subject=request.subject,
+        grade=request.grade,
+        topic=request.topic,
+        framework=request.framework,
+        date=request.date,
+        visit_purpose=request.visit_purpose,
+        status=request.status,
+        region=request.region,
+        week=request.week,
+        visit_type=request.visit_type,
+        planned_date=request.planned_date,
+        arrival_time=request.arrival_time,
+        departure_time=request.departure_time,
+    )
+    db.add(observation)
+    db.commit()
+    db.refresh(observation)
+    return observation.to_dict()
+
+
+@router.delete("/observations/{observation_id}", status_code=200)
+async def delete_observation(
+    observation_id: str,
+    db: DbSession = Depends(get_db),
+):
+    """Delete an observation by ID."""
+    observation = db.query(CotObservation).filter(CotObservation.id == observation_id).first()
+    if not observation:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    db.delete(observation)
+    db.commit()
+    return {"message": "Observation deleted", "id": observation_id}
+
+
+@router.get("/observations/{observation_id}")
+async def get_observation(
+    observation_id: str,
+    db: DbSession = Depends(get_db),
+):
+    """Get a single observation by ID."""
+    observation = db.query(CotObservation).filter(CotObservation.id == observation_id).first()
+    if not observation:
+        raise HTTPException(status_code=404, detail="Observation not found")
+    return observation.to_dict()
+
+
+@router.patch("/observations/{observation_id}")
+async def patch_observation(
+    observation_id: str,
+    request: PatchObservationRequest,
+    db: DbSession = Depends(get_db),
+):
+    """Partially update an observation. Only provided fields are changed."""
+    observation = db.query(CotObservation).filter(CotObservation.id == observation_id).first()
+    if not observation:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    update_data = request.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(observation, field, value)
+
+    # If status changed to Submitted and submitted_at wasn't explicitly provided,
+    # set it automatically
+    if request.status == "Submitted" and "submitted_at" not in update_data:
+        observation.submitted_at = datetime.now(timezone.utc)
+
+    observation.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(observation)
+    return observation.to_dict()
+
+
+@router.put("/observations/{observation_id}/status")
+async def update_observation_status(
+    observation_id: str,
+    request: UpdateObservationStatusRequest,
+    db: DbSession = Depends(get_db),
+):
+    """Update an observation's status."""
+    observation = db.query(CotObservation).filter(CotObservation.id == observation_id).first()
+    if not observation:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    observation.status = request.status
+    if request.status == "Submitted":
+        observation.submitted_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(observation)
+    return observation.to_dict()

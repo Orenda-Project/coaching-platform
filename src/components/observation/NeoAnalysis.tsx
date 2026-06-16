@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getObservation } from '@/data/observations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -631,15 +632,12 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           setPollProgress(100);
           setPhase('completed');
           toast.success('Debrief analysis complete!');
-          // Refresh observation data
-           
-          const { data: updated } = await (supabase as any)
-            .from('cot_observations')
-            .select('*')
-            .eq('id', observation.id)
-            .single();
-          if (updated) {
-            onSaved(updated as CotObservation);
+          // Refresh observation data via backend API
+          try {
+            const updated = await getObservation(observation.id);
+            onSaved(updated);
+          } catch {
+            // Observation refresh failed, but Neo results are already shown
           }
         } else if (data.status === 'failed') {
           if (pollIntervalRef.current) {

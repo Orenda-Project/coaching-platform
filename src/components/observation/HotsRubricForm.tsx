@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { patchObservation } from '@/data/observations';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
@@ -40,27 +40,20 @@ export function HotsRubricForm({ observation, onSaved }: Props) {
 
   const handleSave = async () => {
     setSaving(true);
-    const { data, error } = await (supabase as any)
-      .from('cot_observations')
-      .update({
+    try {
+      const updated = await patchObservation(observation.id, {
         hots_rubric: scores,
         total_score: total,
         proficiency_level: proficiency.level,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', observation.id)
-      .select()
-      .single();
+      });
 
-    setSaving(false);
-
-    if (error) {
+      toast.success('HOTs scores saved!');
+      onSaved(updated);
+    } catch {
       toast.error('Failed to save scores');
-      return;
+    } finally {
+      setSaving(false);
     }
-
-    toast.success('HOTs scores saved!');
-    onSaved(data as CotObservation);
   };
 
   return (

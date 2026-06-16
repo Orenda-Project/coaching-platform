@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -11,30 +10,28 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Send, GraduationCap, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
-import { Tables } from "@/integrations/supabase/types";
 
-type Question = Tables<"questions">;
-type Option = Tables<"options">;
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+interface Option {
+  id: string;
+  option_text?: string;
+  text?: string;
+  is_correct: boolean;
+  letter?: string;
+  question_id?: string;
+}
+
+interface Question {
+  id: string;
+  question_text: string;
+  question_type: string;
+  order_number?: number;
+  assessment_id?: string;
+}
 
 interface QuestionWithOptions extends Question {
   options: Option[];
-}
-
-// Local row type for module_quiz_attempts. Mirrors migration
-// supabase/migrations/20260428000010_create_module_quiz_attempts.sql.
-// Used with `.returns<...>()` to short-circuit Supabase's deep type
-// inference until types.ts is regenerated to include this table.
-interface ModuleQuizAttemptRow {
-  id: string;
-  user_id: string;
-  module_id: string;
-  score: number;
-  best_score: number;
-  passed: boolean;
-  attempt_count: number;
-  completed_at: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 const QUIZ_PASS_THRESHOLD = 80;
@@ -77,160 +74,108 @@ export default function ModuleQuiz() {
   const load = async () => {
     if (!moduleId || !user) return;
 
-    const { data: mod } = await supabase.from("modules").select("title").eq("id", moduleId).single();
-    setModuleTitle(mod?.title ?? "Module Quiz");
-
-    // Load existing attempt record. module_quiz_attempts is not yet in
-    // generated types.ts; ModuleQuizAttemptRow above mirrors the migration.
-    // Cast the client to `any` at the boundary to bypass the deep-type
-    // inference triggered by an unknown table name; runtime is unaffected.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const attemptsClient = supabase as any;
-    const { data: existing } = (await attemptsClient
-      .from("module_quiz_attempts")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("module_id", moduleId)
-      .maybeSingle()) as { data: ModuleQuizAttemptRow | null };
-
-    const currentAttempts = existing?.attempt_count ?? 0;
-    setAttemptCount(currentAttempts);
-
-    if (currentAttempts >= MAX_ATTEMPTS) {
-      toast.error(`Maximum attempts (${MAX_ATTEMPTS}) reached for this quiz.`);
-      navigate("/dashboard");
-      return;
-    }
-
-    // Load all assessments for this module's trainings
-    const { data: trainings } = await supabase.from("trainings").select("id").eq("module_id", moduleId).order("order_number");
-    const trainingIds = trainings?.map((t) => t.id) ?? [];
-
-    const { data: assessments } = await supabase
-      .from("assessments")
-      .select("id, training_id")
-      .eq("type", "module_quiz")
-      .in("training_id", trainingIds);
-
-    if (!assessments?.length) {
-      toast.info("No quiz questions found for this module.");
-      navigate("/dashboard");
-      return;
-    }
-
-    // Load all questions grouped by assessment (unit)
-    const assessmentIds = assessments.map((a) => a.id);
-    const { data: allQuestions } = await supabase
-      .from("questions")
-      .select("*")
-      .in("assessment_id", assessmentIds)
-      .order("order_number");
-
-    if (!allQuestions?.length) {
-      toast.info("No questions found.");
-      navigate("/dashboard");
-      return;
-    }
-
-    // Load options for MCQ and scenario questions (both are scored multiple-choice)
-    const answerableIds = allQuestions
-      .filter((q) => q.question_type === "mcq" || q.question_type === "scenario")
-      .map((q) => q.id);
-    const { data: optionsData } = answerableIds.length
-      ? await supabase.from("options").select("*").in("question_id", answerableIds)
-      : { data: [] };
-
-    // Shuffle helper
-    const shuffle = <T,>(arr: T[]): T[] => {
-      const a = [...arr];
-      for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
+    try {
+      // Get module title
+      const modulesRes = await fetch(`${apiUrl}/api/training/modules`);
+      if (modulesRes.ok) {
+        const modulesData = await modulesRes.json();
+        const mod = (modulesData.modules || []).find((m: { id: string; title: string }) => m.id === moduleId);
+        setModuleTitle(mod?.title ?? "Module Quiz");
       }
-      return a;
-    };
 
-    // Attach options (shuffle order so the correct option isn't always at the same position)
-    const questionsWithOptions = allQuestions.map((q) => ({
-      ...q,
-      options: shuffle((optionsData || []).filter((o) => o.question_id === q.id)),
-    }));
+      // Load existing attempt record
+      const attemptRes = await fetch(`${apiUrl}/api/training/module-quiz-attempt/${user.id}/${moduleId}`);
+      if (attemptRes.ok) {
+        const existing = await attemptRes.json();
+        const currentAttempts = existing?.attempt_count ?? 0;
+        setAttemptCount(currentAttempts);
 
-    // Group MCQs by assessment (unit) for unit-balanced selection
-    const mcqByUnit: Record<string, QuestionWithOptions[]> = {};
-    for (const q of questionsWithOptions) {
-      if (q.question_type !== "mcq") continue;
-      if (!mcqByUnit[q.assessment_id]) mcqByUnit[q.assessment_id] = [];
-      mcqByUnit[q.assessment_id].push(q);
+        if (currentAttempts >= MAX_ATTEMPTS) {
+          toast.error(`Maximum attempts (${MAX_ATTEMPTS}) reached for this quiz.`);
+          navigate("/dashboard");
+          return;
+        }
+      }
+
+      // Load questions via module quiz endpoint
+      const questionsRes = await fetch(`${apiUrl}/api/quiz/module/${moduleId}/questions`);
+      if (!questionsRes.ok) {
+        toast.info("No quiz questions found for this module.");
+        navigate("/dashboard");
+        return;
+      }
+
+      const questionsData = await questionsRes.json();
+      const mcqQuestions = questionsData.mcq || [];
+      const scenarioQuestions = questionsData.scenarios || [];
+
+      if (mcqQuestions.length === 0 && scenarioQuestions.length === 0) {
+        toast.info("No questions found.");
+        navigate("/dashboard");
+        return;
+      }
+
+      // Shuffle helper
+      const shuffle = <T,>(arr: T[]): T[] => {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      };
+
+      // Map to QuestionWithOptions and shuffle options
+      const mapQuestion = (q: Record<string, unknown>, qType: string): QuestionWithOptions => ({
+        id: q.id as string,
+        question_text: q.question_text as string,
+        question_type: qType,
+        order_number: (q.order_number as number) || 0,
+        options: shuffle(((q.options as Array<Record<string, unknown>>) || []).map((o) => ({
+          id: o.id as string,
+          option_text: (o.text || o.option_text) as string,
+          is_correct: o.is_correct as boolean,
+          letter: o.letter as string | undefined,
+        }))),
+      });
+
+      const allMCQ = mcqQuestions.map((q: Record<string, unknown>) => mapQuestion(q, "mcq"));
+      const allScenarios = scenarioQuestions.map((q: Record<string, unknown>) => mapQuestion(q, "scenario"));
+
+      // Pick 16 MCQs and 4 scenarios (or fewer if not enough)
+      const TOTAL_MCQ = 16;
+      const TOTAL_SCENARIO = 4;
+      const selectedMCQ = shuffle(allMCQ).slice(0, TOTAL_MCQ);
+      const selectedScenarios = shuffle(allScenarios).slice(0, TOTAL_SCENARIO);
+
+      const finalQuestions = shuffle([...selectedMCQ, ...selectedScenarios]);
+      setQuestions(finalQuestions);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to load module quiz:", err);
+      toast.error("Failed to load quiz. Please try again.");
+      navigate("/dashboard");
     }
-
-    const unitKeys = shuffle(Object.keys(mcqByUnit));
-    const numUnits = Math.max(unitKeys.length, 1);
-
-    // Pick 16 MCQs equally across units: base = floor(16/numUnits), distribute remainder
-    const TOTAL_MCQ = 16;
-    const TOTAL_SCENARIO = 4;
-    const base = Math.floor(TOTAL_MCQ / numUnits);
-    let remainder = TOTAL_MCQ % numUnits;
-
-    const selectedMCQ: QuestionWithOptions[] = [];
-    for (const key of unitKeys) {
-      const mcqs = shuffle(mcqByUnit[key]);
-      const pick = base + (remainder > 0 ? 1 : 0);
-      if (remainder > 0) remainder--;
-      selectedMCQ.push(...mcqs.slice(0, pick));
-    }
-
-    // Pick 4 scenarios randomly from the full scenario pool (across units)
-    const allScenarios = questionsWithOptions.filter((q) => q.question_type === "scenario");
-    const selectedScenarios = shuffle(allScenarios).slice(0, TOTAL_SCENARIO);
-
-    // Combine and shuffle final question order
-    const finalQuestions = shuffle([...selectedMCQ, ...selectedScenarios]);
-
-    setQuestions(finalQuestions);
-    setLoading(false);
   };
 
   const saveAttempt = async (score: number, passed: boolean) => {
     if (!user || !moduleId) return;
-    const newAttempt = attemptCount + 1;
 
-    type AttemptSummary = Pick<ModuleQuizAttemptRow, "id" | "best_score" | "passed">;
-    // See `load()` above for rationale on the `any` cast.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const attemptsClient = supabase as any;
-    const { data: existing } = (await attemptsClient
-      .from("module_quiz_attempts")
-      .select("id, best_score, passed")
-      .eq("user_id", user.id)
-      .eq("module_id", moduleId)
-      .maybeSingle()) as { data: AttemptSummary | null };
-
-    if (existing) {
-      await attemptsClient
-        .from("module_quiz_attempts")
-        .update({
+    try {
+      await fetch(`${apiUrl}/api/training/module-quiz-attempt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          module_id: moduleId,
           score,
-          best_score: Math.max(score, existing.best_score ?? 0),
-          passed: passed || existing.passed,
-          attempt_count: newAttempt,
-          completed_at: passed ? new Date().toISOString() : null,
-        })
-        .eq("id", existing.id);
-    } else {
-      await attemptsClient.from("module_quiz_attempts").insert({
-        user_id: user.id,
-        module_id: moduleId,
-        score,
-        best_score: score,
-        passed,
-        attempt_count: newAttempt,
-        completed_at: passed ? new Date().toISOString() : null,
+          passed,
+        }),
       });
+      setAttemptCount((prev) => prev + 1);
+    } catch (err) {
+      console.error("Failed to save quiz attempt:", err);
     }
-
-    setAttemptCount(newAttempt);
   };
 
   const handleSubmit = async () => {
@@ -397,7 +342,7 @@ export default function ModuleQuiz() {
                     >
                       <RadioGroupItem value={option.id} id={option.id} />
                       <Label htmlFor={option.id} className="text-foreground cursor-pointer flex-1">
-                        {option.option_text}
+                        {option.option_text || option.text}
                       </Label>
                     </div>
                   ))}
