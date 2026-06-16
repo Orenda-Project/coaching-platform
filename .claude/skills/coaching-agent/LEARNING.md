@@ -9,6 +9,8 @@ Update it **after every execution**. Keep entries append-only; newest at the top
 
 | Date | Suite | Total | Passed | Failed | Skipped/NX | Notes |
 |------|-------|-------|--------|--------|------------|-------|
+| 2026-06-16 | Baseline | 22 | 1 | 0 | 21 | Verification-only re-run (completion-aware). Production, account: umar.kabaili@yopmail.com (Persona E, 3%). S18 ✅ COVERED; fresh evidence `runs/evidence/umar_kabaili-baseline-redirect.png`. Training NOT driven live this session (bundled driver is baseline-only); T10 module-gating VIOLATION from 2026-06-10 remains open. |
+| 2026-06-16 | Baseline | 22 | 1 | 0 | 21 | Verification-only (completion-aware). Driver made **generic** — URL + account now sourced from SKILL.md, not hardcoded. Production, account: umar.kabaili@yopmail.com (Persona E, 37%). S18 ✅ COVERED. |
 | 2026-06-10 | Baseline | 22 | 17 | 0 | 5 | First full run vs production. CDP port 9222. Account: umar.kabaili@yopmail.com. |
 | 2026-06-10 | Training Flow | 15 | 5 | 1 | 9 | Staging (noor@yopmail.com). Completed Unit 1.1. **T10 module-gating VIOLATION found.** 2 partial, 7 not-executed (need destructive/logout setups). |
 
@@ -23,7 +25,12 @@ completed baseline that the cache had missed).
 
 | User (email) | user_id | Baseline Completed | Persona | Score | Recorded | Source |
 |--------------|---------|--------------------|---------|-------|----------|--------|
+| umar.kabaili@yopmail.com | 66e67e8e-0ed9-4850-acb4-095a727a7f2e | ✅ YES | E | 37% | 2026-06-16 | production live run — dashboard Persona E / 37%; `/assessment/baseline` redirects to `/dashboard` (S18 ✅) |
 | noor@yopmail.com | f1c8caeb-5f54-429d-96a1-edce436e46f7 | ✅ YES | E | 33% | 2026-06-12 | staging recon — dashboard Persona E / 33%; `/assessment/baseline` redirects to `/dashboard` |
+
+> **Driver is now generic (2026-06-16):** the app URL and login account are read at runtime from
+> SKILL.md (`## Application Under Test`) via `parseSkillConfig()` in [`runs/lib.mjs`](runs/lib.mjs).
+> No account is hardcoded — change SKILL.md to retarget the agent to any app/account.
 
 > **Completion-aware rule (baseline only):** never re-execute the full baseline flow for a user
 > already in this registry. The cache is a fast path, not the source of truth — always perform the
