@@ -52,3 +52,20 @@ Last updated: 2026-04-23
 - Fix: Updated trigger to read phone from metadata: COALESCE(NEW.raw_user_meta_data->>'phone', NEW.email) — matching the pattern already used for full_name
 - Migration: 20260514000005_fix_profile_trigger_phone_metadata.sql must be applied to databases
 - Prevention: Triggers reading auth metadata must explicitly reference raw_user_meta_data field, not user table columns. Document which fields are in metadata vs user table
+
+**Production outage: Frontend showing API JSON instead of React app — RESOLVED (2026-06-16)**
+- Symptom: Production URL (coaching-platform-production-43ff.up.railway.app) returns `{"message":"Coaching Platform Content Export API"}` instead of the React app
+- Root cause: `railway up` was run from the repo root while linked to the `coaching-content-api` service, which uploaded the entire repo (with package.json + coaching-api/) to the API service. Later, someone ran `railway up` from coaching-api/ dir to the `coaching-platform` (frontend) service — overwriting the React app with the Python FastAPI code
+- Fix: Redeployed frontend from repo root (`railway up --service coaching-platform`), redeployed API from coaching-api/ subdirectory (`cd coaching-api && railway up`)
+- Prevention: **NEVER run `railway up` without first verifying: (1) current working directory matches the service type, (2) linked service name matches what you intend to deploy.** Use the Railway service map below:
+
+  | Service Name | Directory | What it serves |
+  |---|---|---|
+  | `coaching-platform` / `coaching-platform-stage` | repo root `/` | React/Vite frontend |
+  | `coaching-content-api` / `coaching-api-staging` | `coaching-api/` | Python FastAPI backend |
+
+**Dual-database phantom data: delete works but data reappears — RESOLVED (2026-06-16)**
+- Symptom: Deleting a draft observation appears to work (UI updates), but hard refresh brings all drafts back
+- Root cause: Frontend list endpoint reads from Railway Postgres (backend API) but delete was still hitting Supabase directly. Delete removes from Supabase DB, list reads from Railway Postgres — different databases, so data reappears
+- Fix: Migrated all `supabase.from('cot_observations')` calls to backend API (PR #140)
+- Prevention: **All data operations for a table must go through the same database.** When migrating from Supabase to Postgres, migrate ALL operations (list, get, create, update, delete) in one PR — never leave some on Supabase and some on Postgres

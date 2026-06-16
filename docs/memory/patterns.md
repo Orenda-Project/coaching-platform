@@ -21,6 +21,22 @@ Last updated: 2026-04-28
 - Run on staging first, then prod
 - Pattern: `ALTER TABLE x ADD COLUMN IF NOT EXISTS y TYPE DEFAULT z;`
 - Always test the migration on staging before deploying code
+- Take pg_dump backup BEFORE running ALTER TABLE on production
+- Include a rollback SQL script alongside every migration
+
+## Railway Deployment (CRITICAL — burned us 2026-06-16)
+- `railway up` deploys from CWD — it does NOT respect the PATH argument for service detection
+- **Frontend** (React/Vite) = deploy from **repo root** (`/coaching-platform/`)
+- **API** (Python/FastAPI) = deploy from **`coaching-api/`** subdirectory
+- ALWAYS `cd` into the correct directory AND verify `railway status` shows the right linked service BEFORE running `railway up`
+- Railway services have NO memory of "what they should be" — any `railway up` overwrites completely
+- Service map: `coaching-platform` / `coaching-platform-stage` = frontend, `coaching-content-api` / `coaching-api-staging` = API
+
+## Supabase → Postgres Migration
+- Migrate ALL operations for a table in one PR (list + get + create + update + delete) — never leave half on Supabase and half on Postgres
+- Keep Supabase only for: auth sessions, Realtime subscriptions, Edge Functions (dc-presign, dc-start, neo-start, neo-status)
+- Add all missing columns to Railway Postgres BEFORE deploying frontend code that expects them
+- Use `ADD COLUMN IF NOT EXISTS` for idempotent migrations
 
 ## Common Gotchas
 - Baseline assessment scored 0–100, persona thresholds: A≥75%, B 70–74%, C 65–69%, D 60–64%, <60% = fail
