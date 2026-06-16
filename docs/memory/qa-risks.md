@@ -24,6 +24,11 @@ Last updated: 2026-04-23
 - Fix requires: `ALTER TABLE profiles DROP CONSTRAINT profiles_persona_check; ALTER TABLE profiles ADD CONSTRAINT profiles_persona_check CHECK (persona IN ('A','B','C','D','E'));`
 - Regression test: `src/domain/persona-e-constraint.test.ts` — intentionally fails until migration applied; test title: "succeeds when persona is E (fails on old DB with missing E in constraint)"
 
+## Deployment-Related Risks (2026-06-16)
+- **Railway `railway up` from wrong directory** — deploying repo root to API service replaces FastAPI with React app; deploying coaching-api/ to frontend service replaces React with FastAPI JSON. ALWAYS verify CWD + linked service before deploy.
+- **Dual-database inconsistency** — if some operations (list) go through Railway Postgres and others (delete/update) still hit Supabase directly, data appears phantom (deletes don't persist across refresh). All CRUD for a table must use the same database.
+- **Post-deploy smoke test** — after ANY Railway deployment, always verify: frontend returns HTML (`<!doctype html>`), API returns JSON (`{"status":"healthy"}`). If frontend returns JSON or API returns HTML, wrong code was deployed to wrong service.
+
 ## Edge Cases Rarely Tested
 - User with no modules assigned (dashboard shows "no modules")
 - Persona score exactly at threshold (75.0 = A, 74.9 = B)
