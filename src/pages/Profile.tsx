@@ -239,7 +239,15 @@ export default function Profile() {
                   <select
                     id="region"
                     value={form.region}
-                    onChange={(e) => setForm({ ...form, region: e.target.value })}
+                    onChange={(e) => {
+                      const newRegion = e.target.value;
+                      setForm({
+                        ...form,
+                        region: newRegion,
+                        sub_region: newRegion === "islamabad" ? form.sub_region : "",
+                        punjab_cluster: newRegion === "punjab" ? form.punjab_cluster : "",
+                      });
+                    }}
                     className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   >
                     <option value="">Select region</option>
@@ -249,6 +257,7 @@ export default function Profile() {
                   </select>
                 </div>
 
+                {form.region === "islamabad" && (
                 <div>
                   <Label htmlFor="sub_region">Sub-Region</Label>
                   <select
@@ -263,6 +272,7 @@ export default function Profile() {
                     ))}
                   </select>
                 </div>
+                )}
 
                 {form.region === "punjab" && (
                   <div>
