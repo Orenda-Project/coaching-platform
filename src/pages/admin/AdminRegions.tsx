@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminApiClient, Region as ApiRegion } from "@/lib/apiClients/adminApiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,13 +41,18 @@ export default function AdminRegions() {
   useEffect(() => {
     const loadRegions = async () => {
       try {
-        const { data, error } = await supabase
-          .from("regions")
-          .select("*")
-          .order("name");
-
-        if (error) throw error;
-        setRegions((data || []) as Region[]);
+        const result = await adminApiClient.listRegions();
+        // The API returns { regions: [...] } or { data: [...] } depending on mapping
+        const raw = result as unknown as Record<string, unknown>;
+        const items = (raw.regions || raw.data || []) as unknown as ApiRegion[];
+        // Map API regions to local Region interface
+        setRegions(items.map((r) => ({
+          id: r.id,
+          name: r.name,
+          code: "",  // API Region doesn't have code, default to empty
+          coordinates: null,
+          parent_id: r.parent_id,
+        })));
       } catch (error) {
         console.error("Error loading regions:", error);
         toast.error("Failed to load regions");
@@ -61,35 +66,17 @@ export default function AdminRegions() {
 
   const handleAddRegion = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.code) {
-      toast.error("Name and code are required");
+    if (!form.name) {
+      toast.error("Name is required");
       return;
     }
 
     setSaving(true);
     try {
-      // Parse coordinates if provided
-      let coordinates = null;
-      if (form.coordinates.trim()) {
-        try {
-          coordinates = JSON.parse(form.coordinates);
-        } catch {
-          toast.error("Invalid JSON in coordinates field");
-          setSaving(false);
-          return;
-        }
-      }
-
-      // `as never` bypasses the typed Insert overload until types.ts is
-      // regenerated to include the regions row shape.
-      const { error } = await supabase.from("regions").insert({
+      const newRegion = await adminApiClient.createRegion({
         name: form.name,
-        code: form.code,
-        parent_id: form.parent_id || null,
-        coordinates: coordinates,
-      } as never);
-
-      if (error) throw error;
+        parent_id: form.parent_id || undefined,
+      });
 
       toast.success("Region added");
       setForm({
@@ -100,13 +87,17 @@ export default function AdminRegions() {
       });
       setShowForm(false);
 
-      // Reload
-      const { data } = await supabase
-        .from("regions")
-        .select("*")
-        .order("name");
-
-      setRegions((data || []) as Region[]);
+      // Add to local state
+      setRegions((prev) => [
+        ...prev,
+        {
+          id: newRegion.id,
+          name: newRegion.name,
+          code: "",
+          coordinates: null,
+          parent_id: newRegion.parent_id,
+        },
+      ]);
     } catch (error) {
       console.error("Error adding region:", error);
       toast.error("Failed to add region");
@@ -119,13 +110,7 @@ export default function AdminRegions() {
     if (!confirm("Delete this region?")) return;
 
     try {
-      const { error } = await supabase
-        .from("regions")
-        .delete()
-        .eq("id", regionId);
-
-      if (error) throw error;
-
+      await adminApiClient.deleteRegion(regionId);
       toast.success("Region deleted");
       setRegions((prev) => prev.filter((r) => r.id !== regionId));
     } catch (error) {
@@ -171,7 +156,7 @@ export default function AdminRegions() {
                 </div>
 
                 <div>
-                  <Label htmlFor="code">Code *</Label>
+                  <Label htmlFor="code">Code</Label>
                   <Input
                     id="code"
                     value={form.code}
@@ -179,7 +164,6 @@ export default function AdminRegions() {
                       setForm({ ...form, code: e.target.value })
                     }
                     placeholder="e.g., PKR-IS"
-                    required
                     className="mt-1"
                   />
                 </div>
@@ -273,8 +257,8 @@ export default function AdminRegions() {
                     <div>
                       <h3 className="font-semibold text-sm">{region.name}</h3>
                       <p className="text-xs text-muted-foreground">
-                        Code: {region.code}
-                        {parentName && ` • Under: ${parentName}`}
+                        {region.code && `Code: ${region.code}`}
+                        {parentName && ` -- Under: ${parentName}`}
                       </p>
                       {region.coordinates && (
                         <p className="text-xs text-muted-foreground mt-1">

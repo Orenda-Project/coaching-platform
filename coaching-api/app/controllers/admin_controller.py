@@ -3,9 +3,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from app.database import get_db
 from app.services.admin_service import AdminService
+from app.services.admin_feedback_service import AdminFeedbackService
+from app.services.admin_analytics_service import AdminAnalyticsService
+from app.services.admin_content_service import AdminContentService
+from app.services.admin_scenario_service import AdminScenarioService
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -489,3 +493,358 @@ async def health_check():
         "status": "healthy",
         "service": "admin",
     }
+
+
+# ===== REQUEST MODELS FOR NEW ENDPOINTS =====
+
+class ModuleRequest(BaseModel):
+    """Request for creating/updating a module."""
+    title: str
+    description: Optional[str] = None
+    desired_outcomes: Optional[str] = None
+    competencies: Optional[str] = None
+    is_mandatory: bool = False
+    order_number: Optional[int] = None
+
+
+class TrainingRequest(BaseModel):
+    """Request for creating/updating a training unit."""
+    module_id: str
+    title: str
+    description: Optional[str] = None
+    main_concepts: Optional[str] = None
+    is_common: bool = True
+    persona_required: Optional[str] = None
+    order_number: Optional[int] = None
+
+
+class TrainingContentRequest(BaseModel):
+    """Request for creating training content."""
+    training_id: str
+    format_type: str = "video"
+    content_url: str
+
+
+class AssessmentRequest(BaseModel):
+    """Request for creating/updating an assessment."""
+    title: Optional[str] = None
+    type: str
+    training_id: Optional[str] = None
+    question_type: Optional[str] = "mcq"
+    passing_score: Optional[int] = 80
+    max_attempts: Optional[int] = 3
+    description: Optional[str] = None
+
+
+class OptionData(BaseModel):
+    """Single option within a question."""
+    id: Optional[str] = None
+    text: str
+    is_correct: bool = False
+    order: Optional[int] = None
+
+
+class QuestionData(BaseModel):
+    """Single question with options."""
+    id: Optional[str] = None
+    question_text: str
+    question_type: str = "mcq"
+    order_number: Optional[int] = None
+    max_score: int = 1
+    options: List[OptionData] = []
+
+
+class BulkQuestionsRequest(BaseModel):
+    """Bulk questions upsert request."""
+    questions: List[QuestionData]
+
+
+class ScenarioRequest(BaseModel):
+    """Request for creating/updating a scenario."""
+    unit_id: Optional[str] = None
+    order_number: Optional[int] = None
+    situation: str
+    question: str
+    difficulty: str = "medium"
+    feedback_slides: Optional[Any] = None
+    reveal_content: Optional[str] = None
+    deep_content: Optional[str] = None
+    is_active: bool = True
+
+
+class ScenarioOptionData(BaseModel):
+    """Single scenario option."""
+    id: Optional[str] = None
+    letter: Optional[str] = None
+    text: str
+    is_correct: bool = False
+    rationale: Optional[str] = None
+    principle_tag: Optional[str] = None
+
+
+class ScenarioOptionsRequest(BaseModel):
+    """Bulk scenario options upsert request."""
+    options: List[ScenarioOptionData]
+
+
+# ===== FEEDBACK ENDPOINTS =====
+
+@router.get("/feedback", response_model=dict)
+async def get_feedback(
+    days: int = Query(30, ge=1, le=365),
+    category: Optional[str] = Query(None),
+    rating: Optional[int] = Query(None, ge=1, le=5),
+    persona: Optional[str] = Query(None),
+    limit: int = Query(500, ge=1, le=5000),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """Get feedback records with KPIs."""
+    service = AdminFeedbackService(db)
+    return service.get_feedback(
+        days=days, category=category, rating=rating,
+        persona=persona, limit=limit, offset=offset,
+    )
+
+
+# ===== ANALYTICS ENDPOINTS =====
+
+@router.get("/analytics/dashboard", response_model=dict)
+async def get_analytics_dashboard(
+    region: Optional[str] = Query(None),
+    persona: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Get pre-aggregated analytics dashboard data."""
+    service = AdminAnalyticsService(db)
+    return service.get_dashboard(region=region, persona=persona)
+
+
+# ===== MODULE ENDPOINTS =====
+
+@router.get("/modules", response_model=dict)
+async def list_modules(db: Session = Depends(get_db)):
+    """List all modules ordered by order_number."""
+    service = AdminContentService(db)
+    return {"modules": service.list_modules()}
+
+
+@router.post("/modules", response_model=dict, status_code=201)
+async def create_module(request: ModuleRequest, db: Session = Depends(get_db)):
+    """Create a new module."""
+    service = AdminContentService(db)
+    return service.create_module(request.dict())
+
+
+@router.put("/modules/{module_id}", response_model=dict)
+async def update_module(module_id: str, request: ModuleRequest, db: Session = Depends(get_db)):
+    """Update a module."""
+    service = AdminContentService(db)
+    result = service.update_module(module_id, request.dict(exclude_unset=True))
+    if not result:
+        raise HTTPException(status_code=404, detail="Module not found")
+    return result
+
+
+@router.delete("/modules/{module_id}", status_code=204)
+async def delete_module(module_id: str, db: Session = Depends(get_db)):
+    """Delete a module."""
+    service = AdminContentService(db)
+    if not service.delete_module(module_id):
+        raise HTTPException(status_code=404, detail="Module not found")
+    return None
+
+
+# ===== TRAINING ENDPOINTS =====
+
+@router.get("/trainings", response_model=dict)
+async def list_trainings(
+    module_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """List trainings, optionally filtered by module_id."""
+    service = AdminContentService(db)
+    return {"trainings": service.list_trainings(module_id=module_id)}
+
+
+@router.post("/trainings", response_model=dict, status_code=201)
+async def create_training(request: TrainingRequest, db: Session = Depends(get_db)):
+    """Create a new training unit."""
+    service = AdminContentService(db)
+    return service.create_training(request.dict())
+
+
+@router.put("/trainings/{training_id}", response_model=dict)
+async def update_training(training_id: str, request: TrainingRequest, db: Session = Depends(get_db)):
+    """Update a training unit."""
+    service = AdminContentService(db)
+    result = service.update_training(training_id, request.dict(exclude_unset=True))
+    if not result:
+        raise HTTPException(status_code=404, detail="Training not found")
+    return result
+
+
+@router.delete("/trainings/{training_id}", status_code=204)
+async def delete_training(training_id: str, db: Session = Depends(get_db)):
+    """Delete a training unit."""
+    service = AdminContentService(db)
+    if not service.delete_training(training_id):
+        raise HTTPException(status_code=404, detail="Training not found")
+    return None
+
+
+# ===== TRAINING CONTENT ENDPOINTS =====
+
+@router.get("/training-content", response_model=dict)
+async def list_training_content(
+    training_id: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """List training content for a specific training."""
+    service = AdminContentService(db)
+    return {"content": service.list_training_content(training_id)}
+
+
+@router.post("/training-content", response_model=dict, status_code=201)
+async def create_training_content(request: TrainingContentRequest, db: Session = Depends(get_db)):
+    """Create a new training content entry."""
+    service = AdminContentService(db)
+    return service.create_training_content(request.dict())
+
+
+@router.delete("/training-content/{content_id}", status_code=204)
+async def delete_training_content(content_id: str, db: Session = Depends(get_db)):
+    """Delete a training content entry."""
+    service = AdminContentService(db)
+    if not service.delete_training_content(content_id):
+        raise HTTPException(status_code=404, detail="Training content not found")
+    return None
+
+
+# ===== ASSESSMENT ENDPOINTS =====
+
+@router.get("/assessments", response_model=dict)
+async def list_assessments(
+    training_id: Optional[str] = Query(None),
+    type: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """List assessments, optionally filtered by training_id and/or type."""
+    service = AdminContentService(db)
+    return {"assessments": service.list_assessments(training_id=training_id, assessment_type=type)}
+
+
+@router.post("/assessments", response_model=dict, status_code=201)
+async def create_assessment(request: AssessmentRequest, db: Session = Depends(get_db)):
+    """Create a new assessment."""
+    service = AdminContentService(db)
+    return service.create_assessment(request.dict())
+
+
+@router.put("/assessments/{assessment_id}", response_model=dict)
+async def update_assessment(assessment_id: str, request: AssessmentRequest, db: Session = Depends(get_db)):
+    """Update an assessment."""
+    service = AdminContentService(db)
+    result = service.update_assessment(assessment_id, request.dict(exclude_unset=True))
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    return result
+
+
+# ===== QUESTION ENDPOINTS =====
+
+@router.get("/assessments/{assessment_id}/questions", response_model=dict)
+async def get_questions(assessment_id: str, db: Session = Depends(get_db)):
+    """Get all questions for an assessment."""
+    service = AdminContentService(db)
+    return {"questions": service.get_questions_by_assessment(assessment_id)}
+
+
+@router.put("/assessments/{assessment_id}/questions", response_model=dict)
+async def bulk_upsert_questions(
+    assessment_id: str,
+    request: BulkQuestionsRequest,
+    db: Session = Depends(get_db),
+):
+    """Bulk upsert questions for an assessment."""
+    service = AdminContentService(db)
+    try:
+        questions = service.bulk_upsert_questions(
+            assessment_id,
+            [q.dict() for q in request.questions],
+        )
+        return {"questions": questions}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.delete("/questions/{question_id}", status_code=204)
+async def delete_question(question_id: str, db: Session = Depends(get_db)):
+    """Delete a question."""
+    service = AdminContentService(db)
+    if not service.delete_question(question_id):
+        raise HTTPException(status_code=404, detail="Question not found")
+    return None
+
+
+# ===== SCENARIO ENDPOINTS =====
+
+@router.get("/scenarios", response_model=dict)
+async def list_scenarios(
+    training_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """List scenarios, optionally filtered by training_id (unit_id)."""
+    service = AdminScenarioService(db)
+    return {"scenarios": service.list_scenarios(training_id=training_id)}
+
+
+@router.post("/scenarios", response_model=dict, status_code=201)
+async def create_scenario(request: ScenarioRequest, db: Session = Depends(get_db)):
+    """Create a new scenario."""
+    service = AdminScenarioService(db)
+    data = request.dict()
+    # Map unit_id to training_id for the service
+    if "unit_id" in data and data["unit_id"]:
+        data["training_id"] = data.pop("unit_id")
+    return service.create_scenario(data)
+
+
+@router.put("/scenarios/{scenario_id}", response_model=dict)
+async def update_scenario(scenario_id: str, request: ScenarioRequest, db: Session = Depends(get_db)):
+    """Update a scenario."""
+    service = AdminScenarioService(db)
+    data = request.dict(exclude_unset=True)
+    if "unit_id" in data and data["unit_id"]:
+        data["training_id"] = data.pop("unit_id")
+    result = service.update_scenario(scenario_id, data)
+    if not result:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    return result
+
+
+@router.delete("/scenarios/{scenario_id}", status_code=204)
+async def delete_scenario(scenario_id: str, db: Session = Depends(get_db)):
+    """Delete a scenario."""
+    service = AdminScenarioService(db)
+    if not service.delete_scenario(scenario_id):
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    return None
+
+
+@router.post("/scenarios/{scenario_id}/options", response_model=dict)
+async def upsert_scenario_options(
+    scenario_id: str,
+    request: ScenarioOptionsRequest,
+    db: Session = Depends(get_db),
+):
+    """Upsert options for a scenario."""
+    service = AdminScenarioService(db)
+    try:
+        options = service.upsert_options(
+            scenario_id,
+            [o.dict() for o in request.options],
+        )
+        return {"options": options}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

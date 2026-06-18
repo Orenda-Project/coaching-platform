@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listScenarios,
+  createScenario,
+  deleteScenario,
+} from "@/lib/apiClients/adminScenarioApiClient";
+import { listTrainings } from "@/lib/apiClients/adminContentApiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,28 +58,19 @@ export default function AdminScenarios() {
 
   // Load scenarios
   useEffect(() => {
-    const loadScenarios = async () => {
+    const loadData = async () => {
       try {
-        // Get unit title
-        const { data: unitData } = await supabase
-          .from("trainings")
-          .select("title")
-          .eq("id", unitId)
-          .single();
-
-        if (unitData) {
-          setUnitTitle(unitData.title);
+        // Get unit title from trainings API
+        const trainingsResult = await listTrainings();
+        const allTrainings = trainingsResult.trainings as Array<{ id: string; title: string }>;
+        const unit = allTrainings.find((t) => t.id === unitId);
+        if (unit) {
+          setUnitTitle(unit.title);
         }
 
         // Get scenarios
-        const { data, error } = await supabase
-          .from("scenarios")
-          .select("*")
-          .eq("unit_id", unitId)
-          .order("order_number");
-
-        if (error) throw error;
-        setScenarios((data || []) as Scenario[]);
+        const result = await listScenarios(unitId);
+        setScenarios((result.scenarios || []) as Scenario[]);
       } catch (error) {
         console.error("Error loading scenarios:", error);
         toast.error("Failed to load scenarios");
@@ -84,7 +80,7 @@ export default function AdminScenarios() {
     };
 
     if (unitId) {
-      loadScenarios();
+      loadData();
     }
   }, [unitId]);
 
@@ -95,7 +91,7 @@ export default function AdminScenarios() {
     setSaving(true);
     try {
       // Validate feedback_slides JSON
-      let feedbackSlides = [];
+      let feedbackSlides: unknown[] = [];
       if (form.feedback_slides.trim()) {
         try {
           feedbackSlides = JSON.parse(form.feedback_slides);
@@ -106,9 +102,7 @@ export default function AdminScenarios() {
         }
       }
 
-      // `as never` bypasses the typed Insert overload until types.ts is
-      // regenerated to include the scenarios row shape.
-      const { error } = await supabase.from("scenarios").insert({
+      await createScenario({
         unit_id: unitId,
         order_number: scenarios.length + 1,
         situation: form.situation,
@@ -118,9 +112,7 @@ export default function AdminScenarios() {
         reveal_content: form.reveal_content || null,
         deep_content: form.deep_content || null,
         is_active: form.is_active,
-      } as never);
-
-      if (error) throw error;
+      });
 
       toast.success("Scenario added");
       setForm({
@@ -135,13 +127,8 @@ export default function AdminScenarios() {
       setShowForm(false);
 
       // Reload
-      const { data } = await supabase
-        .from("scenarios")
-        .select("*")
-        .eq("unit_id", unitId)
-        .order("order_number");
-
-      setScenarios((data || []) as Scenario[]);
+      const result = await listScenarios(unitId);
+      setScenarios((result.scenarios || []) as Scenario[]);
     } catch (error) {
       console.error("Error adding scenario:", error);
       toast.error("Failed to add scenario");
@@ -154,13 +141,7 @@ export default function AdminScenarios() {
     if (!confirm("Delete this scenario?")) return;
 
     try {
-      const { error } = await supabase
-        .from("scenarios")
-        .delete()
-        .eq("id", scenarioId);
-
-      if (error) throw error;
-
+      await deleteScenario(scenarioId);
       toast.success("Scenario deleted");
       setScenarios((prev) => prev.filter((s) => s.id !== scenarioId));
     } catch (error) {
