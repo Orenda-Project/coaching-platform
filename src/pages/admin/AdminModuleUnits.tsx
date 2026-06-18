@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { listModules, listTrainings, createTraining, deleteTraining } from "@/lib/apiClients/adminContentApiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,17 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, GripVertical, ArrowLeft, ChevronRight } from "lucide-react";
-import { Tables } from "@/integrations/supabase/types";
 
-type Training = Tables<"trainings">;
+interface Training {
+  id: string;
+  module_id: string;
+  title: string;
+  description: string | null;
+  order_number: number;
+  is_common: boolean;
+  persona_required: string | null;
+  main_concepts: string | null;
+}
 
 interface Module {
   id: string;
@@ -36,33 +44,40 @@ export default function AdminModuleUnits() {
   const loadData = async () => {
     if (!moduleId) return;
     setLoading(true);
-    const [{ data: mod }, { data: unitsData }] = await Promise.all([
-      supabase.from("modules").select("id, title").eq("id", moduleId).single(),
-      supabase.from("trainings").select("*").eq("module_id", moduleId).order("order_number"),
-    ]);
-    setModule(mod as Module | null);
-    setUnits(unitsData || []);
+    try {
+      const [modulesResult, trainingsResult] = await Promise.all([
+        listModules(),
+        listTrainings(moduleId),
+      ]);
+      const mod = (modulesResult.modules as Module[]).find((m) => m.id === moduleId) || null;
+      setModule(mod);
+      setUnits((trainingsResult.trainings as Training[]) || []);
+    } catch (err) {
+      console.error("Failed to load data:", err);
+      toast.error("Failed to load data");
+    }
     setLoading(false);
   };
 
   const handleAdd = async () => {
     if (!form.title.trim()) { toast.error("Title is required"); return; }
     setSaving("new");
-    const { error } = await supabase.from("trainings").insert({
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      main_concepts: form.main_concepts.trim() || null,
-      is_common: form.is_common,
-      persona_required: (!form.is_common && form.persona_required) ? form.persona_required : null,
-      module_id: moduleId,
-      order_number: units.length + 1,
-    });
-    if (error) toast.error("Failed to add unit");
-    else {
+    try {
+      await createTraining({
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        main_concepts: form.main_concepts.trim() || null,
+        is_common: form.is_common,
+        persona_required: (!form.is_common && form.persona_required) ? form.persona_required : null,
+        module_id: moduleId,
+        order_number: units.length + 1,
+      });
       toast.success("Training unit added!");
       setForm({ title: "", description: "", main_concepts: "", is_common: true, persona_required: "" });
       setShowForm(false);
       loadData();
+    } catch {
+      toast.error("Failed to add unit");
     }
     setSaving(null);
   };
@@ -70,9 +85,13 @@ export default function AdminModuleUnits() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this training unit and all its content?")) return;
     setSaving(id);
-    const { error } = await supabase.from("trainings").delete().eq("id", id);
-    if (error) toast.error("Failed to delete");
-    else { toast.success("Unit deleted"); loadData(); }
+    try {
+      await deleteTraining(id);
+      toast.success("Unit deleted");
+      loadData();
+    } catch {
+      toast.error("Failed to delete");
+    }
     setSaving(null);
   };
 

@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listAssessments,
+  createAssessment,
+  getQuestions,
+  bulkUpsertQuestions,
+} from "@/lib/apiClients/adminContentApiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,32 +33,34 @@ export default function AdminBaselineQuestions() {
 
   const loadData = async () => {
     setLoading(true);
-    const { data: assessments } = await supabase
-      .from("assessments").select("id, title, type")
-      .eq("type", "baseline").limit(1);
+    try {
+      const result = await listAssessments({ type: "baseline" });
+      const assessments = result.assessments as Array<Record<string, unknown>>;
 
-    if (!assessments?.length) {
-      setLoading(false);
-      return;
-    }
-    const a = assessments[0];
-    setAssessment(a);
+      if (!assessments?.length) {
+        setLoading(false);
+        return;
+      }
+      const a = assessments[0] as unknown as Assessment;
+      setAssessment(a);
 
-    const { data: qs } = await supabase
-      .from("questions").select("*")
-      .eq("assessment_id", a.id).order("order_number");
-
-    if (qs?.length) {
-      const qIds = qs.map((q) => q.id);
-      const { data: opts } = await supabase.from("options").select("*").in("question_id", qIds);
-      setQuestions(qs.map((q) => ({
-        id: q.id,
-        question_text: q.question_text,
-        order_number: q.order_number,
-        options: (opts || []).filter((o) => o.question_id === q.id).map((o) => ({
-          id: o.id, option_text: o.option_text, is_correct: o.is_correct,
-        })),
-      })));
+      const qResult = await getQuestions(a.id);
+      const qs = qResult.questions as Array<Record<string, unknown>>;
+      if (qs?.length) {
+        setQuestions(qs.map((q) => ({
+          id: q.id as string,
+          question_text: q.question_text as string,
+          order_number: q.order_number as number,
+          options: ((q.options || []) as Array<Record<string, unknown>>).map((o) => ({
+            id: o.id as string | undefined,
+            option_text: (o.option_text || o.text) as string,
+            is_correct: o.is_correct as boolean,
+          })),
+        })));
+      }
+    } catch (err) {
+      console.error("Failed to load baseline data:", err);
+      toast.error("Failed to load data");
     }
     setLoading(false);
   };
@@ -106,14 +113,17 @@ export default function AdminBaselineQuestions() {
   };
 
   const createBaselineAssessment = async () => {
-    const { data, error } = await supabase.from("assessments").insert({
-      title: "Baseline Assessment",
-      type: "baseline",
-      question_type: "mcq",
-    } as never).select("id, title, type").single();
-    if (error) { toast.error("Failed to create assessment"); return; }
-    setAssessment(data as Assessment);
-    toast.success("Baseline assessment created!");
+    try {
+      const data = await createAssessment({
+        title: "Baseline Assessment",
+        type: "baseline",
+        question_type: "mcq",
+      });
+      setAssessment(data as unknown as Assessment);
+      toast.success("Baseline assessment created!");
+    } catch {
+      toast.error("Failed to create assessment");
+    }
   };
 
   const handleSave = async () => {
@@ -127,38 +137,20 @@ export default function AdminBaselineQuestions() {
 
     setSaving(true);
     try {
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        let questionId = q.id;
-
-        if (questionId) {
-          await supabase.from("questions").update({ question_text: q.question_text, order_number: i + 1 }).eq("id", questionId);
-        } else {
-          const { data } = await supabase.from("questions").insert({
-            assessment_id: assessment.id,
-            question_text: q.question_text,
-            order_number: i + 1,
-            question_type: "mcq",
-          }).select("id").single();
-          questionId = data?.id;
-          questions[i].id = questionId;
-        }
-
-        if (!questionId) continue;
-
-        for (const opt of q.options) {
-          if (opt.id) {
-            await supabase.from("options").update({ option_text: opt.option_text, is_correct: opt.is_correct }).eq("id", opt.id);
-          } else {
-            const { data } = await supabase.from("options").insert({
-              question_id: questionId,
-              option_text: opt.option_text,
-              is_correct: opt.is_correct,
-            }).select("id").single();
-            opt.id = data?.id;
-          }
-        }
-      }
+      await bulkUpsertQuestions(
+        assessment.id,
+        questions.map((q, i) => ({
+          id: q.id,
+          question_text: q.question_text,
+          question_type: "mcq",
+          order_number: i + 1,
+          options: q.options.map((o) => ({
+            id: o.id,
+            text: o.option_text,
+            is_correct: o.is_correct,
+          })),
+        })),
+      );
       toast.success("Baseline questions saved!");
       loadData();
     } catch {
@@ -234,7 +226,7 @@ export default function AdminBaselineQuestions() {
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="text-xs text-muted-foreground">Answer Options (click ✓ to mark correct)</Label>
+                    <Label className="text-xs text-muted-foreground">Answer Options (click checkmark to mark correct)</Label>
                     <Button variant="ghost" size="sm" onClick={() => addOption(qIdx)}>
                       <Plus className="w-3 h-3 mr-1" /> Add Option
                     </Button>

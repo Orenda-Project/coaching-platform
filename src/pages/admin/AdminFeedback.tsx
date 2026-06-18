@@ -3,7 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
-import { useFeedback } from '@/hooks/useFeedback';
+import {
+  fetchAdminFeedback,
+  FeedbackRecord,
+  FeedbackKPIs,
+} from '@/lib/apiClients/adminFeedbackApiClient';
 import {
   Select,
   SelectContent,
@@ -12,34 +16,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-interface FeedbackRecord {
-  id: string;
-  user_id: string;
-  category: 'module' | 'platform' | 'bug' | 'other';
-  rating: number;
-  positive_feedback?: string;
-  improvement_feedback?: string;
-  context_page: string;
-  persona?: string;
-  created_at: string;
-  profiles: {
-    id: string;
-    full_name: string | null;
-    email: string | null;
-    phone: string | null;
-  } | null;
-}
-
-interface KPIData {
-  totalFeedback: number;
-  avgRating: number;
-  lowRatingCount: number;
-}
-
 const ITEMS_PER_PAGE = 20;
 
 export default function AdminFeedback() {
-  const { feedback: feedbackData, kpis, loading, error } = useFeedback();
+  const [feedbackData, setFeedbackData] = useState<FeedbackRecord[]>([]);
+  const [kpis, setKpis] = useState<FeedbackKPIs | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     category: '',
@@ -49,6 +32,25 @@ export default function AdminFeedback() {
     endDate: '',
   });
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackRecord | null>(null);
+
+  const loadFeedback = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await fetchAdminFeedback({ days: 30 });
+      setFeedbackData(result.items);
+      setKpis(result.kpis);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load feedback';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFeedback();
+  }, [loadFeedback]);
 
   useEffect(() => {
     if (error) {
@@ -125,7 +127,7 @@ export default function AdminFeedback() {
             <div className="text-3xl font-bold text-destructive">
               {kpis?.lowRatingCount ?? '-'}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Rating ≤ 2</p>
+            <p className="text-xs text-muted-foreground mt-1">Rating &le; 2</p>
           </CardContent>
         </Card>
       </div>
@@ -215,7 +217,7 @@ export default function AdminFeedback() {
         <CardHeader>
           <CardTitle>Feedback Entries</CardTitle>
           <CardDescription>
-            Page {page} of {totalPages} • {totalCount} total
+            Page {page} of {totalPages} &bull; {totalCount} total
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -357,7 +359,7 @@ export default function AdminFeedback() {
                 <div>
                   <CardTitle>Feedback Details</CardTitle>
                   <CardDescription>
-                    {selectedFeedback.profiles?.full_name || 'Unknown'} • {new Date(selectedFeedback.created_at).toLocaleDateString()}
+                    {selectedFeedback.profiles?.full_name || 'Unknown'} &bull; {new Date(selectedFeedback.created_at).toLocaleDateString()}
                   </CardDescription>
                 </div>
                 <Button

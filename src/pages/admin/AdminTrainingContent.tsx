@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listTrainings,
+  listTrainingContent,
+  createTrainingContent,
+  deleteTrainingContent,
+} from "@/lib/apiClients/adminContentApiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,15 +12,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, FileVideo, Presentation } from "lucide-react";
-import { Tables } from "@/integrations/supabase/types";
 
-type Training = Tables<"trainings">;
-type TrainingContent = Tables<"training_content">;
+interface Training {
+  id: string;
+  title: string;
+  order_number: number;
+}
+
+interface TrainingContentItem {
+  id: string;
+  training_id: string;
+  format_type: string;
+  content_url: string;
+}
 
 export default function AdminTrainingContent() {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [selectedTraining, setSelectedTraining] = useState<string>("");
-  const [content, setContent] = useState<TrainingContent[]>([]);
+  const [content, setContent] = useState<TrainingContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ format_type: "video", content_url: "" });
@@ -25,36 +39,55 @@ export default function AdminTrainingContent() {
 
   const loadTrainings = async () => {
     setLoading(true);
-    const { data } = await supabase.from("trainings").select("*").order("order_number");
-    setTrainings(data || []);
-    if (data?.length) setSelectedTraining(data[0].id);
+    try {
+      const result = await listTrainings();
+      const data = (result.trainings as Training[]) || [];
+      setTrainings(data);
+      if (data.length) setSelectedTraining(data[0].id);
+    } catch (err) {
+      console.error("Failed to load trainings:", err);
+      toast.error("Failed to load trainings");
+    }
     setLoading(false);
   };
 
   const loadContent = async () => {
     if (!selectedTraining) return;
-    const { data } = await supabase.from("training_content").select("*").eq("training_id", selectedTraining);
-    setContent(data || []);
+    try {
+      const result = await listTrainingContent(selectedTraining);
+      setContent((result.content as TrainingContentItem[]) || []);
+    } catch (err) {
+      console.error("Failed to load content:", err);
+    }
   };
 
   const handleAdd = async () => {
     if (!form.content_url.trim()) { toast.error("Content URL is required"); return; }
     if (!selectedTraining) { toast.error("Select a training first"); return; }
     setSaving(true);
-    const { error } = await supabase.from("training_content").insert({
-      training_id: selectedTraining,
-      format_type: form.format_type,
-      content_url: form.content_url.trim(),
-    });
-    if (error) { toast.error("Failed to add content"); }
-    else { toast.success("Content added!"); setForm({ format_type: "video", content_url: "" }); loadContent(); }
+    try {
+      await createTrainingContent({
+        training_id: selectedTraining,
+        format_type: form.format_type,
+        content_url: form.content_url.trim(),
+      });
+      toast.success("Content added!");
+      setForm({ format_type: "video", content_url: "" });
+      loadContent();
+    } catch {
+      toast.error("Failed to add content");
+    }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("training_content").delete().eq("id", id);
-    if (error) { toast.error("Failed to delete"); }
-    else { toast.success("Content removed"); loadContent(); }
+    try {
+      await deleteTrainingContent(id);
+      toast.success("Content removed");
+      loadContent();
+    } catch {
+      toast.error("Failed to delete");
+    }
   };
 
   const selectedTrainingData = trainings.find((t) => t.id === selectedTraining);
@@ -77,7 +110,7 @@ export default function AdminTrainingContent() {
           </SelectTrigger>
           <SelectContent>
             {trainings.map((t, i) => (
-              <SelectItem key={t.id} value={t.id}>#{i + 1} — {t.title}</SelectItem>
+              <SelectItem key={t.id} value={t.id}>#{i + 1} -- {t.title}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -96,8 +129,8 @@ export default function AdminTrainingContent() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="video">🎥 Video</SelectItem>
-                      <SelectItem value="slide">📊 Slides (iframe)</SelectItem>
+                      <SelectItem value="video">Video</SelectItem>
+                      <SelectItem value="slide">Slides (iframe)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
