@@ -7,8 +7,17 @@
       "baselineCompleted": true,
       "persona": "E",
       "score": 33,
-      "recordedAt": "2026-06-12",
-      "source": "verified (live run 2026-06-12)"
+      "recordedAt": "2026-06-16",
+      "source": "verified (live run 2026-06-16)"
+    },
+    {
+      "email": "umar.kabaili@yopmail.com",
+      "userId": "66e67e8e-0ed9-4850-acb4-095a727a7f2e",
+      "baselineCompleted": true,
+      "persona": "E",
+      "score": 3,
+      "recordedAt": "2026-06-16",
+      "source": "verified (live run 2026-06-16)"
     }
   ]
 }

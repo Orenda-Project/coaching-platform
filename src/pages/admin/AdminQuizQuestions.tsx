@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listTrainings,
+  listAssessments,
+  createAssessment,
+  getQuestions,
+  bulkUpsertQuestions,
+} from "@/lib/apiClients/adminContentApiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,9 +14,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, ChevronDown, ChevronUp, CheckCircle } from "lucide-react";
-import { Tables } from "@/integrations/supabase/types";
 
-type Training = Tables<"trainings">;
+interface Training {
+  id: string;
+  title: string;
+  order_number: number;
+}
+
 type Option = { id?: string; option_text: string; is_correct: boolean };
 type QuestionForm = { id?: string; question_text: string; order_number: number; options: Option[] };
 
@@ -28,9 +38,15 @@ export default function AdminQuizQuestions() {
 
   const loadTrainings = async () => {
     setLoading(true);
-    const { data } = await supabase.from("trainings").select("*").order("order_number");
-    setTrainings(data || []);
-    if (data?.length) setSelectedTraining(data[0].id);
+    try {
+      const result = await listTrainings();
+      const data = (result.trainings as Training[]) || [];
+      setTrainings(data);
+      if (data.length) setSelectedTraining(data[0].id);
+    } catch (err) {
+      console.error("Failed to load trainings:", err);
+      toast.error("Failed to load trainings");
+    }
     setLoading(false);
   };
 
@@ -39,37 +55,47 @@ export default function AdminQuizQuestions() {
     setQuestions([]);
     setAssessmentId(null);
 
-    const { data: assessments } = await supabase
-      .from("assessments").select("id")
-      .eq("type", "training").eq("training_id", selectedTraining).limit(1);
+    try {
+      const result = await listAssessments({ trainingId: selectedTraining, type: "training" });
+      const assessments = result.assessments as Array<Record<string, unknown>>;
+      if (!assessments?.length) return;
 
-    if (!assessments?.length) return;
-    const aId = assessments[0].id;
-    setAssessmentId(aId);
+      const aId = assessments[0].id as string;
+      setAssessmentId(aId);
 
-    const { data: qs } = await supabase.from("questions").select("*").eq("assessment_id", aId).order("order_number");
-    if (!qs?.length) return;
+      const qResult = await getQuestions(aId);
+      const qs = qResult.questions as Array<Record<string, unknown>>;
+      if (!qs?.length) return;
 
-    const { data: opts } = await supabase.from("options").select("*").in("question_id", qs.map((q) => q.id));
-    setQuestions(qs.map((q) => ({
-      id: q.id,
-      question_text: q.question_text,
-      order_number: q.order_number,
-      options: (opts || []).filter((o) => o.question_id === q.id).map((o) => ({ id: o.id, option_text: o.option_text, is_correct: o.is_correct })),
-    })));
+      setQuestions(qs.map((q) => ({
+        id: q.id as string,
+        question_text: q.question_text as string,
+        order_number: q.order_number as number,
+        options: ((q.options || []) as Array<Record<string, unknown>>).map((o) => ({
+          id: o.id as string | undefined,
+          option_text: (o.option_text || o.text) as string,
+          is_correct: o.is_correct as boolean,
+        })),
+      })));
+    } catch (err) {
+      console.error("Failed to load quiz:", err);
+    }
   };
 
-  const createAssessment = async () => {
+  const handleCreateAssessment = async () => {
     const t = trainings.find((tr) => tr.id === selectedTraining);
     if (!t) return;
-    const { data, error } = await supabase.from("assessments").insert({
-      title: `${t.title} Quiz`,
-      type: "training",
-      training_id: selectedTraining,
-    } as never).select("id").single();
-    if (error) { toast.error("Failed to create quiz"); return; }
-    setAssessmentId((data as { id: string }).id);
-    toast.success("Quiz created!");
+    try {
+      const data = await createAssessment({
+        title: `${t.title} Quiz`,
+        type: "training",
+        training_id: selectedTraining,
+      });
+      setAssessmentId((data as { id: string }).id);
+      toast.success("Quiz created!");
+    } catch {
+      toast.error("Failed to create quiz");
+    }
   };
 
   const addQuestion = () => {
@@ -127,37 +153,20 @@ export default function AdminQuizQuestions() {
 
     setSaving(true);
     try {
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        let questionId = q.id;
-
-        if (questionId) {
-          await supabase.from("questions").update({ question_text: q.question_text, order_number: i + 1 }).eq("id", questionId);
-        } else {
-          const { data } = await supabase.from("questions").insert({
-            assessment_id: assessmentId,
-            question_text: q.question_text,
-            order_number: i + 1,
-            question_type: "mcq",
-          }).select("id").single();
-          questionId = data?.id;
-          questions[i].id = questionId;
-        }
-
-        if (!questionId) continue;
-        for (const opt of q.options) {
-          if (opt.id) {
-            await supabase.from("options").update({ option_text: opt.option_text, is_correct: opt.is_correct }).eq("id", opt.id);
-          } else {
-            const { data } = await supabase.from("options").insert({
-              question_id: questionId,
-              option_text: opt.option_text,
-              is_correct: opt.is_correct,
-            }).select("id").single();
-            opt.id = data?.id;
-          }
-        }
-      }
+      await bulkUpsertQuestions(
+        assessmentId,
+        questions.map((q, i) => ({
+          id: q.id,
+          question_text: q.question_text,
+          question_type: "mcq",
+          order_number: i + 1,
+          options: q.options.map((o) => ({
+            id: o.id,
+            text: o.option_text,
+            is_correct: o.is_correct,
+          })),
+        })),
+      );
       toast.success("Quiz questions saved!");
       loadQuiz();
     } catch {
@@ -187,7 +196,7 @@ export default function AdminQuizQuestions() {
           </SelectTrigger>
           <SelectContent>
             {trainings.map((t, i) => (
-              <SelectItem key={t.id} value={t.id}>#{i + 1} — {t.title}</SelectItem>
+              <SelectItem key={t.id} value={t.id}>#{i + 1} -- {t.title}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -197,7 +206,7 @@ export default function AdminQuizQuestions() {
         <Card className="mb-6 border-dashed">
           <CardContent className="p-6 text-center">
             <p className="text-muted-foreground mb-4">No quiz exists for <strong>{selectedTrainingData?.title}</strong> yet.</p>
-            <Button onClick={createAssessment}>Create Quiz</Button>
+            <Button onClick={handleCreateAssessment}>Create Quiz</Button>
           </CardContent>
         </Card>
       )}
@@ -252,7 +261,7 @@ export default function AdminQuizQuestions() {
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <Label className="text-xs text-muted-foreground">Answer Options (click ✓ to mark correct)</Label>
+                        <Label className="text-xs text-muted-foreground">Answer Options (click checkmark to mark correct)</Label>
                         <Button variant="ghost" size="sm" onClick={() => addOption(qIdx)}><Plus className="w-3 h-3 mr-1" /> Add Option</Button>
                       </div>
                       <div className="space-y-2">

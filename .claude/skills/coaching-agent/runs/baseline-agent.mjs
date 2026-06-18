@@ -13,20 +13,25 @@
 //        - otherwise run the full baseline @regression flow and record completion on submit.
 //
 // Usage:
-//   node baseline-agent.mjs                 # headed, account = noor (config)
+//   node baseline-agent.mjs                 # headed, account from SKILL.md (config)
 //   node baseline-agent.mjs --fresh         # headed, sign up a fresh account, run full flow
 //   HEADLESS=1 node baseline-agent.mjs      # headless (only when explicitly requested)
 
 import fs from 'fs';
 import path from 'path';
 import {
-  APP, EVID_DIR, sleep, launchBrowser, open, waitText, clickByText, bodyText,
+  APP, ACCOUNT, EVID_DIR, sleep, launchBrowser, open, waitText, clickByText, bodyText,
   login, currentUserId, isBaselineCompleted, getBaselineRecord, recordBaselineCompletion,
   ensureEvidenceDir, btnInfo, setupToastObserver, waitToast, signup,
 } from './lib.mjs';
 
 const FRESH = process.argv.includes('--fresh');
-const NOOR = { email: 'noor@yopmail.com', pass: 'Umar@123!@#$' };
+// Account + app under test come from SKILL.md (see lib.mjs parseSkillConfig) —
+// generic, not tied to any specific user. Change SKILL.md to retarget.
+const CONFIGURED = ACCOUNT;
+// Filesystem/log-safe label derived from the configured account (no hardcoded name).
+const WHO = CONFIGURED.email.split('@')[0].replace(/[^a-z0-9]/gi, '_');
+console.log(`[config] app=${APP} account=${CONFIGURED.email} (sourced from SKILL.md)`);
 
 ensureEvidenceDir();
 const results = [];
@@ -298,9 +303,9 @@ try {
   page.setDefaultTimeout(30000);
 
   if (!FRESH) {
-    // ---- Configured account path (noor) with completion-aware branching ----
-    await login(page, NOOR);
-    const email = NOOR.email;
+    // ---- Configured account path (from SKILL.md) with completion-aware branching ----
+    await login(page, CONFIGURED);
+    const email = CONFIGURED.email;
     const userId = await currentUserId(page);
     const learned = isBaselineCompleted(email);
     const learnedRec = getBaselineRecord(email);
@@ -308,7 +313,7 @@ try {
 
     if (learned) {
       console.log('[flow] Learning says baseline COMPLETED → verification-only path (skip full flow).');
-      const v = await verifyCannotRetake(page, 'noor');
+      const v = await verifyCannotRetake(page, WHO);
       // refresh learning with anything newly observed
       recordBaselineCompletion({ email, userId, persona: v.persona, score: v.score, source: 'verified (live run ' + new Date().toISOString().slice(0, 10) + ')' });
       for (const [id, name] of FLOW_SCENARIOS) {
@@ -322,12 +327,12 @@ try {
       const redirected = /\/dashboard/.test(page.url());
       if (redirected) {
         console.log('[flow] Live check: baseline redirects → actually completed (learning stale). Recording + verification-only.');
-        const v = await verifyCannotRetake(page, 'noor');
+        const v = await verifyCannotRetake(page, WHO);
         recordBaselineCompletion({ email, userId, persona: v.persona, score: v.score, source: 'observed (live run, learning was stale)' });
         for (const [id, name] of FLOW_SCENARIOS) rec(id, name, '⏭️ SKIPPED', '—', '—', 'Baseline found completed on live check — full flow skipped.');
       } else {
         console.log('[flow] Baseline NOT completed → full flow would run here.');
-        rec('FULL', 'Full baseline flow', 'ℹ️ INFO', '—', '—', 'noor is not completed; run with the full-flow implementation. (Use --fresh to exercise full flow on a throwaway account.)');
+        rec('FULL', 'Full baseline flow', 'ℹ️ INFO', '—', '—', `${CONFIGURED.email} is not completed; run with the full-flow implementation. (Use --fresh to exercise full flow on a throwaway account.)`);
       }
     }
 
@@ -336,7 +341,7 @@ try {
     rec('S10', 'Persona B (≥70%,<75%)', '⏭️ SKIPPED', '—', '—', 'Single account / no answer key.');
     rec('S11', 'Persona C (≥65%,<70%)', '⏭️ SKIPPED', '—', '—', 'Single account / no answer key.');
     rec('S12', 'Persona D (≥60%,<65%)', '⏭️ SKIPPED', '—', '—', 'Single account / no answer key.');
-    rec('S21', 'Cannot navigate to training modules without baseline', '⏭️ SKIPPED', '—', '—', 'Requires a no-baseline account; not testable on completed noor (use --fresh).');
+    rec('S21', 'Cannot navigate to training modules without baseline', '⏭️ SKIPPED', '—', '—', 'Requires a no-baseline account; not testable on an already-completed account (use --fresh).');
     rec('S22', 'Profile update fails during submission', '⏭️ SKIPPED', '—', '—', 'Needs induced DB write failure — cover at unit/integration tier.');
   } else {
     // ---- --fresh: sign up a throwaway account and run the FULL new-user flow ----

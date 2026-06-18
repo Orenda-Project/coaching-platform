@@ -19,8 +19,41 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const SKILL_DIR = path.resolve(__dirname, '..');
 export const EVID_DIR = path.join(__dirname, 'evidence');
 export const COMPLETION_STORE = path.join(SKILL_DIR, 'baseline-completion.json');
+export const SKILL_FILE = path.join(SKILL_DIR, 'SKILL.md');
 
-export const APP = 'https://coaching-platform-staging.up.railway.app';
+// ---------------------------------------------------------------------------
+// Config is sourced from SKILL.md ("## Application Under Test") — NOT hardcoded.
+// This keeps the driver generic: change the URL / login in SKILL.md and the
+// agent runs against that app + account with no code edits.
+// ---------------------------------------------------------------------------
+export function parseSkillConfig(file = SKILL_FILE) {
+  let text = '';
+  try {
+    text = fs.readFileSync(file, 'utf8');
+  } catch {
+    throw new Error(`Cannot read SKILL.md at ${file} to source URL/credentials.`);
+  }
+  const grab = (label) => {
+    // Matches a markdown bullet like: - **URL:** <value>
+    const m = text.match(new RegExp(`\\*\\*${label}:?\\*\\*\\s*:?\\s*(.+)`, 'i'));
+    return m ? m[1].trim().replace(/[`*]/g, '').trim() : null;
+  };
+  const url = grab('URL');
+  const email = grab('Login email');
+  const pass = grab('Login password');
+  if (!url) throw new Error('SKILL.md "## Application Under Test" is missing a **URL:** entry.');
+  if (!email) throw new Error('SKILL.md "## Application Under Test" is missing a **Login email:** entry.');
+  if (!pass) throw new Error('SKILL.md "## Application Under Test" is missing a **Login password:** entry.');
+  return {
+    app: url.replace(/\/+$/, ''), // strip trailing slash so APP + '/login' is clean
+    account: { email, pass },
+  };
+}
+
+const CONFIG = parseSkillConfig();
+// App under test + login account, both read live from SKILL.md.
+export const APP = CONFIG.app;
+export const ACCOUNT = CONFIG.account;
 export const HEADLESS = process.env.HEADLESS === '1' || process.env.HEADLESS === 'true';
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -32,10 +65,12 @@ export async function launchBrowser() {
   const t0 = Date.now();
   const browser = await puppeteer.launch({
     headless: HEADLESS ? 'new' : false, // HEADED unless HEADLESS=1
+    protocolTimeout: 300000, // tolerate slow production responses / long-running flows
     defaultViewport: null, // use the real OS window — no extra emulation overhead
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage', // avoid /dev/shm exhaustion → "Target closed" renderer crashes on Linux
       '--no-first-run',
       '--no-default-browser-check',
       '--disable-extensions',

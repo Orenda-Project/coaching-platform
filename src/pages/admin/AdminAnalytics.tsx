@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchAnalyticsDashboard, CoachRow } from "@/lib/apiClients/adminAnalyticsApiClient";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,83 +18,15 @@ const SUB_REGIONS = ["Nilore", "Tarnol", "Sihala", "B.K", "Urban-I", "Urban-II"]
 
 const PERSONAS = [
   { value: "", label: "All Personas" },
-  { value: "A", label: "A — Advanced" },
-  { value: "B", label: "B — Intermediate" },
-  { value: "C", label: "C — Developing" },
-  { value: "D", label: "D — Entry-level" },
+  { value: "A", label: "A -- Advanced" },
+  { value: "B", label: "B -- Intermediate" },
+  { value: "C", label: "C -- Developing" },
+  { value: "D", label: "D -- Entry-level" },
 ];
-
-interface ProfileRow {
-  id: string;
-  full_name: string | null;
-  phone: string;
-  region: string | null;
-  sub_region?: string | null;
-  school_id: string | null;
-  persona: string | null;
-  baseline_completed: boolean;
-  baseline_score: number | null;
-  baseline_attempt_count: number;
-  endline_completed: boolean;
-  endline_score: number | null;
-  endline_attempt_count: number;
-  weak_modules: string[];
-  created_at: string;
-}
-
-interface TrainingProgressRow {
-  user_id: string;
-  training_id: string;
-  passed: boolean;
-  score: number | null;
-  attempt_count: number;
-  tab_switch_count: number;
-  fullscreen_violations: number;
-  flagged_for_review: boolean;
-  content_completed: boolean;
-}
-
-interface UnitDetail {
-  unitId: string;
-  unitTitle: string;
-  passed: boolean;
-  tabSwitches: number;
-  quizType: "baseline" | "module" | "endline";
-  score: number | null;
-  attemptCount: number;
-}
-
-interface ModuleDetail {
-  moduleId: string;
-  moduleTitle: string;
-  unitsCompleted: number;
-  unitsTotal: number;
-  units: UnitDetail[];
-  avgScore: number | null;
-}
-
-interface TabSwitchBreakdown {
-  baseline: number;
-  module: number;
-  endline: number;
-}
-
-interface CoachRow extends ProfileRow {
-  trainings_passed: number;
-  trainings_started: number;
-  trainings_total: number;
-  modulesCompleted: number;
-  avg_quiz_score: number | null;
-  total_tab_switches: number;
-  tabSwitchBreakdown: TabSwitchBreakdown;
-  flagged: boolean;
-  moduleDetails: ModuleDetail[];
-  sub_region?: string | null;
-}
 
 function regionLabel(val: string | null): string {
   const found = REGIONS.find((r) => r.value === val);
-  return found && found.value ? found.label : val || "—";
+  return found && found.value ? found.label : val || "--";
 }
 
 function personaColor(p: string | null): string {
@@ -119,156 +51,10 @@ export default function AdminAnalytics() {
     async function load() {
       setLoading(true);
       try {
-        const [{ data: profiles }, { data: progress }, { data: trainingsData }, { data: modulesData }, { data: assessmentsData }] = await Promise.all([
-          supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-          supabase.from("training_progress").select("user_id, training_id, passed, score, attempt_count, tab_switch_count, fullscreen_violations, flagged_for_review, content_completed"),
-          supabase.from("trainings").select("id, persona_required, module_id, title"),
-          supabase.from("modules").select("id, title"),
-          supabase.from("assessments").select("training_id, type"),
-        ]);
-
-        const progressByUser = new Map<string, TrainingProgressRow[]>();
-        for (const row of (progress || []) as TrainingProgressRow[]) {
-          if (!progressByUser.has(row.user_id)) progressByUser.set(row.user_id, []);
-          progressByUser.get(row.user_id)!.push(row);
-        }
-
-        // Count total trainings per persona and map assessments
-        const totalByPersona = new Map<string, number>();
-        const trainingsMap = new Map<string, { title: string; module_id: string | null; persona_required: string | null }>();
-        const assessmentMap = new Map<string, string>(); // training_id -> assessment type
-        const modulesMap = new Map<string, string>(); // module_id -> module title
-
-        for (const training of (trainingsData || []) as Array<{ id: string; title: string; module_id: string | null; persona_required: string | null }>) {
-          trainingsMap.set(training.id, training);
-          const key = training.persona_required || "all";
-          totalByPersona.set(key, (totalByPersona.get(key) || 0) + 1);
-        }
-
-        for (const module of (modulesData || []) as Array<{ id: string; title: string }>) {
-          modulesMap.set(module.id, module.title);
-        }
-
-        for (const assessment of (assessmentsData || []) as Array<{ training_id: string | null; type: string }>) {
-          if (assessment.training_id) {
-            assessmentMap.set(assessment.training_id, assessment.type);
-          }
-        }
-
-        // Map assessment type to quiz type (baseline, module, endline)
-        const getQuizType = (trainingId: string): "baseline" | "module" | "endline" => {
-          const assessmentType = assessmentMap.get(trainingId);
-          if (assessmentType === "baseline") return "baseline";
-          if (assessmentType === "endline") return "endline";
-          return "module";
-        };
-
-        // Build module details for each coach with unit-level details
-        const buildModuleDetails = (userTrainings: TrainingProgressRow[]): ModuleDetail[] => {
-          const moduleMap = new Map<string, { title: string; unitsList: UnitDetail[] }>();
-          const moduleProgress = new Map<string, { completed: number; total: number }>();
-
-          for (const ut of userTrainings) {
-            const training = trainingsMap.get(ut.training_id);
-            if (!training || !training.module_id) continue;
-
-            const moduleId = training.module_id;
-            if (!moduleMap.has(moduleId)) {
-              moduleMap.set(moduleId, { title: "", unitsList: [] });
-              moduleProgress.set(moduleId, { completed: 0, total: 0 });
-            }
-
-            const moduleInfo = moduleMap.get(moduleId)!;
-            // Get module name from modules table
-            const moduleName = modulesMap.get(moduleId) || "Unknown Module";
-            moduleInfo.title = moduleName;
-
-            // Extract unit title (e.g., "Unit 1.0: Title" → "Unit 1.0: Title")
-            const unitTitle = training.title;
-            const quizType = getQuizType(ut.training_id);
-            moduleInfo.unitsList.push({
-              unitId: ut.training_id,
-              unitTitle,
-              passed: ut.passed,
-              tabSwitches: ut.tab_switch_count,
-              quizType,
-              score: ut.score,
-              attemptCount: ut.attempt_count,
-            });
-
-            const progress = moduleProgress.get(moduleId)!;
-            progress.total += 1;
-            if (ut.passed) progress.completed += 1;
-          }
-
-          return Array.from(moduleMap.entries()).map(([moduleId, info]) => {
-            const moduleUnitScores = info.unitsList
-              .filter((u) => u.quizType === "module" && u.score !== null)
-              .map((u) => u.score as number);
-            const avgScore = moduleUnitScores.length
-              ? Math.round(moduleUnitScores.reduce((a, b) => a + b, 0) / moduleUnitScores.length)
-              : null;
-            return {
-              moduleId,
-              moduleTitle: info.title,
-              unitsCompleted: moduleProgress.get(moduleId)?.completed || 0,
-              unitsTotal: moduleProgress.get(moduleId)?.total || 0,
-              units: info.unitsList,
-              avgScore,
-            };
-          });
-        };
-
-        const rows: CoachRow[] = ((profiles || []) as ProfileRow[]).map((p) => {
-          const tp = progressByUser.get(p.id) || [];
-          const passed = tp.filter((r) => r.passed).length;
-          const started = tp.length;
-          // Avg Quiz: only module quiz scores (exclude baseline/endline)
-          const moduleScores = tp
-            .filter((r) => {
-              const quizType = getQuizType(r.training_id);
-              return quizType === "module";
-            })
-            .map((r) => r.score)
-            .filter((s): s is number => s !== null);
-          const avg = moduleScores.length ? Math.round(moduleScores.reduce((a, b) => a + b, 0) / moduleScores.length) : null;
-          const tabs = tp.reduce((a, r) => a + r.tab_switch_count, 0);
-          const flagged = tp.some((r) => r.flagged_for_review);
-          const total = totalByPersona.get(p.persona || "all") || 0;
-          const moduleDetails = buildModuleDetails(tp);
-
-          // Count completed modules (where all units are passed)
-          const modulesCompleted = moduleDetails.filter(
-            (m) => m.unitsCompleted === m.unitsTotal && m.unitsTotal > 0
-          ).length;
-
-          // Calculate tab switches breakdown by quiz type (including baseline/endline from ALL tp rows)
-          const tabSwitchBreakdown: TabSwitchBreakdown = {
-            baseline: 0,
-            module: 0,
-            endline: 0,
-          };
-          // Loop through ALL training_progress rows and classify by assessment type
-          for (const row of tp) {
-            const quizType = getQuizType(row.training_id);
-            tabSwitchBreakdown[quizType] += row.tab_switch_count;
-          }
-
-          return {
-            ...p,
-            trainings_passed: passed,
-            trainings_started: started,
-            trainings_total: total,
-            modulesCompleted,
-            avg_quiz_score: avg,
-            total_tab_switches: tabs,
-            tabSwitchBreakdown,
-            flagged,
-            moduleDetails
-          };
-        });
-
-        setCoaches(rows);
+        const result = await fetchAnalyticsDashboard();
+        setCoaches(result.coaches);
+      } catch (err) {
+        console.error("Failed to load analytics dashboard:", err);
       } finally {
         setLoading(false);
       }
@@ -474,8 +260,8 @@ export default function AdminAnalytics() {
 
                     {/* Coach: Name, Phone, Email */}
                     <td className="px-3 py-2">
-                      <p className="font-medium text-foreground text-sm">{c.full_name || "—"}</p>
-                      <p className="text-xs text-muted-foreground">{c.phone || "—"}</p>
+                      <p className="font-medium text-foreground text-sm">{c.full_name || "--"}</p>
+                      <p className="text-xs text-muted-foreground">{c.phone || "--"}</p>
                     </td>
 
                     {/* Region */}
@@ -483,12 +269,12 @@ export default function AdminAnalytics() {
 
                     {/* Sub-Region */}
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-foreground">
-                      {c.region === "islamabad" ? (c.sub_region || "—") : "—"}
+                      {c.region === "islamabad" ? (c.sub_region || "--") : "--"}
                     </td>
 
                     {/* School */}
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-foreground max-w-40 truncate" title={c.school_id || ""}>
-                      {c.school_id || "—"}
+                      {c.school_id || "--"}
                     </td>
 
                     {/* Persona */}
@@ -496,7 +282,7 @@ export default function AdminAnalytics() {
                       {c.persona ? (
                         <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${personaColor(c.persona)}`}>{c.persona}</span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">--</span>
                       )}
                     </td>
 
@@ -504,7 +290,7 @@ export default function AdminAnalytics() {
                     <td className="px-3 py-2 text-center text-sm">
                       {c.baseline_completed ? (
                         <div>
-                          <span className="font-semibold text-green-700 block">{c.baseline_score ?? "—"}%</span>
+                          <span className="font-semibold text-green-700 block">{c.baseline_score ?? "--"}%</span>
                           <span className="text-xs text-muted-foreground">{c.baseline_attempt_count} attempt{c.baseline_attempt_count !== 1 ? "s" : ""}</span>
                         </div>
                       ) : (
@@ -518,7 +304,7 @@ export default function AdminAnalytics() {
                     <td className="px-3 py-2 text-center text-sm">
                       {c.endline_completed ? (
                         <div>
-                          <span className="font-semibold text-blue-700 block">{c.endline_score ?? "—"}%</span>
+                          <span className="font-semibold text-blue-700 block">{c.endline_score ?? "--"}%</span>
                           <span className="text-xs text-muted-foreground">{c.endline_attempt_count} attempt{c.endline_attempt_count !== 1 ? "s" : ""}</span>
                         </div>
                       ) : (
@@ -533,7 +319,7 @@ export default function AdminAnalytics() {
                       {c.moduleDetails.length > 0 ? (
                         <span className="text-foreground">{c.modulesCompleted}/{c.moduleDetails.length}</span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">--</span>
                       )}
                     </td>
 
@@ -544,7 +330,7 @@ export default function AdminAnalytics() {
                           {c.avg_quiz_score}%
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">--</span>
                       )}
                     </td>
 
@@ -562,8 +348,8 @@ export default function AdminAnalytics() {
                     {/* Flag */}
                     <td className="px-3 py-2 text-center">
                       {c.flagged || c.total_tab_switches >= 3 ? (
-                        <span title="Flagged: Tab switches ≥ 3" className="inline-flex">
-                          <AlertTriangle className="w-4 h-4 text-red-500 mx-auto" aria-label="Flagged: Tab switches ≥ 3" />
+                        <span title="Flagged: Tab switches >= 3" className="inline-flex">
+                          <AlertTriangle className="w-4 h-4 text-red-500 mx-auto" aria-label="Flagged: Tab switches >= 3" />
                         </span>
                       ) : (
                         <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto" />
@@ -577,7 +363,7 @@ export default function AdminAnalytics() {
                       <td colSpan={12} className="px-6 py-4">
                         <div className="space-y-4">
                           <div>
-                            <h4 className="font-semibold text-sm text-foreground mb-3">📊 Assessment & Module Details</h4>
+                            <h4 className="font-semibold text-sm text-foreground mb-3">Assessment & Module Details</h4>
                             {/* Tab switches summary */}
                             <div className="grid grid-cols-3 gap-3 mb-4">
                               <div className="bg-blue-50 border border-blue-200 rounded p-3">
@@ -633,7 +419,7 @@ export default function AdminAnalytics() {
                                     <div className="flex-1">
                                       <p className="text-foreground font-medium">{unit.unitTitle}</p>
                                       <p className="text-muted-foreground text-xs mt-0.5">
-                                        {unit.quizType.charAt(0).toUpperCase() + unit.quizType.slice(1)} • {unit.score !== null ? `${unit.score}%` : "—"} • {unit.attemptCount} attempt{unit.attemptCount !== 1 ? "s" : ""} • {unit.tabSwitches} tab switch{unit.tabSwitches !== 1 ? "es" : ""}
+                                        {unit.quizType.charAt(0).toUpperCase() + unit.quizType.slice(1)} - {unit.score !== null ? `${unit.score}%` : "--"} - {unit.attemptCount} attempt{unit.attemptCount !== 1 ? "s" : ""} - {unit.tabSwitches} tab switch{unit.tabSwitches !== 1 ? "es" : ""}
                                       </p>
                                     </div>
                                     <span className={`font-medium flex items-center gap-1.5 whitespace-nowrap ml-2 ${unit.passed ? "text-green-600" : "text-amber-600"}`}>

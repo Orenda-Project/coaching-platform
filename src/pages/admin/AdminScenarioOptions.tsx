@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  getScenario,
+  upsertScenarioOptions,
+} from "@/lib/apiClients/adminScenarioApiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,25 +43,20 @@ export default function AdminScenarioOptions() {
       try {
         if (!scenarioId) return;
 
-        // Get scenario
-        const { data: scenarioData } = await supabase
-          .from("scenarios")
-          .select("*")
-          .eq("id", scenarioId)
-          .single();
-
+        // Get scenario via API
+        const scenarioData = await getScenario(scenarioId);
         if (scenarioData) {
-          setScenario(scenarioData as Scenario);
+          setScenario({
+            id: scenarioData.id as string,
+            situation: scenarioData.situation as string,
+            question: scenarioData.question as string,
+          });
         }
 
-        // Get options
-        const { data: optionsData } = await supabase
-          .from("scenario_options")
-          .select("*")
-          .eq("scenario_id", scenarioId)
-          .order("option_letter");
+        // Get options from scenario data (they may come embedded)
+        const existingOptions = (scenarioData.options || []) as Array<Record<string, unknown>>;
 
-        if (!optionsData || optionsData.length === 0) {
+        if (!existingOptions || existingOptions.length === 0) {
           // Create empty options if none exist
           const newOptions: ScenarioOption[] = [
             {
@@ -100,7 +98,15 @@ export default function AdminScenarioOptions() {
           ];
           setOptions(newOptions);
         } else {
-          setOptions(optionsData as ScenarioOption[]);
+          setOptions(existingOptions.map((o) => ({
+            id: (o.id || `${scenarioId}-${o.letter}`) as string,
+            scenario_id: scenarioId,
+            option_letter: (o.option_letter || o.letter) as string,
+            option_text: (o.option_text || o.text || "") as string,
+            is_correct: (o.is_correct || false) as boolean,
+            rationale: (o.rationale || "") as string,
+            principle_tag: (o.principle_tag || null) as string | null,
+          })));
         }
       } catch (error) {
         console.error("Error loading options:", error);
@@ -144,22 +150,20 @@ export default function AdminScenarioOptions() {
         return;
       }
 
-      // Upsert all options
-      const { error } = await supabase
-        .from("scenario_options")
-        .upsert(
-          options.map((opt) => ({
-            scenario_id: opt.scenario_id,
-            option_letter: opt.option_letter,
-            option_text: opt.option_text,
-            is_correct: opt.is_correct,
-            rationale: opt.rationale,
-            principle_tag: opt.principle_tag || null,
-          })) as never,
-          { onConflict: "scenario_id,option_letter" }
-        );
+      if (!scenarioId) return;
 
-      if (error) throw error;
+      // Upsert all options via API
+      await upsertScenarioOptions(
+        scenarioId,
+        options.map((opt) => ({
+          id: opt.id,
+          letter: opt.option_letter,
+          text: opt.option_text,
+          is_correct: opt.is_correct,
+          rationale: opt.rationale,
+          principle_tag: opt.principle_tag || null,
+        })),
+      );
 
       toast.success("Options saved");
       // Navigate back to scenarios
