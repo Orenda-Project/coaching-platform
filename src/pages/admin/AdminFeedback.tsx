@@ -5,8 +5,8 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import {
   fetchAdminFeedback,
-  FeedbackRecord,
-  FeedbackKPIs,
+  type FeedbackRecord,
+  type FeedbackKPIs,
 } from '@/lib/apiClients/adminFeedbackApiClient';
 import {
   Select,
@@ -33,11 +33,20 @@ export default function AdminFeedback() {
   });
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackRecord | null>(null);
 
+  // Fetch from API whenever filters change
   const loadFeedback = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchAdminFeedback({ days: 30 });
+      const result = await fetchAdminFeedback({
+        // If date range is set, use it; otherwise default to last 30 days
+        days: (!filters.startDate && !filters.endDate) ? 30 : 365,
+        category: filters.category || undefined,
+        rating: filters.rating ? parseInt(filters.rating) : undefined,
+        persona: filters.persona || undefined,
+        start_date: filters.startDate || undefined,
+        end_date: filters.endDate || undefined,
+      });
       setFeedbackData(result.items);
       setKpis(result.kpis);
     } catch (err) {
@@ -46,7 +55,7 @@ export default function AdminFeedback() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     loadFeedback();
@@ -58,27 +67,11 @@ export default function AdminFeedback() {
     }
   }, [error]);
 
-  const filteredFeedback = feedbackData.filter((item) => {
-    if (filters.category && item.category !== filters.category) return false;
-    if (filters.rating && item.rating !== parseInt(filters.rating)) return false;
-    if (filters.persona && item.persona !== filters.persona) return false;
-    if (filters.startDate) {
-      const itemDate = new Date(item.created_at).getTime();
-      const startDate = new Date(filters.startDate).getTime();
-      if (itemDate < startDate) return false;
-    }
-    if (filters.endDate) {
-      const itemDate = new Date(item.created_at).getTime();
-      const endDate = new Date(filters.endDate).getTime();
-      if (itemDate > endDate) return false;
-    }
-    return true;
-  });
-
-  const totalCount = filteredFeedback.length;
+  // Pagination (data already filtered by API)
+  const totalCount = feedbackData.length;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const offset = (page - 1) * ITEMS_PER_PAGE;
-  const paginatedFeedback = filteredFeedback
+  const paginatedFeedback = feedbackData
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(offset, offset + ITEMS_PER_PAGE);
 
@@ -86,11 +79,16 @@ export default function AdminFeedback() {
     setPage(1);
   }, [filters]);
 
+  // Label for the subtitle
+  const dateRangeLabel = filters.startDate || filters.endDate
+    ? `${filters.startDate || '...'} to ${filters.endDate || 'now'}`
+    : 'Last 30 days';
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Feedback</h1>
-        <p className="text-muted-foreground mt-1">Coach feedback and ratings (30 days)</p>
+        <p className="text-muted-foreground mt-1">Coach feedback and ratings ({dateRangeLabel})</p>
       </div>
 
       {/* KPI Cards */}
@@ -103,7 +101,7 @@ export default function AdminFeedback() {
             <div className="text-3xl font-bold text-foreground">
               {kpis?.totalFeedback ?? '-'}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
+            <p className="text-xs text-muted-foreground mt-1">{dateRangeLabel}</p>
           </CardContent>
         </Card>
 
@@ -217,7 +215,7 @@ export default function AdminFeedback() {
         <CardHeader>
           <CardTitle>Feedback Entries</CardTitle>
           <CardDescription>
-            Page {page} of {totalPages} &bull; {totalCount} total
+            Page {page} of {Math.max(totalPages, 1)} &bull; {totalCount} total
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -233,21 +231,11 @@ export default function AdminFeedback() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                        Coach
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                        Category
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                        Rating
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                        Feedback
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">
-                        Date
-                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Coach</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Category</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Rating</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Feedback</th>
+                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -260,13 +248,9 @@ export default function AdminFeedback() {
                       return (
                         <tr key={item.id} className="border-b border-border hover:bg-accent/50">
                           <td className="py-3 px-4">
-                            <div className="text-sm font-medium text-foreground">
-                              {displayName}
-                            </div>
+                            <div className="text-sm font-medium text-foreground">{displayName}</div>
                             {displaySecondary && (
-                              <div className="text-xs text-muted-foreground">
-                                {displaySecondary}
-                              </div>
+                              <div className="text-xs text-muted-foreground">{displaySecondary}</div>
                             )}
                           </td>
                           <td className="py-3 px-4">
