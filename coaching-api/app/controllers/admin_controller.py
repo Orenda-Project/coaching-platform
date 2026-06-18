@@ -561,7 +561,8 @@ class BulkQuestionsRequest(BaseModel):
 
 class ScenarioRequest(BaseModel):
     """Request for creating/updating a scenario."""
-    unit_id: Optional[str] = None
+    training_id: Optional[str] = None
+    unit_id: Optional[str] = None  # alias for training_id (frontend compat)
     order_number: Optional[int] = None
     situation: str
     question: str
@@ -804,9 +805,10 @@ async def create_scenario(request: ScenarioRequest, db: Session = Depends(get_db
     """Create a new scenario."""
     service = AdminScenarioService(db)
     data = request.dict()
-    # Map unit_id to training_id for the service
-    if "unit_id" in data and data["unit_id"]:
-        data["training_id"] = data.pop("unit_id")
+    # Resolve training_id: accept either training_id or unit_id
+    if not data.get("training_id") and data.get("unit_id"):
+        data["training_id"] = data["unit_id"]
+    data.pop("unit_id", None)
     return service.create_scenario(data)
 
 
@@ -815,8 +817,9 @@ async def update_scenario(scenario_id: str, request: ScenarioRequest, db: Sessio
     """Update a scenario."""
     service = AdminScenarioService(db)
     data = request.dict(exclude_unset=True)
-    if "unit_id" in data and data["unit_id"]:
-        data["training_id"] = data.pop("unit_id")
+    if not data.get("training_id") and data.get("unit_id"):
+        data["training_id"] = data["unit_id"]
+    data.pop("unit_id", None)
     result = service.update_scenario(scenario_id, data)
     if not result:
         raise HTTPException(status_code=404, detail="Scenario not found")
