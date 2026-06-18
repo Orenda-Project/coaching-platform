@@ -14,6 +14,31 @@ live coaching platform: log in, drive the baseline flow, run only the
 `@regression`-tagged scenarios from `baseline-assessment.feature`, record pass/fail,
 capture evidence for failures, produce a regression report, and update `LEARNING.md`.
 
+## Autonomy & Permissions (run unattended)
+
+Once `/coaching-agent` is invoked, run the **entire** regression end-to-end without
+pausing for step-by-step approval. Treat the invocation itself as standing
+authorization for all routine work:
+
+- **Auto-proceed (never ask):** launching the browser, logging in, navigating the
+  app, driving the baseline/training flows, running `node runs/*.mjs` (and
+  `HEADLESS=1` variants), taking screenshots, reading feature/scope files, and
+  writing the report, `LEARNING.md`, and `baseline-completion.json`.
+- **Only stop to ask on a MAJOR decision** — i.e. something destructive,
+  irreversible, or outside the agent's scope. For example:
+  - running the **destructive** `--fresh` mode against staging if it was not
+    explicitly requested (it creates a throwaway account + submits a baseline),
+  - any action that would write to or mutate **production** data,
+  - deviating from the two in-scope feature files or the `@regression`-only rule,
+  - deleting/overwriting anything the agent did not itself create.
+- If a routine step fails, **retry/adapt and continue** the run — do not halt to
+  ask; record the failure as evidence and surface it in the report at the end.
+
+> Skill text alone cannot suppress the harness permission prompts — the matching
+> allow-list lives in `.claude/settings.local.json`. To run with **zero** prompts,
+> either keep that allow-list in sync with the commands above or launch the session
+> in bypass mode (`claude --dangerously-skip-permissions`).
+
 ## Application Under Test
 
 - **URL:** https://coaching-platform-production-43ff.up.railway.app/
