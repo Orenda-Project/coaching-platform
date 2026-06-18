@@ -121,11 +121,47 @@ class CertificateResponse(BaseModel):
 @router.post("/signup", response_model=SignupResponse, status_code=201)
 async def signup(request: SignupRequest, db: Session = Depends(get_db)):
     service = AuthService(db)
-    if service.user_exists(request.email):
-        raise HTTPException(status_code=409, detail="User with this email already exists")
-
     import uuid
     user_id = request.user_id or str(uuid.uuid4())
+
+    # Idempotent: if profile already exists for this user_id, return it
+    existing_profile = service.get_profile(user_id)
+    if existing_profile:
+        # Ensure user record exists (needed for FK consistency)
+        user = service.get_user_by_id(user_id)
+        if not user:
+            user = service.create_user(user_id, request.email)
+        # Auto-heal: link profile to user if user_id wasn't set
+        if user and existing_profile.user_id != user_id:
+            service.repair_profile_link(existing_profile, user_id)
+        return {
+            "id": user_id,
+            "email": user.email if user else request.email,
+            "full_name": existing_profile.full_name,
+            "phone": existing_profile.phone,
+            "role": existing_profile.role or "learner",
+            "created_at": existing_profile.created_at.isoformat() if existing_profile.created_at else None,
+        }
+
+    # Check if user record exists (by email)
+    existing_user = service.get_user_by_email(request.email)
+    if existing_user:
+        # User exists but no profile — create profile only using existing user's id
+        profile = service.create_profile(
+            existing_user.id, full_name=request.full_name, phone=request.phone
+        )
+        if profile:
+            return {
+                "id": existing_user.id,
+                "email": existing_user.email,
+                "full_name": profile.full_name,
+                "phone": profile.phone,
+                "role": profile.role,
+                "created_at": existing_user.created_at.isoformat() if existing_user.created_at else None,
+            }
+        raise HTTPException(status_code=400, detail="Invalid profile data (duplicate phone?)")
+
+    # Neither user nor profile exists — create both
     user = service.create_user(user_id, request.email)
     if not user:
         raise HTTPException(status_code=500, detail="Failed to create user")
@@ -141,7 +177,7 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
         "full_name": profile.full_name,
         "phone": profile.phone,
         "role": profile.role,
-        "created_at": user.created_at.isoformat(),
+        "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 
 

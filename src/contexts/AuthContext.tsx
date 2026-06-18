@@ -44,10 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
             if (res.ok || res.status === 409) {
               // Profile created or user already exists — retry fetch
+              authApiClient.clearCache();
               const data = await authApiClient.getProfile(userId);
               setProfile(data);
               return;
             }
+            // Log the actual error for diagnosis
+            const errorBody = await res.json().catch(() => ({}));
+            console.error("Auto-create profile failed:", res.status, errorBody);
           }
         } catch (createErr) {
           console.error("Failed to auto-create profile:", createErr);
