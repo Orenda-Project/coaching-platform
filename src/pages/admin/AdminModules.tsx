@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listModules, createModule, deleteModule } from "@/lib/apiClients/adminContentApiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,28 +36,34 @@ export default function AdminModules() {
 
   const loadModules = async () => {
     setLoading(true);
-    const { data } = await supabase.from("modules").select("*").order("order_number");
-    setModules((data as Module[]) || []);
+    try {
+      const result = await listModules();
+      setModules((result.modules as Module[]) || []);
+    } catch (err) {
+      console.error("Failed to load modules:", err);
+      toast.error("Failed to load modules");
+    }
     setLoading(false);
   };
 
   const handleAdd = async () => {
     if (!form.title.trim()) { toast.error("Title is required"); return; }
     setSaving("new");
-    const { error } = await supabase.from("modules").insert({
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      desired_outcomes: form.desired_outcomes.trim() || null,
-      competencies: form.competencies.trim() || null,
-      is_mandatory: form.is_mandatory,
-      order_number: modules.length + 1,
-    });
-    if (error) toast.error("Failed to add module");
-    else {
+    try {
+      await createModule({
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        desired_outcomes: form.desired_outcomes.trim() || null,
+        competencies: form.competencies.trim() || null,
+        is_mandatory: form.is_mandatory,
+        order_number: modules.length + 1,
+      });
       toast.success("Module added!");
       setForm({ title: "", description: "", desired_outcomes: "", competencies: "", is_mandatory: false });
       setShowForm(false);
       loadModules();
+    } catch {
+      toast.error("Failed to add module");
     }
     setSaving(null);
   };
@@ -65,9 +71,13 @@ export default function AdminModules() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this module and all its training units?")) return;
     setSaving(id);
-    const { error } = await supabase.from("modules").delete().eq("id", id);
-    if (error) toast.error("Failed to delete");
-    else { toast.success("Module deleted"); loadModules(); }
+    try {
+      await deleteModule(id);
+      toast.success("Module deleted");
+      loadModules();
+    } catch {
+      toast.error("Failed to delete");
+    }
     setSaving(null);
   };
 

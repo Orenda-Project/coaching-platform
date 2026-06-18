@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { adminApiClient } from '@/lib/apiClients/adminApiClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,17 +26,12 @@ export default function AdminFieldIssues() {
 
   const loadIssues = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('field_issues')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error(error);
-        return;
-      }
-
-      setIssues(data || []);
+      const result = await adminApiClient.listFieldIssues();
+      // The API returns { issues: [...] } or { data: [...] } depending on mapping
+      // Handle both shapes for resilience
+      const raw = result as unknown as Record<string, unknown>;
+      const items = (raw.issues || raw.data || []) as unknown as FieldIssue[];
+      setIssues(items);
     } catch (err) {
       console.error(err);
     } finally {
@@ -47,21 +41,10 @@ export default function AdminFieldIssues() {
 
   const updateStatus = async (id: string, newStatus: string) => {
     try {
-      const { error } = await (supabase as any)
-        .from('field_issues')
-        .update({
-          status: newStatus,
-          resolved_at: newStatus === 'resolved' ? new Date().toISOString() : null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (error) {
-        console.error(error);
-        return;
-      }
-
-      setIssues(issues.map(issue => issue.id === id ? { ...issue, status: newStatus as any } : issue));
+      await adminApiClient.updateFieldIssue(id, {
+        status: newStatus as 'open' | 'in_progress' | 'resolved' | 'closed',
+      });
+      setIssues(issues.map(issue => issue.id === id ? { ...issue, status: newStatus as FieldIssue['status'] } : issue));
     } catch (err) {
       console.error(err);
     }

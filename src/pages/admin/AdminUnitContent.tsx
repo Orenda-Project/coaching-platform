@@ -1,6 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+// Keep supabase import ONLY for storage upload (training-videos bucket)
 import { supabase } from "@/integrations/supabase/client";
+import {
+  listTrainings,
+  listTrainingContent,
+  createTrainingContent,
+  deleteTrainingContent,
+} from "@/lib/apiClients/adminContentApiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,10 +15,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, FileVideo, Presentation, ArrowLeft, Upload } from "lucide-react";
-import { Tables } from "@/integrations/supabase/types";
 import { Progress } from "@/components/ui/progress";
 
-type TrainingContent = Tables<"training_content">;
+interface TrainingContentItem {
+  id: string;
+  training_id: string;
+  format_type: string;
+  content_url: string;
+}
 
 export default function AdminUnitContent() {
   const { unitId } = useParams<{ unitId: string }>();
@@ -19,7 +30,7 @@ export default function AdminUnitContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [unitTitle, setUnitTitle] = useState("");
   const [moduleId, setModuleId] = useState<string | null>(null);
-  const [content, setContent] = useState<TrainingContent[]>([]);
+  const [content, setContent] = useState<TrainingContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -31,13 +42,21 @@ export default function AdminUnitContent() {
   const loadData = async () => {
     if (!unitId) return;
     setLoading(true);
-    const [{ data: unit }, { data: contentData }] = await Promise.all([
-      supabase.from("trainings").select("title, module_id").eq("id", unitId).single(),
-      supabase.from("training_content").select("*").eq("training_id", unitId),
-    ]);
-    setUnitTitle((unit as { title?: string } | null)?.title || "");
-    setModuleId((unit as { module_id?: string } | null)?.module_id || null);
-    setContent(contentData || []);
+    try {
+      // Fetch the training info from the API to get title and module_id
+      const trainingsResult = await listTrainings();
+      const allTrainings = trainingsResult.trainings as Array<{ id: string; title: string; module_id: string | null }>;
+      const unit = allTrainings.find((t) => t.id === unitId);
+      setUnitTitle(unit?.title || "");
+      setModuleId(unit?.module_id || null);
+
+      // Fetch content via API
+      const contentResult = await listTrainingContent(unitId);
+      setContent((contentResult.content as TrainingContentItem[]) || []);
+    } catch (err) {
+      console.error("Failed to load unit content:", err);
+      toast.error("Failed to load unit content");
+    }
     setLoading(false);
   };
 
@@ -49,6 +68,7 @@ export default function AdminUnitContent() {
     const fileExt = file.name.split(".").pop();
     const filePath = `${unitId}/${Date.now()}.${fileExt}`;
 
+    // Storage upload still uses supabase client directly
     const { data, error } = await supabase.storage
       .from("training-videos")
       .upload(filePath, file, { upsert: false });
@@ -62,15 +82,17 @@ export default function AdminUnitContent() {
     const { data: urlData } = supabase.storage.from("training-videos").getPublicUrl(filePath);
     const publicUrl = urlData.publicUrl;
 
-    // Save content record
-    const { error: insertError } = await supabase.from("training_content").insert({
-      training_id: unitId,
-      format_type: "video",
-      content_url: publicUrl,
-    });
-
-    if (insertError) toast.error("Video uploaded but failed to save record");
-    else toast.success("Video uploaded successfully!");
+    // Save content record via API
+    try {
+      await createTrainingContent({
+        training_id: unitId,
+        format_type: "video",
+        content_url: publicUrl,
+      });
+      toast.success("Video uploaded successfully!");
+    } catch {
+      toast.error("Video uploaded but failed to save record");
+    }
 
     setUploading(false);
     setUploadProgress(100);
@@ -81,20 +103,29 @@ export default function AdminUnitContent() {
     if (!form.content_url.trim()) { toast.error("Content URL is required"); return; }
     if (!unitId) return;
     setSaving(true);
-    const { error } = await supabase.from("training_content").insert({
-      training_id: unitId,
-      format_type: form.format_type,
-      content_url: form.content_url.trim(),
-    });
-    if (error) toast.error("Failed to add content");
-    else { toast.success("Content added!"); setForm({ format_type: "video", content_url: "" }); loadData(); }
+    try {
+      await createTrainingContent({
+        training_id: unitId,
+        format_type: form.format_type,
+        content_url: form.content_url.trim(),
+      });
+      toast.success("Content added!");
+      setForm({ format_type: "video", content_url: "" });
+      loadData();
+    } catch {
+      toast.error("Failed to add content");
+    }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("training_content").delete().eq("id", id);
-    if (error) toast.error("Failed to delete");
-    else { toast.success("Content removed"); loadData(); }
+    try {
+      await deleteTrainingContent(id);
+      toast.success("Content removed");
+      loadData();
+    } catch {
+      toast.error("Failed to delete");
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>;
@@ -152,8 +183,8 @@ export default function AdminUnitContent() {
               <Select value={form.format_type} onValueChange={(v) => setForm({ ...form, format_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="video">🎥 Video URL</SelectItem>
-                  <SelectItem value="slide">📊 Slides (iframe)</SelectItem>
+                  <SelectItem value="video">Video URL</SelectItem>
+                  <SelectItem value="slide">Slides (iframe)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
