@@ -21,18 +21,28 @@ class AdminFeedbackService:
         category: Optional[str] = None,
         rating: Optional[int] = None,
         persona: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         limit: int = 500,
         offset: int = 0,
     ) -> Dict[str, Any]:
         """
         Fetch feedback records with profile joins and KPI aggregation.
 
+        If start_date/end_date are provided, they override the `days` parameter.
         Returns dict with 'items', 'total', 'kpis' keys.
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        # Build time range
+        conditions = []
+        if start_date:
+            conditions.append(UserFeedback.created_at >= datetime.fromisoformat(start_date))
+        elif days:
+            conditions.append(UserFeedback.created_at >= datetime.utcnow() - timedelta(days=days))
 
-        # Build filter conditions
-        conditions = [UserFeedback.created_at >= cutoff]
+        if end_date:
+            # End of the selected day (23:59:59)
+            end_dt = datetime.fromisoformat(end_date) + timedelta(days=1)
+            conditions.append(UserFeedback.created_at < end_dt)
         if category:
             conditions.append(UserFeedback.category == category)
         if rating is not None:

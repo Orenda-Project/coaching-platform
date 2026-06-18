@@ -596,15 +596,18 @@ async def get_feedback(
     category: Optional[str] = Query(None),
     rating: Optional[int] = Query(None, ge=1, le=5),
     persona: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None, description="ISO date YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="ISO date YYYY-MM-DD"),
     limit: int = Query(500, ge=1, le=5000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """Get feedback records with KPIs."""
+    """Get feedback records with KPIs. start_date/end_date override days."""
     service = AdminFeedbackService(db)
     return service.get_feedback(
         days=days, category=category, rating=rating,
-        persona=persona, limit=limit, offset=offset,
+        persona=persona, start_date=start_date, end_date=end_date,
+        limit=limit, offset=offset,
     )
 
 

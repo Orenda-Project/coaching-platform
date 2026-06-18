@@ -44,6 +44,8 @@ export interface FeedbackFilters {
   category?: string;
   rating?: number;
   persona?: string;
+  start_date?: string;
+  end_date?: string;
   limit?: number;
   offset?: number;
 }
@@ -56,6 +58,8 @@ export async function fetchAdminFeedback(
   if (filters.category) params.append("category", filters.category);
   if (filters.rating) params.append("rating", String(filters.rating));
   if (filters.persona) params.append("persona", filters.persona);
+  if (filters.start_date) params.append("start_date", filters.start_date);
+  if (filters.end_date) params.append("end_date", filters.end_date);
   if (filters.limit) params.append("limit", String(filters.limit));
   if (filters.offset) params.append("offset", String(filters.offset));
 
