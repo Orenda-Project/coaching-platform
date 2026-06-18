@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session as DbSession
 from sqlalchemy import desc
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from app.database import get_db
 from app.services.coaching_service import CoachingService
@@ -386,6 +386,18 @@ class UpdateObservationStatusRequest(BaseModel):
     status: str  # Scheduled, Draft, Submitted, Approved
 
 
+class PatchObservationRequest(BaseModel):
+    """Partial update for an observation. All fields optional."""
+    status: Optional[str] = None
+    notes_for_teacher: Optional[str] = None
+    hots_notes: Optional[str] = None
+    hots_rubric: Optional[dict] = None
+    fico_rubric: Optional[dict] = None
+    total_score: Optional[float] = None
+    proficiency_level: Optional[str] = None
+    submitted_at: Optional[str] = None
+
+
 @router.get("/teachers/dc-scores")
 async def get_teacher_dc_scores(
     region: Optional[str] = Query(None),
@@ -470,6 +482,44 @@ async def delete_observation(
     db.delete(observation)
     db.commit()
     return {"message": "Observation deleted", "id": observation_id}
+
+
+@router.get("/observations/{observation_id}")
+async def get_observation(
+    observation_id: str,
+    db: DbSession = Depends(get_db),
+):
+    """Get a single observation by ID."""
+    observation = db.query(CotObservation).filter(CotObservation.id == observation_id).first()
+    if not observation:
+        raise HTTPException(status_code=404, detail="Observation not found")
+    return observation.to_dict()
+
+
+@router.patch("/observations/{observation_id}")
+async def patch_observation(
+    observation_id: str,
+    request: PatchObservationRequest,
+    db: DbSession = Depends(get_db),
+):
+    """Partially update an observation. Only provided fields are changed."""
+    observation = db.query(CotObservation).filter(CotObservation.id == observation_id).first()
+    if not observation:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    update_data = request.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(observation, field, value)
+
+    # If status changed to Submitted and submitted_at wasn't explicitly provided,
+    # set it automatically
+    if request.status == "Submitted" and "submitted_at" not in update_data:
+        observation.submitted_at = datetime.now(timezone.utc)
+
+    observation.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(observation)
+    return observation.to_dict()
 
 
 @router.put("/observations/{observation_id}/status")

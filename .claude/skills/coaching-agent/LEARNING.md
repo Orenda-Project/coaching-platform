@@ -12,6 +12,23 @@ Update it **after every execution**. Keep entries append-only; newest at the top
 | 2026-06-10 | Baseline | 22 | 17 | 0 | 5 | First full run vs production. CDP port 9222. Account: umar.kabaili@yopmail.com. |
 | 2026-06-10 | Training Flow | 15 | 5 | 1 | 9 | Staging (noor@yopmail.com). Completed Unit 1.1. **T10 module-gating VIOLATION found.** 2 partial, 7 not-executed (need destructive/logout setups). |
 
+## Baseline Completion Registry
+
+Machine-readable copy lives in [`baseline-completion.json`](baseline-completion.json) and is
+**read at the start of every run**. If the logged-in user is marked completed here, the agent
+runs **verification-only** (S18: confirm completed + confirm baseline is inaccessible/cannot be
+retaken) and **skips the full baseline flow**, proceeding straight to the training section.
+The driver updates both files automatically on submission (or when a live check reveals a
+completed baseline that the cache had missed).
+
+| User (email) | user_id | Baseline Completed | Persona | Score | Recorded | Source |
+|--------------|---------|--------------------|---------|-------|----------|--------|
+| noor@yopmail.com | f1c8caeb-5f54-429d-96a1-edce436e46f7 | ✅ YES | E | 33% | 2026-06-12 | staging recon — dashboard Persona E / 33%; `/assessment/baseline` redirects to `/dashboard` |
+
+> **Completion-aware rule (baseline only):** never re-execute the full baseline flow for a user
+> already in this registry. The cache is a fast path, not the source of truth — always perform the
+> live S18 verification so a DB reset / stale cache is caught and corrected.
+
 ## Previously Executed Scenarios
 
 | # | Scenario | Last Result | Last Run |

@@ -1,3 +1,27 @@
+export interface PunjabTeacher {
+  id: string;
+  teacher_name: string;
+  school_name: string;
+  emis?: string | null;
+  cluster_name: string;
+  cc_name?: string | null;
+  cc_mobile?: string | null;
+  grade?: string | null;
+  subject?: string | null;
+  classroom_management: number;
+  lesson_planning: number;
+  instructional_strategies: number;
+  student_engagement: number;
+  assessment_feedback: number;
+  multigrade_setup: number;
+  total_score: number;
+  max_total_score: number;
+  overall_percentage: number;
+  last_observation_date?: string | null;
+  observation_count: number;
+  synced_at?: string | null;
+}
+
 export interface DCTeacher {
   user_id: string;
   teacher_name: string;

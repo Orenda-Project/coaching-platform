@@ -86,3 +86,28 @@ export async function deleteObservation(observation_id: string): Promise<void> {
     { method: 'DELETE' },
   );
 }
+
+export async function getObservation(observation_id: string): Promise<CotObservation> {
+  return apiFetch<CotObservation>(
+    `${API_URL}/api/coaching/observations/${observation_id}`,
+  );
+}
+
+export async function patchObservation(
+  observation_id: string,
+  fields: Partial<Pick<CotObservation,
+    | 'status'
+    | 'notes_for_teacher'
+    | 'hots_notes'
+    | 'hots_rubric'
+    | 'fico_rubric'
+    | 'total_score'
+    | 'proficiency_level'
+    | 'submitted_at'
+  >>,
+): Promise<CotObservation> {
+  return apiFetch<CotObservation>(
+    `${API_URL}/api/coaching/observations/${observation_id}`,
+    { method: 'PATCH', body: JSON.stringify(fields) },
+  );
+}
