@@ -18,6 +18,15 @@
       "score": 3,
       "recordedAt": "2026-06-16",
       "source": "verified (live run 2026-06-16)"
+    },
+    {
+      "email": "azam.sawati@yomail.com",
+      "userId": "aed1c44c-df5a-4f58-b0bc-ffb6de613037",
+      "baselineCompleted": true,
+      "persona": "E",
+      "score": 13,
+      "recordedAt": "2026-06-18",
+      "source": "verified (live run 2026-06-18)"
     }
   ]
 }

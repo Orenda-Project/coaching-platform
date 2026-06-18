@@ -70,7 +70,11 @@ export function createMonitor() {
       if (/json/.test(ct)) {
         try {
           const txt = await res.text();
-          body = txt.length > 6000 ? txt.slice(0, 6000) + `…[+${txt.length - 6000}b]` : txt;
+          // Keep content-api JSON whole — training payloads (slides + scenario
+          // branches w/ isCorrect) are large and MUST stay parseable for the
+          // answer-key extraction. Other categories stay trimmed to limit noise.
+          const cap = cat === 'content-api' ? 5_000_000 : 6000;
+          body = txt.length > cap ? txt.slice(0, cap) + `…[+${txt.length - cap}b]` : txt;
         } catch { body = '<unreadable>'; }
       }
       entries.push({ t: 'res', phase, cat, status: res.status(), url, contentType: ct, body });

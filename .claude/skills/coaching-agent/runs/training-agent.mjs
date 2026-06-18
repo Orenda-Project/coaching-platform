@@ -27,6 +27,17 @@ const RECON = process.argv.includes('--recon');
 const OUT_DIR = path.join(EVID_DIR, 'training');
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
+// --- WRONG-ANSWER TEST ---------------------------------------------------------
+// By default the agent answers practice scenarios CORRECTLY (picks the branch
+// flagged isCorrect). For test coverage of the wrong-answer / scoring / feedback
+// path, in exactly ONE randomly chosen unit (that has a known answer key) the
+// agent deliberately answers ONE situation incorrectly. Never more than one unit,
+// never more than one wrong answer total. Disable with NO_WRONG=1; tune the
+// per-unit selection probability with WRONG_PROB (default 0.5).
+const WRONG_ANSWER_TEST = process.env.NO_WRONG !== '1';
+const WRONG_PROB = process.env.WRONG_PROB ? parseFloat(process.env.WRONG_PROB) : 0.5;
+let wrongInjected = false; // run-wide: flips true once the single wrong answer is placed
+
 const mon = createMonitor();
 const findings = [];
 const slideGateChecks = [];
@@ -283,23 +294,51 @@ const MODULE_TITLES = [
 const rx = (s) => new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
 
 // Extract correct practice-branch texts (in step order) for a unit, from the
-// captured /api/training/{unitId} content payload.
+// captured content-api payloads. Resilient to payload shape:
+//   • per-unit  /api/training/{unitId}          → { id, content:[ {format_type, content_url} ] }
+//   • per-unit  /api/training/{unitId}/content  → [ {format_type, content_url} ]
+//   • bulk      /api/training?limit=1000        → { trainings:[ { id, content:[...] } ] }
+// content_url is a JSON *string* that parses to { steps:[ { branches:[ {text,isCorrect} ] } ] }.
+// (Requires un-truncated content-api bodies — see net-monitor.mjs body cap.)
 function correctAnswersForUnit(unitId) {
-  const res = mon.entries.find((e) => e.t === 'res' && e.cat === 'content-api'
-    && e.url.includes(unitId) && e.body && /format_type":"scenario"/.test(e.body));
-  if (!res) return [];
-  try {
-    const payload = JSON.parse(res.body);
-    const arr = Array.isArray(payload) ? payload : (payload.content || payload.data || []);
-    const scen = arr.find((c) => c.format_type === 'scenario');
-    if (!scen) return [];
-    const inner = JSON.parse(scen.content_url);
-    const steps = inner.steps || [];
-    return steps.map((s) => {
-      const correct = (s.branches || []).find((b) => b.isCorrect);
-      return correct ? correct.text : null;
-    });
-  } catch { return []; }
+  const tryParse = (s) => { try { return typeof s === 'string' ? JSON.parse(s) : s; } catch { return null; } };
+  const stepsFromContent = (contentArr) => {
+    if (!Array.isArray(contentArr)) return null;
+    const scen = contentArr.find((c) => c && c.format_type === 'scenario');
+    if (!scen) return null;
+    const inner = tryParse(scen.content_url);
+    return inner && Array.isArray(inner.steps) ? inner.steps : null;
+  };
+
+  let steps = null;
+  // 1) Prefer per-unit responses whose URL contains the unitId.
+  const perUnit = mon.entries.filter((e) => e.t === 'res' && e.cat === 'content-api'
+    && e.body && e.url.includes(unitId) && /format_type":"scenario"/.test(e.body));
+  for (const e of perUnit) {
+    const payload = tryParse(e.body);
+    if (!payload) continue;
+    const contentArr = Array.isArray(payload) ? payload : (payload.content || payload.data);
+    steps = stepsFromContent(contentArr);
+    if (steps) break;
+  }
+  // 2) Fallback: the bulk training list — find the training row by id.
+  if (!steps) {
+    const bulk = mon.entries.filter((e) => e.t === 'res' && e.cat === 'content-api'
+      && e.body && /\/api\/training\b/.test(e.url) && /isCorrect/.test(e.body));
+    for (const e of bulk) {
+      const payload = tryParse(e.body);
+      if (!payload) continue;
+      const list = payload.trainings || payload.data || (Array.isArray(payload) ? payload : null);
+      const row = Array.isArray(list) ? list.find((x) => x.id === unitId) : null;
+      steps = stepsFromContent(row && (row.content || row.data));
+      if (steps) break;
+    }
+  }
+  if (!steps) return [];
+  return steps.map((s) => {
+    const correct = (s.branches || []).find((b) => b.isCorrect);
+    return correct ? correct.text : null;
+  });
 }
 
 // FULL completion walk (resilient + resumable: server persists per-unit completion).
@@ -408,14 +447,28 @@ async function answerQuiz(page, modTitle) {
 
 async function completePractice(page, unitId, unit) {
   const answers = correctAnswersForUnit(unitId); // correct branch texts, in step order
-  log(`[practice] ${unit?.id}: correct-answer key has ${answers.filter(Boolean).length}/${answers.length} known answers`);
+  const knownCount = answers.filter(Boolean).length;
+  log(`[practice] ${unit?.id}: correct-answer key has ${knownCount}/${answers.length} known answers`);
+
+  // Decide whether THIS unit is the (single, run-wide) one that gets a deliberate
+  // wrong answer. Only eligible when the answer key is known (else "wrong" is
+  // undefined and we can only pick blindly). At most one unit, one situation.
+  let wrongSituation = -1;
+  if (WRONG_ANSWER_TEST && !wrongInjected && knownCount > 0 && Math.random() < WRONG_PROB) {
+    wrongInjected = true;
+    wrongSituation = 1 + Math.floor(Math.random() * knownCount); // 1-based situation to answer wrong
+    log(`[practice][WRONG-TEST] Unit ${unit?.id} selected for the single intentional WRONG answer → situation ${wrongSituation}.`);
+  }
+
   let sit = 0;
   while (sit++ < 20) {
     const onPractice = await page.evaluate(() => /Situation\s+\d+\s+of\s+\d+/i.test(document.body.innerText || ''));
     if (!onPractice) break;
-    const want = answers[sit - 1] || null; // correct text for this situation (best-effort by order)
-    // Click the option whose text matches the correct branch; else first option.
-    const picked = await page.evaluate((wantText) => {
+    const correctText = answers[sit - 1] || null; // correct branch text for this situation
+    const makeWrong = sit === wrongSituation && !!correctText; // sabotage this one situation
+    // Default: click the option matching the correct branch. When makeWrong: click an
+    // option that does NOT match the correct branch. Else (no key): first option.
+    const picked = await page.evaluate((correct, doWrong) => {
       const norm = (s) => (s || '').replace(/[\s'"’‘“”]+/g, ' ').trim().toLowerCase();
       const btns = Array.from(document.querySelectorAll('button')).filter((b) => {
         const t = (b.innerText || '').trim();
@@ -423,15 +476,18 @@ async function completePractice(page, unitId, unit) {
           && (b.offsetParent || b.getClientRects().length);
       });
       let target = btns[0];
-      if (wantText) {
-        const w = norm(wantText);
-        const hit = btns.find((b) => { const t = norm(b.innerText); return t && (t.includes(w.slice(0, 40)) || w.includes(t.slice(0, 40))); });
+      const matches = (b, ref) => { const t = norm(b.innerText), w = norm(ref); return t && (t.includes(w.slice(0, 40)) || w.includes(t.slice(0, 40))); };
+      if (doWrong && correct) {
+        const wrong = btns.find((b) => !matches(b, correct)); // any option that is NOT the correct branch
+        if (wrong) target = wrong;
+      } else if (correct) {
+        const hit = btns.find((b) => matches(b, correct));
         if (hit) target = hit;
       }
-      if (target) { target.click(); return { text: (target.innerText || '').slice(0, 60), matched: !!wantText }; }
+      if (target) { target.click(); return { text: (target.innerText || '').slice(0, 60) }; }
       return null;
-    }, want);
-    log(`[practice] situation ${sit}: picked "${picked?.text}" (key-known=${!!want})`);
+    }, correctText, makeWrong);
+    log(`[practice] situation ${sit}: picked "${picked?.text}" (${makeWrong ? 'INTENTIONAL-WRONG ⚠️' : 'correct, key-known=' + !!correctText})`);
     await sleep(600);
     await clickFirst(page, /Check My Response/i, { needEnabled: true });
     await sleep(1000);
