@@ -16,6 +16,7 @@ export default defineConfig({
       "node_modules/**",
       "dist/**",
       "src/**/*.integration.test.{ts,tsx}",
+      "src/**/*.e2e.test.{ts,tsx}",
     ],
     coverage: {
       // Coverage ratchet — floors set to the measured baseline minus 1%

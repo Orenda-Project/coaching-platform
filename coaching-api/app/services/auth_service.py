@@ -46,8 +46,12 @@ class AuthService:
             self.db.commit()
             self.db.refresh(profile)
             return profile
-        except IntegrityError:
+        except IntegrityError as e:
             self.db.rollback()
+            import logging
+            logging.getLogger(__name__).error(
+                f"Profile creation failed for user_id={user_id}: {e.orig}"
+            )
             return None
 
     def get_user_by_id(self, user_id: str) -> Optional[User]:
@@ -61,9 +65,29 @@ class AuthService:
         ).scalar_one_or_none()
 
     def get_profile(self, user_id: str) -> Optional[UserProfile]:
-        return self.db.execute(
+        """Get profile by user_id, with fallback to id (PK) for pre-migration profiles."""
+        profile = self.db.execute(
             select(UserProfile).filter(UserProfile.user_id == user_id)
         ).scalar_one_or_none()
+        if not profile:
+            # Fallback: old profiles have id=user_id but user_id column may be NULL
+            profile = self.db.execute(
+                select(UserProfile).filter(UserProfile.id == user_id)
+            ).scalar_one_or_none()
+        return profile
+
+    def repair_profile_link(self, profile: UserProfile, user_id: str) -> bool:
+        """Fix user_id on a profile found via id fallback. Returns True on success."""
+        if profile.user_id == user_id:
+            return True
+        try:
+            profile.user_id = user_id
+            self.db.commit()
+            self.db.refresh(profile)
+            return True
+        except (IntegrityError, Exception):
+            self.db.rollback()
+            return False
 
     def update_profile(self, user_id: str, **kwargs) -> Optional[UserProfile]:
         profile = self.get_profile(user_id)
