@@ -16,9 +16,11 @@ capture evidence for failures, produce a regression report, and update `LEARNING
 
 ## Application Under Test
 
-- **URL:** https://coaching-platform-staging.up.railway.app/
-- **Login email:** noor@yopmail.com
-- **Login password:** Umar@123!@#$
+- **URL:** https://coaching-platform-production-43ff.up.railway.app/
+- **Login email:** umar.kabaili@yopmail.com
+
+
+- **Login password:** Umar@123!@#
 
 > Log in **before** executing any tests.
 
