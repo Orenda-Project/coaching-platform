@@ -77,8 +77,9 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
-        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
-        punjab_cluster: (profile as Record<string, unknown>).punjab_cluster as string || "",
+        // types.ts not regenerated for new profile columns — cast until supabase gen runs
+        sub_region: (profile as unknown as Record<string, unknown>).sub_region as string || "",
+        punjab_cluster: (profile as unknown as Record<string, unknown>).punjab_cluster as string || "",
         rawalpindi_cluster: (profile as unknown as Record<string, unknown>).rawalpindi_cluster as string || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
@@ -137,8 +138,9 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
-        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
-        punjab_cluster: (profile as Record<string, unknown>).punjab_cluster as string || "",
+        // types.ts not regenerated for new profile columns — cast until supabase gen runs
+        sub_region: (profile as unknown as Record<string, unknown>).sub_region as string || "",
+        punjab_cluster: (profile as unknown as Record<string, unknown>).punjab_cluster as string || "",
         rawalpindi_cluster: (profile as unknown as Record<string, unknown>).rawalpindi_cluster as string || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);

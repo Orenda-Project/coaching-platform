@@ -26,9 +26,10 @@ export default function ObservationScheduler() {
   const [quickObs, setQuickObs] = useState<CotObservation | null>(null);
   const [showDayEndSummary, setShowDayEndSummary] = useState(false);
 
-  const userRegion        = (profile as Record<string, unknown>)?.region             as string | null ?? null;
-  const punjabCluster     = (profile as Record<string, unknown>)?.punjab_cluster     as string | null ?? null;
-  const subRegion         = (profile as Record<string, unknown>)?.sub_region         as string | null ?? null;
+  // types.ts not regenerated for new profile columns — cast until supabase gen runs
+  const userRegion        = (profile as unknown as Record<string, unknown>)?.region             as string | null ?? null;
+  const punjabCluster     = (profile as unknown as Record<string, unknown>)?.punjab_cluster     as string | null ?? null;
+  const subRegion         = (profile as unknown as Record<string, unknown>)?.sub_region         as string | null ?? null;
   const rawalpindiCluster = (profile as unknown as Record<string, unknown>)?.rawalpindi_cluster as string | null ?? null;
 
   type ActiveRegion = 'ict' | 'punjab' | 'pindi';
