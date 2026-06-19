@@ -65,7 +65,8 @@ export function QuickObservationPanel({
     }
   };
 
-  const isFico = current.framework === 'FICO';
+  const displayType = current.visit_type || current.framework || 'HOTS';
+  const isFico = displayType === 'FICO';
 
   return (
     <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
@@ -86,7 +87,7 @@ export function QuickObservationPanel({
             </div>
           </div>
           <Badge variant="outline" className="shrink-0">
-            {isFico ? 'FICO' : 'HOTS'}
+            {displayType}
           </Badge>
         </div>
       </div>
