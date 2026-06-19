@@ -47,6 +47,32 @@ const PUNJAB_CLUSTERS = [
   "Cluster Thatta",
   "Cluster Ziyarat",
 ] as const;
+const PINDI_MARKAZES = [
+  "Addyala",
+  "Adiala",
+  "Bagga Sheikhan",
+  "Bassali",
+  "Bassali W-EE",
+  "Cantt",
+  "Chak Beli Khan",
+  "Chaklala",
+  "Chakri",
+  "Chakri W-EE",
+  "Chauntra",
+  "Chountra",
+  "Jhatta Hathial",
+  "Jhatta Hathial W",
+  "Kolian Hameed",
+  "Lodhran",
+  "Pirwadai",
+  "Pirwadhai",
+  "Raika Maira",
+  "RWP Cantt",
+  "Saddar Berooni",
+  "Shakrial",
+  "Sihal",
+] as const;
+
 const emptyQualification = (): Qualification => ({ degree_type: "", degree: "", passing_year: "" });
 const emptyExperience = (): Experience => ({ org: "", designation: "", joining: "", leaving: "", current: false });
 
@@ -300,13 +326,17 @@ export default function Profile() {
                 {form.region === "rawalpindi" && (
                   <div>
                     <Label htmlFor="rawalpindi_cluster">Pindi Cluster (Markaz)</Label>
-                    <Input
+                    <select
                       id="rawalpindi_cluster"
                       value={form.rawalpindi_cluster}
                       onChange={(e) => setForm({ ...form, rawalpindi_cluster: e.target.value })}
-                      placeholder="e.g. Adyala, CHAUNTRA"
-                      className="mt-1"
-                    />
+                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                      <option value="">Select markaz</option>
+                      {PINDI_MARKAZES.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
                   </div>
                 )}
 
