@@ -46,6 +46,8 @@ class ProfileRequest(BaseModel):
     endline_attempt_count: Optional[int] = None
     region: Optional[str] = None
     sub_region: Optional[str] = None
+    punjab_cluster: Optional[str] = None
+    rawalpindi_cluster: Optional[str] = None
     school_id: Optional[str] = None
     teacher_ids: Optional[List[str]] = None
     qualifications: Optional[Any] = None
@@ -71,6 +73,8 @@ class ProfileResponse(BaseModel):
     endline_attempt_count: Optional[int] = 0
     region: Optional[str] = None
     sub_region: Optional[str] = None
+    punjab_cluster: Optional[str] = None
+    rawalpindi_cluster: Optional[str] = None
     school_id: Optional[str] = None
     teacher_ids: Optional[List[str]] = None
     qualifications: Optional[Any] = None
