@@ -396,6 +396,13 @@ class PatchObservationRequest(BaseModel):
     total_score: Optional[float] = None
     proficiency_level: Optional[str] = None
     submitted_at: Optional[str] = None
+    # Neo (debrief) fields
+    neo_task_id: Optional[str] = None
+    neo_status: Optional[str] = None
+    neo_results: Optional[dict] = None
+    neo_error: Optional[str] = None
+    neo_requested_at: Optional[str] = None
+    neo_completed_at: Optional[str] = None
 
 
 @router.get("/teachers/dc-scores")

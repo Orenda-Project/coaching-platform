@@ -232,11 +232,12 @@ export function VisitsDashboardTab({
                   </button>
                   <button
                     onClick={() => handleMarkComplete(obs.id)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
-                    title="Mark as complete"
+                    disabled={obs.neo_status === 'processing'}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={obs.neo_status === 'processing' ? 'Neo is analyzing — wait for feedback before completing' : 'Mark as complete'}
                   >
                     <Check className="w-4 h-4" />
-                    <span>Complete</span>
+                    <span>{obs.neo_status === 'processing' ? 'Analyzing…' : 'Complete'}</span>
                   </button>
                   <button
                     onClick={() => setDeleteConfirmId(obs.id)}
