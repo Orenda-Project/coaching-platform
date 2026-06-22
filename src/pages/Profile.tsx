@@ -136,6 +136,8 @@ export default function Profile() {
         sub_region: form.region === "islamabad" ? form.sub_region : null,
         punjab_cluster: form.region === "punjab" ? form.punjab_cluster : null,
         rawalpindi_cluster: form.region === "rawalpindi" ? form.rawalpindi_cluster : null,
+        qualifications: qualifications,
+        experiences: experiences,
       });
 
       // Update context directly from form so UI reflects the save immediately,

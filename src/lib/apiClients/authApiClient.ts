@@ -63,8 +63,8 @@ export interface ProfileUpdatePayload {
   endline_attempt_count?: number;
   region?: string;
   sub_region?: string;
-  punjab_cluster?: string;
-  rawalpindi_cluster?: string;
+  punjab_cluster?: string | null;
+  rawalpindi_cluster?: string | null;
   school_id?: string;
   teacher_ids?: string[];
   qualifications?: unknown[];
