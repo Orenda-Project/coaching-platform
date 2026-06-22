@@ -11,5 +11,6 @@ export async function listRawalpindiTeachersByCluster(cluster: string): Promise<
     .eq('cluster_name', cluster)
     .order('overall_percentage', { ascending: true });
   if (error) throw error;
-  return (data ?? []) as PunjabTeacher[];
+  const rows = (data ?? []) as PunjabTeacher[];
+  return rows.filter((t, i, arr) => arr.findIndex(x => x.id === t.id) === i);
 }

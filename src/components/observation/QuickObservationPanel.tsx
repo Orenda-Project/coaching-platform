@@ -65,7 +65,7 @@ export function QuickObservationPanel({
     }
   };
 
-  const displayType = current.visit_type || current.framework || 'HOTS';
+  const displayType = current.visit_type || current.framework || 'General Visit';
   const isFico = displayType === 'FICO';
 
   return (
@@ -127,7 +127,7 @@ export function QuickObservationPanel({
           </Button>
           <Button
             onClick={markVisitComplete}
-            disabled={saving || current.neo_status !== 'completed'}
+            disabled={saving}
             className="gap-2"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
