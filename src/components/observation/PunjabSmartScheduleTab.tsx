@@ -217,6 +217,7 @@ export default function PunjabSmartScheduleTab({ onNewObservation }: Props) {
       subject: teacher.subject,
       date: formData.date,
       observer_id: user.id,
+      status: 'Scheduled' as const,
       region: punjabCluster || 'Punjab',
       visit_type: formData.visit_type,
       planned_date: formData.planned_date,

@@ -183,6 +183,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [isPaused, setIsPaused] = useState(false);
   const [savedAudio, setSavedAudio] = useState<Blob | null>(null);
   const [savedAudioMimeType, setSavedAudioMimeType] = useState<string>('audio/webm');
+  const [neoTaskId, setNeoTaskId] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
@@ -448,6 +449,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   };
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
+    let progressInterval: ReturnType<typeof setInterval> | undefined;
     try {
       if (!observation?.id) {
         toast.error('No observation selected. Please schedule a visit first.');
@@ -455,7 +457,16 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         return;
       }
 
+      setPhase('uploading');
+      setUploadProgress(0);
       setIsUploading(true);
+
+      // Simulate upload progress since fetch doesn't expose upload progress events
+      let simulated = 0;
+      progressInterval = window.setInterval(() => {
+        simulated = Math.min(simulated + Math.random() * 8, 85);
+        setUploadProgress(simulated);
+      }, 400);
 
       // Convert WebM to WAV to ensure compatibility with Neo
       let uploadBlob = blob;
@@ -509,6 +520,9 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       const filename = uploadMimeType === 'audio/wav' ? 'recording.wav' : 'recording.webm';
       formData.append('file', finalBlob, filename);
       formData.append('observation_id', observation.id);
+      if (observation.region) {
+        formData.append('region', observation.region);
+      }
 
       console.log('[NeoAnalysis] Uploading audio for observation:', {
         id: observation.id,
@@ -571,19 +585,25 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       }
 
       const data = await response.json();
+      const taskId = data.task_id as string | undefined;
 
       // Clean up saved audio if this was uploaded from saved phase
       await deleteSavedAudio(observation.id);
 
+      if (progressInterval) clearInterval(progressInterval);
+      setUploadProgress(100);
       setIsUploading(false);
       setSavedAudio(null);
+      if (taskId) setNeoTaskId(taskId);
       setPhase('processing');
       setPollProgress(0);
       setError(null);
 
-      // Start polling
-      pollNeoStatus();
+      // Start polling — pass task_id directly so neo-status doesn't need a Supabase lookup
+      pollNeoStatus(taskId);
     } catch (err) {
+      if (progressInterval) clearInterval(progressInterval);
+      setUploadProgress(0);
       setIsUploading(false);
       const message = err instanceof Error ? err.message : 'Upload failed';
       toast.error(message);
@@ -592,7 +612,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
-  const pollNeoStatus = useCallback(async () => {
+  const pollNeoStatus = useCallback(async (taskId?: string) => {
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) {
       return;
@@ -614,7 +634,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ observation_id: observation.id }),
+            body: JSON.stringify({
+              observation_id: observation.id,
+              task_id: taskId || neoTaskId || undefined,
+              region: observation.region || undefined,
+            }),
           }
         );
 
@@ -632,12 +656,18 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           setPollProgress(100);
           setPhase('completed');
           toast.success('Debrief analysis complete!');
-          // Refresh observation data via backend API
+
+          // Merge results directly from the polling response into the observation prop
+          // (Railway Postgres may not have neo_results yet — use what Neo returned)
+          const mergedObs = { ...observation, neo_status: 'completed' as const, neo_results: data.results || observation.neo_results };
+          onSaved(mergedObs);
+
+          // Also try refreshing from backend in case it was persisted there too
           try {
             const updated = await getObservation(observation.id);
-            onSaved(updated);
+            if (updated.neo_results) onSaved(updated);
           } catch {
-            // Observation refresh failed, but Neo results are already shown
+            // Backend doesn't have results yet — that's fine, we already used data.results
           }
         } else if (data.status === 'failed') {
           if (pollIntervalRef.current) {
@@ -657,7 +687,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         }
       }
     }, 8000);
-  }, [observation.id, onSaved]);
+  }, [observation, onSaved, neoTaskId]);
 
 
   const retry = () => {
@@ -852,7 +882,16 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     );
   }
 
-  // Completed phase
+  // Completed phase — show loading state if results haven't propagated yet
+  if (phase === 'completed' && !observation.neo_results) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        {t('Loading analysis results…')}
+      </div>
+    );
+  }
+
   if (phase === 'completed' && observation.neo_results) {
     const results = observation.neo_results as NeoResults;
     const gradeColor = {

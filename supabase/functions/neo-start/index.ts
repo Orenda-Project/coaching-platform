@@ -68,10 +68,12 @@ serve(async (req) => {
     const formData = await req.formData();
     const audioFile = formData.get("file") as File | null;
     const observationId = formData.get("observation_id") as string | null;
+    const regionFromClient = formData.get("region") as string | null;
 
     console.log("neo-start received:", {
       userId: user.id,
       observationId,
+      regionFromClient,
       fileSize: audioFile?.size,
       fileName: audioFile?.name,
     });
@@ -93,7 +95,8 @@ serve(async (req) => {
       );
     }
 
-    // Verify observation exists and belongs to user
+    // Try to verify observation in Supabase — observations created via Railway Postgres
+    // won't be found here, so fall back to the region provided by the client.
     const { data: obs, error: obsError } = await supabase
       .from("cot_observations")
       .select("id,region")
@@ -102,30 +105,28 @@ serve(async (req) => {
       .single();
 
     if (obsError || !obs) {
-      console.error("Observation lookup failed:", {
+      console.warn("Observation not in Supabase (Railway-only observation), falling back to client-provided region:", {
         observationId,
         userId: user.id,
+        regionFromClient,
         obsError: obsError?.message,
-        code: obsError?.code,
       });
-      return new Response(
-        JSON.stringify({
-          error: `Observation not found: ${obsError?.message || "No matching observation for this user"}`,
-          errorCode: "OBS_NOT_FOUND",
-          details: {
-            observationId,
-            userId: user.id,
-            dbError: obsError?.message,
+      // Only block the request if we have no region to work with
+      if (!regionFromClient) {
+        return new Response(
+          JSON.stringify({
+            error: "Observation not found and no region provided",
+            errorCode: "OBS_NOT_FOUND",
+          }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
           }
-        }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+        );
+      }
     }
 
-    const region = obs.region || "ICT";
+    const region = (obs?.region || regionFromClient || "ICT");
     const regionName = getRegionName(region);
     const apiKey = getRegionKey(region);
 
@@ -259,13 +260,8 @@ serve(async (req) => {
       .eq("id", observationId);
 
     if (updateError) {
-      return new Response(
-        JSON.stringify({ error: "Failed to update observation" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      // Observation may only exist in Railway Postgres — log but don't block the response
+      console.warn("Could not update Supabase cot_observations (Railway-only observation):", updateError.message);
     }
 
     return new Response(
