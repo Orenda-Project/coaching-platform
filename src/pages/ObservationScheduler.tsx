@@ -57,7 +57,7 @@ export default function ObservationScheduler() {
   const observationRegion =
     activeRegion === 'punjab' ? punjabCluster :
     activeRegion === 'pindi'  ? rawalpindiCluster :
-    userRegion;
+    subRegion;
 
   const loadObservations = useCallback(async () => {
     if (!user) return;
