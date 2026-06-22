@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getObservation } from '@/data/observations';
+import { getObservation, patchObservation } from '@/data/observations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -183,6 +183,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [isPaused, setIsPaused] = useState(false);
   const [savedAudio, setSavedAudio] = useState<Blob | null>(null);
   const [savedAudioMimeType, setSavedAudioMimeType] = useState<string>('audio/webm');
+  const [savedAudioUrl, setSavedAudioUrl] = useState<string | null>(null);
   const [neoTaskId, setNeoTaskId] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -190,6 +191,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const pollIntervalRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
+  const autoResumedRef = useRef(false);
 
   // Translation function
   const translateText = async (text: string): Promise<string> => {
@@ -237,15 +239,23 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   useEffect(() => {
     getSavedAudio(observation.id).then(result => {
       if (result) {
-        // Reconstruct blob with correct mime type (preserves type property after IndexedDB retrieval)
         const typedBlob = new Blob([result.blob], { type: result.mime_type });
         setSavedAudio(typedBlob);
         setSavedAudioMimeType(result.mime_type);
         setPhase('saved');
-        console.log('[NeoAnalysis] Loaded saved audio:', { mime_type: result.mime_type, size: result.blob.size });
       }
     });
   }, [observation.id]);
+
+  // Create/revoke object URL for audio playback — avoids memory leak from inline createObjectURL
+  useEffect(() => {
+    if (savedAudio) {
+      const url = URL.createObjectURL(savedAudio);
+      setSavedAudioUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setSavedAudioUrl(null);
+  }, [savedAudio]);
 
   // Update from observation real-time
   useEffect(() => {
@@ -259,6 +269,25 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       setPhase('processing');
     }
   }, [observation.neo_status, observation.neo_error]);
+
+  // Auto-resume polling if panel was closed while analysis was in progress
+  useEffect(() => {
+    if (!autoResumedRef.current && observation.neo_task_id && observation.neo_status === 'processing') {
+      autoResumedRef.current = true;
+      setPhase('processing');
+      setNeoTaskId(observation.neo_task_id);
+      pollNeoStatus(observation.neo_task_id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    };
+  }, []);
 
   const startRecording = async () => {
     try {
@@ -440,12 +469,16 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const mimeType = file.type || 'audio/webm';
-    setPhase('uploading');
-    uploadAudio(file, mimeType);
+    await saveSavedAudio(observation.id, file, mimeType);
+    setSavedAudio(file);
+    setSavedAudioMimeType(mimeType);
+    setPhase('saved');
+    toast.success('Audio file saved — tap "Analyze Debrief" when ready');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
@@ -594,7 +627,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       setUploadProgress(100);
       setIsUploading(false);
       setSavedAudio(null);
-      if (taskId) setNeoTaskId(taskId);
+      if (taskId) {
+        setNeoTaskId(taskId);
+        // Persist to Railway Postgres so polling can resume if panel is closed and reopened
+        patchObservation(observation.id, { neo_task_id: taskId }).catch(() => {});
+      }
       setPhase('processing');
       setPollProgress(0);
       setError(null);
@@ -800,37 +837,30 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     );
   }
 
-  // Saved phase (audio saved locally, waiting to submit)
+  // Saved phase (audio saved locally, ready to analyze)
   if (phase === 'saved' && savedAudio) {
-    const audioUrl = URL.createObjectURL(savedAudio);
     return (
       <div className="space-y-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-sm font-medium text-blue-900">Audio saved</p>
-          <p className="text-xs text-blue-700 mt-1">Review and upload for Neo debrief analysis</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-blue-700 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-blue-900">Audio saved</p>
+            <p className="text-xs text-blue-700 mt-0.5">Review below, then analyze when ready</p>
+          </div>
         </div>
 
-        {/* Audio player */}
-        <audio
-          ref={audioPlayerRef}
-          controls
-          className="w-full"
-          src={audioUrl}
-          onLoadedMetadata={() => {
-            if (audioPlayerRef.current) {
-              const mins = Math.floor(audioPlayerRef.current.duration / 60);
-              const secs = Math.floor(audioPlayerRef.current.duration % 60);
-              console.log(`Audio duration: ${mins}:${secs.toString().padStart(2, '0')}`);
-            }
-          }}
-        />
+        {savedAudioUrl && (
+          <audio controls className="w-full" src={savedAudioUrl} />
+        )}
 
-        {/* Upload button */}
-        <Button onClick={() => uploadAudio(savedAudio, savedAudioMimeType)} disabled={isUploading} className="w-full py-6">
-          {isUploading ? 'Uploading...' : 'Upload for Debrief'}
+        <Button
+          onClick={() => uploadAudio(savedAudio, savedAudioMimeType)}
+          disabled={isUploading}
+          className="w-full py-6"
+        >
+          {isUploading ? 'Uploading...' : 'Analyze Debrief →'}
         </Button>
 
-        {/* Icon buttons */}
         <div className="flex items-center justify-center gap-6">
           <button
             onClick={reRecordAudio}
@@ -853,14 +883,13 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   // Uploading phase
   if (phase === 'uploading') {
-    const audioUrl = savedAudio ? URL.createObjectURL(savedAudio) : undefined;
     return (
       <div className="space-y-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-sm font-medium text-blue-900">{t('Uploading audio')}</p>
         </div>
 
-        {audioUrl && <audio ref={audioPlayerRef} controls className="w-full" src={audioUrl} />}
+        {savedAudioUrl && <audio controls className="w-full" src={savedAudioUrl} />}
 
         <Button disabled className="w-full py-6">
           ⏳ {t('Uploading audio')}...
