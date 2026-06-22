@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,21 @@ import { Clock, CheckCircle2, Trash2, Mic, Check, FileText, ChevronDown, Message
 import { TeacherAbsentModal } from './TeacherAbsentModal';
 import type { CotObservation } from '@/types/observation';
 import { deleteObservation, updateObservationStatus } from '@/data/observations';
+import { getSavedAudio } from '@/lib/audioQueue';
 import { toast } from 'sonner';
+
+function DraftAudioBadge({ obsId }: { obsId: string }) {
+  const [hasAudio, setHasAudio] = useState(false);
+  useEffect(() => {
+    getSavedAudio(obsId).then(r => setHasAudio(!!r));
+  }, [obsId]);
+  if (!hasAudio) return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+      <Mic className="w-3 h-3" /> Audio saved
+    </span>
+  );
+}
 
 interface VisitsDashboardTabProps {
   observations: CotObservation[];
@@ -113,9 +127,12 @@ export function VisitsDashboardTab({
               <p className="text-sm text-muted-foreground truncate">{obs.school_name}</p>
             </div>
             {isDraft && (
-              <span className="inline-block bg-amber-100 border border-amber-300 text-amber-800 text-xs px-2 py-1 rounded font-medium">
-                Draft
-              </span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="inline-block bg-amber-100 border border-amber-300 text-amber-800 text-xs px-2 py-1 rounded font-medium">
+                  Draft
+                </span>
+                <DraftAudioBadge obsId={obs.id} />
+              </div>
             )}
           </div>
 
