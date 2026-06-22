@@ -111,30 +111,6 @@ export function QuickObservationPanel({
           <NeoAnalysis observation={current} onSaved={handleUpdate} />
         </div>
 
-        {/* Neo status summary */}
-        {current.neo_status && (
-          <div className="rounded-lg border border-border p-4 bg-muted/30">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Debrief Analysis</p>
-                {current.neo_status === 'processing' && (
-                  <p className="text-xs text-blue-600">Processing debrief...</p>
-                )}
-                {current.neo_status === 'completed' && (
-                  <p className="text-xs text-green-600">Debrief analysed</p>
-                )}
-                {current.neo_status === 'failed' && (
-                  <p className="text-xs text-red-600">Analysis failed</p>
-                )}
-              </div>
-              {current.neo_status === 'completed' && (
-                <Badge className="text-xs text-green-700 bg-green-50 border-green-200">
-                  Done
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Footer */}

@@ -19,7 +19,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { CotObservation, NeoResults } from '@/types/observation';
+import type { CotObservation, NeoResults, NeoObserverFeedback } from '@/types/observation';
 import { saveSavedAudio, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
 import { markObservationDraft } from '@/data/observations';
 
@@ -894,15 +894,16 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   if (phase === 'completed' && observation.neo_results) {
     const results = observation.neo_results as NeoResults;
-    const gradeColor = {
-      A: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-      B: 'text-blue-700 bg-blue-50 border-blue-200',
-      C: 'text-amber-700 bg-amber-50 border-amber-200',
-      D: 'text-orange-700 bg-orange-50 border-orange-200',
-      F: 'text-red-700 bg-red-50 border-red-200',
-    };
 
-    const color = gradeColor[results.grade] || gradeColor.C;
+    const getGradeColor = (grade: string) => {
+      const lower = grade.toLowerCase();
+      if (lower.includes('emerging') || lower.includes('critical')) return 'text-red-700 bg-red-50 border-red-200';
+      if (lower.includes('developing')) return 'text-orange-700 bg-orange-50 border-orange-200';
+      if (lower.includes('proficient')) return 'text-blue-700 bg-blue-50 border-blue-200';
+      if (lower.includes('accomplished') || lower.includes('exemplary')) return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+      return 'text-amber-700 bg-amber-50 border-amber-200';
+    };
+    const color = getGradeColor(results.grade || '');
 
     return (
       <div className="space-y-3">
@@ -961,60 +962,104 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           </CardContent>
         </Card>
 
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-foreground">{t('Section Scores')}</p>
-          <div className="grid grid-cols-5 gap-2">
-            {['A', 'B', 'C', 'D', 'E'].map((section) => (
-              <div key={section} className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">{t('Section')} {section}</div>
-                <div className="bg-muted rounded px-2 py-1 text-sm font-semibold text-foreground">
-                  {results.section_scores[section as keyof typeof results.section_scores] || 0}
-                </div>
-              </div>
-            ))}
+        {results.section_scores && Object.keys(results.section_scores).length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-foreground">{t('Section Scores')}</p>
+            <div className="space-y-2">
+              {['S1','S2','S3','S4','S5','S6']
+                .filter(k => k in results.section_scores)
+                .map(k => {
+                  const score = results.section_scores[k] ?? 0;
+                  const meta = results.section_metadata?.[k];
+                  const maxScore = meta?.max_score ?? 20;
+                  const pct = Math.round((score / maxScore) * 100);
+                  return (
+                    <div key={k}>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-xs text-foreground">
+                          <span className="font-medium">{k}</span>
+                          {meta?.name && <span className="text-muted-foreground"> · {meta.name}</span>}
+                        </span>
+                        <span className="text-xs font-semibold text-foreground tabular-nums">{score}/{maxScore}</span>
+                      </div>
+                      <Progress value={pct} className="h-1.5" />
+                    </div>
+                  );
+                })
+              }
+            </div>
           </div>
-        </div>
+        )}
 
-        {results.observer_feedback && (
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-foreground">{t('Detailed Feedback')}</p>
+        {results.observer_feedback && typeof results.observer_feedback === 'object' && (() => {
+          const fb = ((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback) as NeoObserverFeedback;
+          return (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-foreground">{t('Detailed Feedback')}</p>
 
-            {typeof results.observer_feedback === 'object' && results.observer_feedback !== null && (
-              <>
-                {((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).strengths && (
+              {/* Overall summary */}
+              {fb.overall_summary && (
+                <div className="bg-muted/40 rounded p-3 text-xs text-foreground leading-relaxed">
+                  {fb.overall_summary}
+                </div>
+              )}
+
+              {/* Strengths */}
+              {fb.strengths && fb.strengths.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-green-700">{t('Strengths')}</p>
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-green-700 text-opacity-80">{t('Strengths')}</p>
-                    <div className="space-y-1 text-xs text-foreground">
-                      {(((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).strengths || []).map((strength: string, idx: number) => (
-                        <div key={idx} className="bg-green-50 border border-green-200 rounded p-2 text-green-900">
-                          {strength}
-                        </div>
-                      ))}
-                    </div>
+                    {fb.strengths.map((s, idx) => (
+                      <div key={idx} className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-900">{s}</div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
 
-                {((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).next_steps && (
+              {/* Next Steps */}
+              {fb.next_steps && fb.next_steps.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-blue-700">{t('Next Steps for Growth')}</p>
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-blue-700">{t('Next Steps for Growth')}</p>
-                    <div className="space-y-1 text-xs text-foreground">
-                      {(((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).next_steps || []).map((step: any, idx: number) => (
-                        <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-2 text-blue-900">
-                          <p className="font-medium">{step.growth_area}</p>
-                          <p className="text-xs mt-1">{step.specific_behavior}</p>
-                        </div>
-                      ))}
-                    </div>
+                    {fb.next_steps.map((step, idx) => (
+                      <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-900">
+                        <p className="font-medium">{step.growth_area}</p>
+                        <p className="mt-1">{step.specific_behavior}</p>
+                        {step.self_reflection_question && (
+                          <p className="mt-1.5 italic opacity-80">🤔 {step.self_reflection_question}</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
-              </>
-            )}
+                </div>
+              )}
 
-            {typeof results.observer_feedback === 'string' && (
-              <div className="bg-muted/30 rounded p-3 text-xs text-foreground">
-                {results.observer_feedback}
-              </div>
-            )}
+              {/* Priority growth areas */}
+              {fb.priority_growth_areas && fb.priority_growth_areas.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-orange-700">Priority Areas</p>
+                  <div className="space-y-1">
+                    {fb.priority_growth_areas.map((area, idx) => (
+                      <div key={idx} className="bg-orange-50 border border-orange-200 rounded p-2 text-xs text-orange-900">{area}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Closing encouragement */}
+              {fb.closing_encouragement && (
+                <div className="bg-purple-50 border border-purple-200 rounded p-2 text-xs text-purple-900">
+                  <p className="font-medium mb-1">💪 Forward Momentum</p>
+                  <p>{fb.closing_encouragement}</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {results.observer_feedback && typeof results.observer_feedback === 'string' && (
+          <div className="bg-muted/30 rounded p-3 text-xs text-foreground">
+            {results.observer_feedback}
           </div>
         )}
       </div>
