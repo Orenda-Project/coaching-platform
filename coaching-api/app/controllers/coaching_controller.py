@@ -401,8 +401,6 @@ class PatchObservationRequest(BaseModel):
     neo_status: Optional[str] = None
     neo_results: Optional[dict] = None
     neo_error: Optional[str] = None
-    neo_requested_at: Optional[str] = None
-    neo_completed_at: Optional[str] = None
 
 
 @router.get("/teachers/dc-scores")
