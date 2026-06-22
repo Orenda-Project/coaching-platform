@@ -203,6 +203,7 @@ export default function PindiSmartScheduleTab({ onNewObservation }: Props) {
       subject: teacher.subject,
       date: formData.date,
       observer_id: user.id,
+      status: 'Scheduled' as const,
       region: rawalpindiCluster || 'Rawalpindi',
       visit_type: formData.visit_type,
       planned_date: formData.planned_date,
