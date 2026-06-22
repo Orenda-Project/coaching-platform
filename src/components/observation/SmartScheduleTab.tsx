@@ -207,6 +207,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         grade: teacher.grade,
         topic: formData.lesson_topic || null,
         framework: 'FICO',
+        visit_type: formData.visit_type,
         date: formData.date,
         visit_purpose: formData.visit_purpose,
         status: 'Scheduled',
