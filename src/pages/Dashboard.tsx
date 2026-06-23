@@ -73,35 +73,30 @@ export default function Dashboard() {
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
-    if (!user || !profile) { setLoading(false); return; }
+    if (!user || !profile) return;
 
-    try {
-      const [modulesRes, trainingsRes, progressRes] = await Promise.all([
-        fetch(`${apiUrl}/api/training/modules`).then(r => r.json()),
-        fetch(`${apiUrl}/api/training?limit=1000`).then(r => r.json()),
-        fetch(`${apiUrl}/api/training/user/${user.id}?limit=1000`).then(r => r.json()),
-      ]);
+    const [modulesRes, trainingsRes, progressRes] = await Promise.all([
+      fetch(`${apiUrl}/api/training/modules`).then(r => r.json()),
+      fetch(`${apiUrl}/api/training?limit=1000`).then(r => r.json()),
+      fetch(`${apiUrl}/api/training/user/${user.id}?limit=1000`).then(r => r.json()),
+    ]);
 
-      const allModules: Module[] = (modulesRes.modules || []) as Module[];
-      const allTrainings = (trainingsRes.trainings || []) as Training[];
-      const progressData = (progressRes.progress || []) as TrainingProgress[];
+    const allModules: Module[] = (modulesRes.modules || []) as Module[];
+    const allTrainings = (trainingsRes.trainings || []) as Training[];
+    const progressData = (progressRes.progress || []) as TrainingProgress[];
 
-      // All users see all modules after baseline completion (vacation lock mode)
-      // Persona determines the learning path recommendation, not module access
-      const assignedModules = allModules;
-      const assignedModuleIds = new Set(assignedModules.map((m) => m.id));
-      const assignedTrainings = allTrainings.filter(
-        (t) => t.module_id && assignedModuleIds.has(t.module_id),
-      );
+    // All users see all modules after baseline completion (vacation lock mode)
+    // Persona determines the learning path recommendation, not module access
+    const assignedModules = allModules;
+    const assignedModuleIds = new Set(assignedModules.map((m) => m.id));
+    const assignedTrainings = allTrainings.filter(
+      (t) => t.module_id && assignedModuleIds.has(t.module_id),
+    );
 
-      setModules(assignedModules);
-      setTrainings(assignedTrainings);
-      setProgress(progressData);
-    } catch {
-      // API unreachable (e.g. local dev with no staging connection) — show empty dashboard
-    } finally {
-      setLoading(false);
-    }
+    setModules(assignedModules);
+    setTrainings(assignedTrainings);
+    setProgress(progressData);
+    setLoading(false);
   }, [user, profile, isCoach]);
 
   useEffect(() => {

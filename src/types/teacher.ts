@@ -5,7 +5,6 @@ export interface PunjabTeacher {
   emis?: string | null;
   cluster_name: string;
   cc_name?: string | null;
-  aeo_name?: string | null;
   cc_mobile?: string | null;
   grade?: string | null;
   subject?: string | null;

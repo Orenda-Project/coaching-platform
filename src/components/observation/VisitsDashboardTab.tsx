@@ -1,27 +1,14 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Clock, CheckCircle2, Trash2, Mic, Check, FileText, ChevronDown, MessageSquare, AlertTriangle, MoreVertical } from 'lucide-react';
+import { Clock, CheckCircle2, Trash2, Mic, Check, FileText, ChevronDown, MessageSquare, AlertTriangle, ThumbsUp, ThumbsDown, MoreVertical } from 'lucide-react';
 import { TeacherAbsentModal } from './TeacherAbsentModal';
 import type { CotObservation } from '@/types/observation';
 import { deleteObservation, updateObservationStatus } from '@/data/observations';
-import { getSavedAudio } from '@/lib/audioQueue';
 import { toast } from 'sonner';
-
-function DraftAudioBadge({ obsId }: { obsId: string }) {
-  const [hasAudio, setHasAudio] = useState(false);
-  useEffect(() => {
-    getSavedAudio(obsId).then(r => setHasAudio(!!r));
-  }, [obsId]);
-  if (!hasAudio) return null;
-  return (
-    <span className="inline-flex items-center gap-1 text-xs text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-      <Mic className="w-3 h-3" /> Audio saved
-    </span>
-  );
-}
+import { getScoreTrend } from '@/lib/scheduler-utils';
 
 interface VisitsDashboardTabProps {
   observations: CotObservation[];
@@ -39,6 +26,7 @@ export function VisitsDashboardTab({
   const [deleting, setDeleting] = useState<string | null>(null);
   const [absentObsId, setAbsentObsId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Record<string, 'up' | 'down'>>({});
 
   const scheduledVisits = observations.filter(
     (o) => o.status === 'Scheduled'
@@ -52,16 +40,49 @@ export function VisitsDashboardTab({
     (o) => o.status === 'Submitted' || o.status === 'Approved'
   );
 
-  const lastVisitedByTeacher = useMemo(() => {
-    const map = new Map<string, string>();
+  // Compute teacher history for pre-visit brief
+  const teacherHistory = useMemo(() => {
+    const map = new Map<string, { lastScore: number | null; lastDate: string; weakIndicators: string[]; scoreTrend: string }>();
+    const byTeacher = new Map<string, CotObservation[]>();
+
     completedVisits.forEach((obs) => {
-      if (!obs.submitted_at) return;
-      const date = new Date(obs.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-      const existing = map.get(obs.teacher_name);
-      if (!existing || new Date(obs.submitted_at) > new Date(existing)) {
-        map.set(obs.teacher_name, date);
-      }
+      if (!byTeacher.has(obs.teacher_name)) byTeacher.set(obs.teacher_name, []);
+      byTeacher.get(obs.teacher_name)!.push(obs);
     });
+
+    for (const [teacher, obs] of byTeacher.entries()) {
+      obs.sort((a, b) => new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime());
+      const latest = obs[0];
+      const prev = obs[1];
+      const twoBacks = obs[2];
+
+      let scoreTrend = '';
+      if (latest.total_score && prev?.total_score) {
+        const trend = getScoreTrend(latest.total_score, prev.total_score, twoBacks?.total_score ?? null);
+        if (trend === 'falling') scoreTrend = '↓ Falling';
+        else if (trend === 'improving') scoreTrend = '↑ Improving';
+      }
+
+      const weak: string[] = [];
+      if (latest.dc_results?.section_b) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const indicators = latest.dc_results.section_b as Record<string, any>;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Object.entries(indicators).forEach(([key, val]: [string, any]) => {
+          if (val?.score === 'no' || val?.score === 'partial') {
+            weak.push(key.replace(/_/g, ' '));
+          }
+        });
+      }
+
+      map.set(teacher, {
+        lastScore: latest.total_score ?? null,
+        lastDate: latest.submitted_at ? new Date(latest.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'unknown',
+        weakIndicators: weak.slice(0, 2),
+        scoreTrend,
+      });
+    }
+
     return map;
   }, [completedVisits]);
 
@@ -114,8 +135,9 @@ export function VisitsDashboardTab({
   };
 
   const ScheduledVisitCard = ({ obs }: { obs: CotObservation }) => {
+    const [expanded, setExpanded] = useState(false);
+    const history = teacherHistory.get(obs.teacher_name);
     const isDraft = obs.status === 'Draft';
-    const lastVisited = lastVisitedByTeacher.get(obs.teacher_name);
 
     return (
     <Card className={`hover:shadow-lg transition-all duration-200 ${isDraft ? 'border-2 border-dashed border-amber-300 bg-amber-50/30' : ''}`}>
@@ -127,19 +149,16 @@ export function VisitsDashboardTab({
               <p className="text-sm text-muted-foreground truncate">{obs.school_name}</p>
             </div>
             {isDraft && (
-              <div className="flex flex-col items-end gap-1">
-                <span className="inline-block bg-amber-100 border border-amber-300 text-amber-800 text-xs px-2 py-1 rounded font-medium">
-                  Draft
-                </span>
-                <DraftAudioBadge obsId={obs.id} />
-              </div>
+              <span className="inline-block bg-amber-100 border border-amber-300 text-amber-800 text-xs px-2 py-1 rounded font-medium">
+                Draft
+              </span>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Visit Type</p>
-              <p className="text-foreground">{obs.visit_type || obs.framework || '—'}</p>
+              <p className="text-foreground">{obs.visit_type || 'HOTS'}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground">Subject · Grade</p>
@@ -169,13 +188,59 @@ export function VisitsDashboardTab({
                 <p className="text-foreground">{obs.departure_time.slice(0, 5)}</p>
               </div>
             )}
-            {lastVisited && (
+            {history?.lastDate && (
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Last Visited</p>
-                <p className="text-foreground">{lastVisited}</p>
+                <p className="text-foreground">{history.lastDate}</p>
               </div>
             )}
           </div>
+
+          {history && (
+            <div className="border-t pt-3 mt-3">
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full flex items-center justify-between text-sm font-medium text-foreground hover:text-primary transition-colors"
+              >
+                <span>Pre-Visit Brief</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+              </button>
+              {expanded && (
+                <div className="mt-3 space-y-2 text-sm">
+                  <div className="flex justify-between items-start">
+                    <span className="text-muted-foreground">Last Score:</span>
+                    <span className="font-medium">{history.lastScore?.toFixed(1) || '—'}</span>
+                  </div>
+                  {history.lastDate && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-muted-foreground">Last Visited:</span>
+                      <span className="text-foreground">{history.lastDate}</span>
+                    </div>
+                  )}
+                  {history.scoreTrend && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-muted-foreground">Trend:</span>
+                      <span className={history.scoreTrend.includes('↓') ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                        {history.scoreTrend}
+                      </span>
+                    </div>
+                  )}
+                  {history.weakIndicators.length > 0 && (
+                    <div>
+                      <p className="text-muted-foreground mb-1">Focus Areas:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {history.weakIndicators.map((indicator) => (
+                          <span key={indicator} className="inline-block bg-amber-50 border border-amber-200 text-amber-900 text-xs px-2 py-1 rounded">
+                            {indicator}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-2">
             <div />
@@ -232,12 +297,11 @@ export function VisitsDashboardTab({
                   </button>
                   <button
                     onClick={() => handleMarkComplete(obs.id)}
-                    disabled={obs.neo_status === 'processing'}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={obs.neo_status === 'processing' ? 'Neo is analyzing — wait for feedback before completing' : 'Mark as complete'}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent rounded-md flex items-center gap-2"
+                    title="Mark as complete"
                   >
                     <Check className="w-4 h-4" />
-                    <span>{obs.neo_status === 'processing' ? 'Analyzing…' : 'Complete'}</span>
+                    <span>Complete</span>
                   </button>
                   <button
                     onClick={() => setDeleteConfirmId(obs.id)}
@@ -253,6 +317,22 @@ export function VisitsDashboardTab({
             </Popover>
           </div>
 
+          {/* Feedback */}
+          <div className="flex items-center gap-2 pt-2 border-t mt-1">
+            <span className="text-xs text-muted-foreground flex-1">Was this visit info helpful?</span>
+            <button
+              onClick={() => setFeedback(f => ({ ...f, [obs.id]: 'up' }))}
+              className={`p-1 rounded transition-colors ${feedback[obs.id] === 'up' ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'}`}
+            >
+              <ThumbsUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setFeedback(f => ({ ...f, [obs.id]: 'down' }))}
+              className={`p-1 rounded transition-colors ${feedback[obs.id] === 'down' ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'}`}
+            >
+              <ThumbsDown className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -260,7 +340,7 @@ export function VisitsDashboardTab({
   };
 
   const CompletedVisitCard = ({ obs }: { obs: CotObservation }) => {
-    const history = lastVisitedByTeacher.get(obs.teacher_name);
+    const history = teacherHistory.get(obs.teacher_name);
     const [expanded, setExpanded] = useState(false);
 
     const score = obs.neo_results?.overall_score ?? obs.total_score ?? null;
@@ -287,7 +367,7 @@ export function VisitsDashboardTab({
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Visit Type</p>
-              <p className="text-foreground">{obs.visit_type || obs.framework || '—'}</p>
+              <p className="text-foreground">{obs.visit_type || 'FICO'}</p>
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground">Date</p>
@@ -314,6 +394,22 @@ export function VisitsDashboardTab({
             </div>
           )}
 
+          {/* Feedback tap */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground flex-1">Was this visit useful?</span>
+            <button
+              onClick={() => setFeedback(f => ({ ...f, [obs.id]: 'up' }))}
+              className={`p-1 rounded transition-colors ${feedback[obs.id] === 'up' ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'}`}
+            >
+              <ThumbsUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setFeedback(f => ({ ...f, [obs.id]: 'down' }))}
+              className={`p-1 rounded transition-colors ${feedback[obs.id] === 'down' ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'}`}
+            >
+              <ThumbsDown className="w-4 h-4" />
+            </button>
+          </div>
 
           <Button
             variant="ghost"

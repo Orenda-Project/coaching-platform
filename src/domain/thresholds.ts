@@ -58,20 +58,3 @@ export const PUNJAB_STAGNATION_OBS_MIN = 2;
 
 /** Punjab escalation flag: minimum observation count before RO escalation. */
 export const PUNJAB_ESCALATION_OBS_MIN = 3;
-
-// ─── Rawalpindi (Pindi) Cluster Coordinator thresholds ───────────────────────
-
-/** Pindi teacher score: at/above = on track (green tier). */
-export const PINDI_ON_TRACK_PCT = 75;
-
-/** Pindi teacher score: below = critical (red tier); between critical and on-track = watch (amber). */
-export const PINDI_CRITICAL_PCT = 60;
-
-/** Pindi CC coaching: weekly visit target. */
-export const PINDI_WEEKLY_VISIT_TARGET = 3;
-
-/** Pindi stagnation flag: minimum observation count before flagging stagnation. */
-export const PINDI_STAGNATION_OBS_MIN = 2;
-
-/** Pindi escalation flag: minimum observation count before RO escalation. */
-export const PINDI_ESCALATION_OBS_MIN = 3;

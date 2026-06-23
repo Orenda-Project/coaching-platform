@@ -37,8 +37,6 @@ export interface UserProfile {
   endline_attempt_count: number;
   region?: string | null;
   sub_region?: string | null;
-  punjab_cluster?: string | null;
-  rawalpindi_cluster?: string | null;
   school_id?: string | null;
   teacher_ids?: string[] | null;
   qualifications?: unknown[] | null;
