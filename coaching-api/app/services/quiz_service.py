@@ -1,6 +1,6 @@
 import random
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 from app.models import Module, Question, ExportScenario, Training, AssessmentContent
 
@@ -100,8 +100,9 @@ class QuizService:
     def get_assessment_questions(self, assessment_type: str):
         """Get questions for a baseline or endline assessment.
 
-        Looks up assessments table by type, then fetches all questions
-        for matching assessment_ids from questions table with their options.
+        Looks up assessments table by type, then fetches questions for a
+        single assessment. If duplicates exist, picks the one with the most
+        questions to avoid returning a partial set.
         """
         # Look up assessments by type (baseline/endline)
         assessments = self.db.execute(
@@ -112,12 +113,22 @@ class QuizService:
         if not assessments:
             return None
 
-        assessment_ids = [a.id for a in assessments]
+        # Pick the single best assessment (most questions) to avoid duplicates
+        best_assessment = assessments[0]
+        best_count = 0
+        for a in assessments:
+            count = self.db.execute(
+                select(func.count(Question.id))
+                .filter(Question.assessment_id == a.id)
+            ).scalar() or 0
+            if count > best_count:
+                best_count = count
+                best_assessment = a
 
-        # Get all questions for matching assessment_ids
+        # Get questions for the selected assessment only
         questions = self.db.execute(
             select(Question)
-            .filter(Question.assessment_id.in_(assessment_ids))
+            .filter(Question.assessment_id == best_assessment.id)
             .order_by(Question.order_number)
         ).scalars().all()
 
@@ -125,7 +136,7 @@ class QuizService:
             return None
 
         return {
-            "assessment_id": assessments[0].id,
+            "assessment_id": best_assessment.id,
             "questions": [self._assessment_question_to_dict(q) for q in questions],
         }
 

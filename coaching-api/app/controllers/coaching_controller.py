@@ -366,12 +366,12 @@ class CreateObservationRequest(BaseModel):
     observer_id: str
     teacher_name: str
     school_name: str
-    subject: str
-    grade: str
+    subject: Optional[str] = None
+    grade: Optional[str] = None
     topic: Optional[str] = None
-    framework: str  # FICO, HOTS
+    framework: Optional[str] = None  # FICO, HOTS
     date: str
-    visit_purpose: str
+    visit_purpose: Optional[str] = None
     status: str = "Scheduled"
     region: str
     week: Optional[str] = None
@@ -379,6 +379,7 @@ class CreateObservationRequest(BaseModel):
     planned_date: Optional[str] = None
     arrival_time: Optional[str] = None
     departure_time: Optional[str] = None
+    is_multi_grade: Optional[bool] = None
 
 
 class UpdateObservationStatusRequest(BaseModel):
