@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getObservation } from '@/data/observations';
+import { getObservation, patchObservation } from '@/data/observations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { CotObservation, NeoResults } from '@/types/observation';
+import type { CotObservation, NeoResults, NeoObserverFeedback } from '@/types/observation';
 import { saveSavedAudio, getSavedAudio, deleteSavedAudio } from '@/lib/audioQueue';
 import { markObservationDraft } from '@/data/observations';
 
@@ -183,12 +183,15 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [isPaused, setIsPaused] = useState(false);
   const [savedAudio, setSavedAudio] = useState<Blob | null>(null);
   const [savedAudioMimeType, setSavedAudioMimeType] = useState<string>('audio/webm');
+  const [savedAudioUrl, setSavedAudioUrl] = useState<string | null>(null);
+  const [neoTaskId, setNeoTaskId] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
   const pollIntervalRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
+  const autoResumedRef = useRef(false);
 
   // Translation function
   const translateText = async (text: string): Promise<string> => {
@@ -236,15 +239,23 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   useEffect(() => {
     getSavedAudio(observation.id).then(result => {
       if (result) {
-        // Reconstruct blob with correct mime type (preserves type property after IndexedDB retrieval)
         const typedBlob = new Blob([result.blob], { type: result.mime_type });
         setSavedAudio(typedBlob);
         setSavedAudioMimeType(result.mime_type);
         setPhase('saved');
-        console.log('[NeoAnalysis] Loaded saved audio:', { mime_type: result.mime_type, size: result.blob.size });
       }
     });
   }, [observation.id]);
+
+  // Create/revoke object URL for audio playback — avoids memory leak from inline createObjectURL
+  useEffect(() => {
+    if (savedAudio) {
+      const url = URL.createObjectURL(savedAudio);
+      setSavedAudioUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setSavedAudioUrl(null);
+  }, [savedAudio]);
 
   // Update from observation real-time
   useEffect(() => {
@@ -258,6 +269,25 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       setPhase('processing');
     }
   }, [observation.neo_status, observation.neo_error]);
+
+  // Auto-resume polling if panel was closed while analysis was in progress
+  useEffect(() => {
+    if (!autoResumedRef.current && observation.neo_task_id && observation.neo_status === 'processing') {
+      autoResumedRef.current = true;
+      setPhase('processing');
+      setNeoTaskId(observation.neo_task_id);
+      pollNeoStatus(observation.neo_task_id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    };
+  }, []);
 
   const startRecording = async () => {
     try {
@@ -439,15 +469,20 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const mimeType = file.type || 'audio/webm';
-    setPhase('uploading');
-    uploadAudio(file, mimeType);
+    await saveSavedAudio(observation.id, file, mimeType);
+    setSavedAudio(file);
+    setSavedAudioMimeType(mimeType);
+    setPhase('saved');
+    toast.success('Audio file saved — tap "Analyze Debrief" when ready');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
+    let progressInterval: ReturnType<typeof setInterval> | undefined;
     try {
       if (!observation?.id) {
         toast.error('No observation selected. Please schedule a visit first.');
@@ -455,7 +490,16 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         return;
       }
 
+      setPhase('uploading');
+      setUploadProgress(0);
       setIsUploading(true);
+
+      // Simulate upload progress since fetch doesn't expose upload progress events
+      let simulated = 0;
+      progressInterval = window.setInterval(() => {
+        simulated = Math.min(simulated + Math.random() * 8, 85);
+        setUploadProgress(simulated);
+      }, 400);
 
       // Convert WebM to WAV to ensure compatibility with Neo
       let uploadBlob = blob;
@@ -509,6 +553,9 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       const filename = uploadMimeType === 'audio/wav' ? 'recording.wav' : 'recording.webm';
       formData.append('file', finalBlob, filename);
       formData.append('observation_id', observation.id);
+      if (observation.region) {
+        formData.append('region', observation.region);
+      }
 
       console.log('[NeoAnalysis] Uploading audio for observation:', {
         id: observation.id,
@@ -571,19 +618,29 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       }
 
       const data = await response.json();
+      const taskId = data.task_id as string | undefined;
 
       // Clean up saved audio if this was uploaded from saved phase
       await deleteSavedAudio(observation.id);
 
+      if (progressInterval) clearInterval(progressInterval);
+      setUploadProgress(100);
       setIsUploading(false);
       setSavedAudio(null);
+      if (taskId) {
+        setNeoTaskId(taskId);
+        // Persist neo_task_id + neo_status to Railway Postgres so polling resumes if panel is closed
+        patchObservation(observation.id, { neo_task_id: taskId, neo_status: 'processing' }).catch(() => {});
+      }
       setPhase('processing');
       setPollProgress(0);
       setError(null);
 
-      // Start polling
-      pollNeoStatus();
+      // Start polling — pass task_id directly so neo-status doesn't need a Supabase lookup
+      pollNeoStatus(taskId);
     } catch (err) {
+      if (progressInterval) clearInterval(progressInterval);
+      setUploadProgress(0);
       setIsUploading(false);
       const message = err instanceof Error ? err.message : 'Upload failed';
       toast.error(message);
@@ -592,7 +649,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
-  const pollNeoStatus = useCallback(async () => {
+  const pollNeoStatus = useCallback(async (taskId?: string) => {
     const token = (await supabase.auth.getSession()).data.session?.access_token;
     if (!token) {
       return;
@@ -614,7 +671,11 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ observation_id: observation.id }),
+            body: JSON.stringify({
+              observation_id: observation.id,
+              task_id: taskId || neoTaskId || undefined,
+              region: observation.region || undefined,
+            }),
           }
         );
 
@@ -632,13 +693,26 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           setPollProgress(100);
           setPhase('completed');
           toast.success('Debrief analysis complete!');
-          // Refresh observation data via backend API
-          try {
-            const updated = await getObservation(observation.id);
+
+          const neoResults = data.results || observation.neo_results;
+
+          // Persist neo_results + neo_status to Railway Postgres
+          patchObservation(observation.id, {
+            neo_status: 'completed',
+            neo_results: neoResults || undefined,
+          }).then(updated => {
             onSaved(updated);
-          } catch {
-            // Observation refresh failed, but Neo results are already shown
-          }
+          }).catch(async () => {
+            // Fallback: merge locally and try getObservation
+            const mergedObs = { ...observation, neo_status: 'completed' as const, neo_results: neoResults };
+            onSaved(mergedObs);
+            try {
+              const refreshed = await getObservation(observation.id);
+              if (refreshed.neo_results) onSaved(refreshed);
+            } catch {
+              // Use locally merged state — already called onSaved above
+            }
+          });
         } else if (data.status === 'failed') {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
@@ -657,7 +731,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         }
       }
     }, 8000);
-  }, [observation.id, onSaved]);
+  }, [observation, onSaved, neoTaskId]);
 
 
   const retry = () => {
@@ -770,37 +844,30 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     );
   }
 
-  // Saved phase (audio saved locally, waiting to submit)
+  // Saved phase (audio saved locally, ready to analyze)
   if (phase === 'saved' && savedAudio) {
-    const audioUrl = URL.createObjectURL(savedAudio);
     return (
       <div className="space-y-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-sm font-medium text-blue-900">Audio saved</p>
-          <p className="text-xs text-blue-700 mt-1">Review and upload for Neo debrief analysis</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-blue-700 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-blue-900">Audio saved</p>
+            <p className="text-xs text-blue-700 mt-0.5">Review below, then analyze when ready</p>
+          </div>
         </div>
 
-        {/* Audio player */}
-        <audio
-          ref={audioPlayerRef}
-          controls
-          className="w-full"
-          src={audioUrl}
-          onLoadedMetadata={() => {
-            if (audioPlayerRef.current) {
-              const mins = Math.floor(audioPlayerRef.current.duration / 60);
-              const secs = Math.floor(audioPlayerRef.current.duration % 60);
-              console.log(`Audio duration: ${mins}:${secs.toString().padStart(2, '0')}`);
-            }
-          }}
-        />
+        {savedAudioUrl && (
+          <audio controls className="w-full" src={savedAudioUrl} />
+        )}
 
-        {/* Upload button */}
-        <Button onClick={() => uploadAudio(savedAudio, savedAudioMimeType)} disabled={isUploading} className="w-full py-6">
-          {isUploading ? 'Uploading...' : 'Upload for Debrief'}
+        <Button
+          onClick={() => uploadAudio(savedAudio, savedAudioMimeType)}
+          disabled={isUploading}
+          className="w-full py-6"
+        >
+          {isUploading ? 'Uploading...' : 'Analyze Debrief →'}
         </Button>
 
-        {/* Icon buttons */}
         <div className="flex items-center justify-center gap-6">
           <button
             onClick={reRecordAudio}
@@ -823,14 +890,13 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
   // Uploading phase
   if (phase === 'uploading') {
-    const audioUrl = savedAudio ? URL.createObjectURL(savedAudio) : undefined;
     return (
       <div className="space-y-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-sm font-medium text-blue-900">{t('Uploading audio')}</p>
         </div>
 
-        {audioUrl && <audio ref={audioPlayerRef} controls className="w-full" src={audioUrl} />}
+        {savedAudioUrl && <audio controls className="w-full" src={savedAudioUrl} />}
 
         <Button disabled className="w-full py-6">
           ⏳ {t('Uploading audio')}...
@@ -852,18 +918,28 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     );
   }
 
-  // Completed phase
+  // Completed phase — show loading state if results haven't propagated yet
+  if (phase === 'completed' && !observation.neo_results) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        {t('Loading analysis results…')}
+      </div>
+    );
+  }
+
   if (phase === 'completed' && observation.neo_results) {
     const results = observation.neo_results as NeoResults;
-    const gradeColor = {
-      A: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-      B: 'text-blue-700 bg-blue-50 border-blue-200',
-      C: 'text-amber-700 bg-amber-50 border-amber-200',
-      D: 'text-orange-700 bg-orange-50 border-orange-200',
-      F: 'text-red-700 bg-red-50 border-red-200',
-    };
 
-    const color = gradeColor[results.grade] || gradeColor.C;
+    const getGradeColor = (grade: string) => {
+      const lower = grade.toLowerCase();
+      if (lower.includes('emerging') || lower.includes('critical')) return 'text-red-700 bg-red-50 border-red-200';
+      if (lower.includes('developing')) return 'text-orange-700 bg-orange-50 border-orange-200';
+      if (lower.includes('proficient')) return 'text-blue-700 bg-blue-50 border-blue-200';
+      if (lower.includes('accomplished') || lower.includes('exemplary')) return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+      return 'text-amber-700 bg-amber-50 border-amber-200';
+    };
+    const color = getGradeColor(results.grade || '');
 
     return (
       <div className="space-y-3">
@@ -922,60 +998,104 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           </CardContent>
         </Card>
 
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-foreground">{t('Section Scores')}</p>
-          <div className="grid grid-cols-5 gap-2">
-            {['A', 'B', 'C', 'D', 'E'].map((section) => (
-              <div key={section} className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">{t('Section')} {section}</div>
-                <div className="bg-muted rounded px-2 py-1 text-sm font-semibold text-foreground">
-                  {results.section_scores[section as keyof typeof results.section_scores] || 0}
-                </div>
-              </div>
-            ))}
+        {results.section_scores && Object.keys(results.section_scores).length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-foreground">{t('Section Scores')}</p>
+            <div className="space-y-2">
+              {['S1','S2','S3','S4','S5','S6']
+                .filter(k => k in results.section_scores)
+                .map(k => {
+                  const score = results.section_scores[k] ?? 0;
+                  const meta = results.section_metadata?.[k];
+                  const maxScore = meta?.max_score ?? 20;
+                  const pct = Math.round((score / maxScore) * 100);
+                  return (
+                    <div key={k}>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-xs text-foreground">
+                          <span className="font-medium">{k}</span>
+                          {meta?.name && <span className="text-muted-foreground"> · {meta.name}</span>}
+                        </span>
+                        <span className="text-xs font-semibold text-foreground tabular-nums">{score}/{maxScore}</span>
+                      </div>
+                      <Progress value={pct} className="h-1.5" />
+                    </div>
+                  );
+                })
+              }
+            </div>
           </div>
-        </div>
+        )}
 
-        {results.observer_feedback && (
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-foreground">{t('Detailed Feedback')}</p>
+        {results.observer_feedback && typeof results.observer_feedback === 'object' && (() => {
+          const fb = ((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback) as NeoObserverFeedback;
+          return (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-foreground">{t('Detailed Feedback')}</p>
 
-            {typeof results.observer_feedback === 'object' && results.observer_feedback !== null && (
-              <>
-                {((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).strengths && (
+              {/* Overall summary */}
+              {fb.overall_summary && (
+                <div className="bg-muted/40 rounded p-3 text-xs text-foreground leading-relaxed">
+                  {fb.overall_summary}
+                </div>
+              )}
+
+              {/* Strengths */}
+              {fb.strengths && fb.strengths.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-green-700">{t('Strengths')}</p>
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-green-700 text-opacity-80">{t('Strengths')}</p>
-                    <div className="space-y-1 text-xs text-foreground">
-                      {(((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).strengths || []).map((strength: string, idx: number) => (
-                        <div key={idx} className="bg-green-50 border border-green-200 rounded p-2 text-green-900">
-                          {strength}
-                        </div>
-                      ))}
-                    </div>
+                    {fb.strengths.map((s, idx) => (
+                      <div key={idx} className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-900">{s}</div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
 
-                {((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).next_steps && (
+              {/* Next Steps */}
+              {fb.next_steps && fb.next_steps.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-blue-700">{t('Next Steps for Growth')}</p>
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-blue-700">{t('Next Steps for Growth')}</p>
-                    <div className="space-y-1 text-xs text-foreground">
-                      {(((language === 'ur' && translatedFeedback) ? translatedFeedback : results.observer_feedback).next_steps || []).map((step: any, idx: number) => (
-                        <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-2 text-blue-900">
-                          <p className="font-medium">{step.growth_area}</p>
-                          <p className="text-xs mt-1">{step.specific_behavior}</p>
-                        </div>
-                      ))}
-                    </div>
+                    {fb.next_steps.map((step, idx) => (
+                      <div key={idx} className="bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-900">
+                        <p className="font-medium">{step.growth_area}</p>
+                        <p className="mt-1">{step.specific_behavior}</p>
+                        {step.self_reflection_question && (
+                          <p className="mt-1.5 italic opacity-80">🤔 {step.self_reflection_question}</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
-              </>
-            )}
+                </div>
+              )}
 
-            {typeof results.observer_feedback === 'string' && (
-              <div className="bg-muted/30 rounded p-3 text-xs text-foreground">
-                {results.observer_feedback}
-              </div>
-            )}
+              {/* Priority growth areas */}
+              {fb.priority_growth_areas && fb.priority_growth_areas.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-orange-700">Priority Areas</p>
+                  <div className="space-y-1">
+                    {fb.priority_growth_areas.map((area, idx) => (
+                      <div key={idx} className="bg-orange-50 border border-orange-200 rounded p-2 text-xs text-orange-900">{area}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Closing encouragement */}
+              {fb.closing_encouragement && (
+                <div className="bg-purple-50 border border-purple-200 rounded p-2 text-xs text-purple-900">
+                  <p className="font-medium mb-1">💪 Forward Momentum</p>
+                  <p>{fb.closing_encouragement}</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {results.observer_feedback && typeof results.observer_feedback === 'string' && (
+          <div className="bg-muted/30 rounded p-3 text-xs text-foreground">
+            {results.observer_feedback}
           </div>
         )}
       </div>
