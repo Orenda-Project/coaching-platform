@@ -1,6 +1,10 @@
 """Admin management API endpoints for system administration."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import os
+import time
+import uuid as _uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
@@ -505,6 +509,7 @@ class ModuleRequest(BaseModel):
     competencies: Optional[str] = None
     is_mandatory: bool = False
     order_number: Optional[int] = None
+    persona_required: Optional[List[str]] = None
 
 
 class TrainingRequest(BaseModel):
@@ -551,6 +556,7 @@ class QuestionData(BaseModel):
     question_type: str = "mcq"
     order_number: Optional[int] = None
     max_score: int = 1
+    correct_answer: Optional[str] = None
     options: List[OptionData] = []
 
 
@@ -854,3 +860,36 @@ async def upsert_scenario_options(
         return {"options": options}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ===== FILE UPLOAD ENDPOINT =====
+
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/data/uploads")
+
+
+@router.post("/upload", response_model=dict)
+async def upload_file(
+    file: UploadFile = File(...),
+    unit_id: str = Query(..., description="Training unit ID for organizing uploads"),
+):
+    """
+    Upload a file (video, etc.) and return the public URL.
+
+    Files are saved to UPLOAD_DIR/{unit_id}/{timestamp}.{ext}
+    and served via the /uploads/ static mount.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
+
+    ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "bin"
+    filename = f"{int(time.time())}_{_uuid.uuid4().hex[:8]}.{ext}"
+    unit_dir = os.path.join(UPLOAD_DIR, unit_id)
+    os.makedirs(unit_dir, exist_ok=True)
+
+    file_path = os.path.join(unit_dir, filename)
+    contents = await file.read()
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
+    url = f"/uploads/{unit_id}/{filename}"
+    return {"url": url}

@@ -146,3 +146,23 @@ export async function deleteQuestion(questionId: string) {
     method: "DELETE",
   });
 }
+
+// ===== File Upload =====
+
+export async function uploadTrainingVideo(
+  file: File,
+  unitId: string,
+): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(
+    `${API_URL}/api/admin/upload?unit_id=${encodeURIComponent(unitId)}`,
+    { method: "POST", body: formData },
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Upload failed ${res.status}: ${text}`);
+  }
+  return res.json();
+}
