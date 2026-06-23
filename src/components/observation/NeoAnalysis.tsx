@@ -629,8 +629,8 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       setSavedAudio(null);
       if (taskId) {
         setNeoTaskId(taskId);
-        // Persist to Railway Postgres so polling can resume if panel is closed and reopened
-        patchObservation(observation.id, { neo_task_id: taskId }).catch(() => {});
+        // Persist neo_task_id + neo_status to Railway Postgres so polling resumes if panel is closed
+        patchObservation(observation.id, { neo_task_id: taskId, neo_status: 'processing' }).catch(() => {});
       }
       setPhase('processing');
       setPollProgress(0);
@@ -694,18 +694,25 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           setPhase('completed');
           toast.success('Debrief analysis complete!');
 
-          // Merge results directly from the polling response into the observation prop
-          // (Railway Postgres may not have neo_results yet — use what Neo returned)
-          const mergedObs = { ...observation, neo_status: 'completed' as const, neo_results: data.results || observation.neo_results };
-          onSaved(mergedObs);
+          const neoResults = data.results || observation.neo_results;
 
-          // Also try refreshing from backend in case it was persisted there too
-          try {
-            const updated = await getObservation(observation.id);
-            if (updated.neo_results) onSaved(updated);
-          } catch {
-            // Backend doesn't have results yet — that's fine, we already used data.results
-          }
+          // Persist neo_results + neo_status to Railway Postgres
+          patchObservation(observation.id, {
+            neo_status: 'completed',
+            neo_results: neoResults || undefined,
+          }).then(updated => {
+            onSaved(updated);
+          }).catch(async () => {
+            // Fallback: merge locally and try getObservation
+            const mergedObs = { ...observation, neo_status: 'completed' as const, neo_results: neoResults };
+            onSaved(mergedObs);
+            try {
+              const refreshed = await getObservation(observation.id);
+              if (refreshed.neo_results) onSaved(refreshed);
+            } catch {
+              // Use locally merged state — already called onSaved above
+            }
+          });
         } else if (data.status === 'failed') {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);

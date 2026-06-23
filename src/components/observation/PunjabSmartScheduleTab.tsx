@@ -221,6 +221,8 @@ export default function PunjabSmartScheduleTab({ onNewObservation }: Props) {
       region: punjabCluster || 'Punjab',
       visit_type: formData.visit_type,
       planned_date: formData.planned_date,
+      arrival_time: formData.arrival_time,
+      departure_time: formData.departure_time,
       week: formData.week,
       is_multi_grade: formData.is_multi_grade,
     } as any;

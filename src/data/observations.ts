@@ -104,6 +104,10 @@ export async function patchObservation(
     | 'total_score'
     | 'proficiency_level'
     | 'submitted_at'
+    | 'neo_task_id'
+    | 'neo_status'
+    | 'neo_results'
+    | 'neo_error'
   >>,
 ): Promise<CotObservation> {
   return apiFetch<CotObservation>(
