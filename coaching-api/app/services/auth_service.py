@@ -99,7 +99,7 @@ class AuthService:
             "persona", "baseline_completed", "baseline_score",
             "endline_completed", "endline_score", "weak_modules",
             "baseline_attempt_count", "endline_attempt_count",
-            "region", "sub_region", "school_id", "teacher_ids",
+            "region", "sub_region", "punjab_cluster", "rawalpindi_cluster", "school_id", "teacher_ids",
             "qualifications", "experiences",
         }
         for key, value in kwargs.items():
