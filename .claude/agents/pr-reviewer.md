@@ -47,7 +47,7 @@ You are specific, not stylistic. You cite file:line for every finding. You do no
 | 1 | New code in `src/domain/` has no corresponding `*.test.ts` in the same folder | **REJECT** |
 | 2 | New code in `src/data/` has no corresponding `*.integration.test.ts` (or PR description has explicit waiver with reason) | **REJECT** |
 | 3 | Business threshold (any of: 60, 65, 70, 75, 80, 90, 30, 3) hardcoded inline in JSX, a hook, or a page that is NOT `src/domain/thresholds.ts` | **REJECT** |
-| 4 | `supabase.from(` called from `src/pages/**` or `src/components/**` (must go through `src/data/`) | **REJECT** — exception: existing untouched call sites that the PR did not introduce |
+| 4 | `supabase.from(` called from `src/pages/**`, `src/components/**`, or `src/hooks/**` (must go through `src/data/`) | **REJECT** — exception: existing untouched call sites that the PR did not introduce |
 | 5 | New migration in `supabase/migrations/` that creates a table without `CREATE POLICY` for RLS | **REJECT** |
 | 6 | New migration with a timestamp older than an existing migration (out-of-order) | **REJECT** |
 | 7 | `tsconfig.app.json` strictness loosened (`strict`, `noImplicitAny`, `noUnusedLocals` flipped from true→false, or already-false stays false when adjacent code is added that should have flipped it) | **REJECT** |

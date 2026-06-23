@@ -37,6 +37,10 @@ Last updated: 2026-04-28
 - Keep Supabase only for: auth sessions, Realtime subscriptions, Edge Functions (dc-presign, dc-start, neo-start, neo-status)
 - Add all missing columns to Railway Postgres BEFORE deploying frontend code that expects them
 - Use `ADD COLUMN IF NOT EXISTS` for idempotent migrations
+- `ON CONFLICT DO NOTHING` in seed scripts is silently ineffective unless the table has a UNIQUE constraint covering the conflict columns — add the UNIQUE constraint to the migration first, then use `ON CONFLICT (col1, col2, ...) DO UPDATE SET ...` in the seed to make idempotency explicit and verifiable (silent no-op leaves no diagnostic signal when it misfires)
+
+## Tooling
+- `gh` CLI is not installed on this machine — `gh pr create`, `gh pr list`, `gh pr edit` all fail with "command not found". PRs must be created manually on GitHub. Do not attempt `gh` commands; instead provide the compare URL and PR body for the user to submit manually.
 
 ## Common Gotchas
 - Baseline assessment scored 0–100, persona thresholds: A≥75%, B 70–74%, C 65–69%, D 60–64%, <60% = fail

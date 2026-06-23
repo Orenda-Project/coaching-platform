@@ -17,13 +17,41 @@ export interface DcResults {
   section_d?: DcSection;
 }
 
+export interface NeoSectionMeta {
+  name: string;
+  max_score: number;
+  weight_percent?: string;
+  indicators?: number;
+  weight?: number;
+}
+
+export interface NeoNextStep {
+  growth_area: string;
+  specific_behavior: string;
+  exemplary_look_like?: string;
+  self_reflection_question?: string;
+}
+
+export interface NeoObserverFeedback {
+  strengths?: string[];
+  next_steps?: NeoNextStep[];
+  overall_summary?: string;
+  opening_strength?: string;
+  closing_encouragement?: string;
+  priority_growth_areas?: string[];
+  progress_acknowledgment?: string;
+  highest_leverage_opportunity?: string;
+}
+
 export interface NeoResults {
   overall_score: number;
-  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  grade: string;
   readiness_level: string;
-  section_scores: { A: number; B: number; C: number; D: number; E: number };
+  section_scores: Record<string, number>;
+  section_metadata?: Record<string, NeoSectionMeta>;
+  section_weights?: Record<string, number>;
   conversation_metrics?: Record<string, any>;
-  observer_feedback?: Record<string, any>;
+  observer_feedback?: NeoObserverFeedback;
 }
 
 export interface HotsScores {

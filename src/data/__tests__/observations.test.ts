@@ -135,5 +135,52 @@ describe('observations data layer', () => {
         patchObservation('nonexistent', { status: 'Draft' }),
       ).rejects.toThrow('API error 404');
     });
+
+    it('sends neo_task_id and neo_status=processing to Railway Postgres', async () => {
+      const updated = { ...mockObservation, neo_task_id: 'task-abc123', neo_status: 'processing' };
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => updated,
+        text: async () => JSON.stringify(updated),
+      });
+
+      const result = await patchObservation('obs-123', {
+        neo_task_id: 'task-abc123',
+        neo_status: 'processing',
+      });
+
+      expect(result.neo_task_id).toBe('task-abc123');
+      expect(result.neo_status).toBe('processing');
+      const [, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(opts.method).toBe('PATCH');
+      expect(JSON.parse(opts.body as string)).toEqual({
+        neo_task_id: 'task-abc123',
+        neo_status: 'processing',
+      });
+    });
+
+    it('sends neo_status=completed and neo_results to Railway Postgres', async () => {
+      const neoResults = { overall_score: 75, grade: 'Proficient', section_scores: { S1: 12 } };
+      const updated = { ...mockObservation, neo_status: 'completed', neo_results: neoResults };
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => updated,
+        text: async () => JSON.stringify(updated),
+      });
+
+      const result = await patchObservation('obs-123', {
+        neo_status: 'completed',
+        neo_results: neoResults,
+      });
+
+      expect(result.neo_status).toBe('completed');
+      expect((result.neo_results as typeof neoResults).overall_score).toBe(75);
+      const [, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(opts.method).toBe('PATCH');
+      expect(JSON.parse(opts.body as string)).toEqual({
+        neo_status: 'completed',
+        neo_results: neoResults,
+      });
+    });
   });
 });
