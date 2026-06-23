@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { authApiClient } from "@/lib/apiClients/authApiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -128,24 +128,15 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: form.full_name,
-          phone: form.phone,
-          school_id: form.school_id,
-          region: form.region,
-          sub_region: form.region === "islamabad" ? form.sub_region : null,
-          punjab_cluster: form.region === "punjab" ? form.punjab_cluster : null,
-          rawalpindi_cluster: form.region === "rawalpindi" ? form.rawalpindi_cluster : null,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          qualifications: qualifications as any,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          experiences: experiences as any,
-        })
-        .eq("id", user.id);
-
-      if (error) throw error;
+      await authApiClient.updateProfile(user.id, {
+        full_name: form.full_name,
+        phone: form.phone,
+        school_id: form.school_id,
+        region: form.region,
+        sub_region: form.region === "islamabad" ? form.sub_region : null,
+        punjab_cluster: form.region === "punjab" ? form.punjab_cluster : null,
+        rawalpindi_cluster: form.region === "rawalpindi" ? form.rawalpindi_cluster : null,
+      });
 
       await refreshProfile();
       setEditing(false);
