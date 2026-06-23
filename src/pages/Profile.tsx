@@ -47,6 +47,32 @@ const PUNJAB_CLUSTERS = [
   "Cluster Thatta",
   "Cluster Ziyarat",
 ] as const;
+const PINDI_MARKAZES = [
+  "Addyala",
+  "Adiala",
+  "Bagga Sheikhan",
+  "Bassali",
+  "Bassali W-EE",
+  "Cantt",
+  "Chak Beli Khan",
+  "Chaklala",
+  "Chakri",
+  "Chakri W-EE",
+  "Chauntra",
+  "Chountra",
+  "Jhatta Hathial",
+  "Jhatta Hathial W",
+  "Kolian Hameed",
+  "Lodhran",
+  "Pirwadai",
+  "Pirwadhai",
+  "Raika Maira",
+  "RWP Cantt",
+  "Saddar Berooni",
+  "Shakrial",
+  "Sihal",
+] as const;
+
 const emptyQualification = (): Qualification => ({ degree_type: "", degree: "", passing_year: "" });
 const emptyExperience = (): Experience => ({ org: "", designation: "", joining: "", leaving: "", current: false });
 
@@ -59,13 +85,13 @@ function formatMonthYear(yyyymm: string): string {
 }
 
 export default function Profile() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, setProfile } = useAuth();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Form state
-  const [form, setForm] = useState({ full_name: "", phone: "", school_id: "", region: "", sub_region: "", punjab_cluster: "" });
+  const [form, setForm] = useState({ full_name: "", phone: "", school_id: "", region: "", sub_region: "", punjab_cluster: "", rawalpindi_cluster: "" });
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
 
@@ -77,8 +103,9 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
-        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
-        punjab_cluster: (profile as Record<string, unknown>).punjab_cluster as string || "",
+        sub_region: (profile as unknown as Record<string, unknown>).sub_region as string || "",
+        punjab_cluster: (profile as unknown as Record<string, unknown>).punjab_cluster as string || "",
+        rawalpindi_cluster: (profile as unknown as Record<string, unknown>).rawalpindi_cluster as string || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
@@ -141,8 +168,9 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
-        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
-        punjab_cluster: (profile as Record<string, unknown>).punjab_cluster as string || "",
+        sub_region: (profile as unknown as Record<string, unknown>).sub_region as string || "",
+        punjab_cluster: (profile as unknown as Record<string, unknown>).punjab_cluster as string || "",
+        rawalpindi_cluster: (profile as unknown as Record<string, unknown>).rawalpindi_cluster as string || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
@@ -245,7 +273,16 @@ export default function Profile() {
                   <select
                     id="region"
                     value={form.region}
-                    onChange={(e) => setForm({ ...form, region: e.target.value })}
+                    onChange={(e) => {
+                      const newRegion = e.target.value;
+                      setForm({
+                        ...form,
+                        region: newRegion,
+                        sub_region:         newRegion === "islamabad"  ? form.sub_region         : "",
+                        punjab_cluster:     newRegion === "punjab"     ? form.punjab_cluster     : "",
+                        rawalpindi_cluster: newRegion === "rawalpindi" ? form.rawalpindi_cluster : "",
+                      });
+                    }}
                     className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   >
                     <option value="">Select region</option>
@@ -255,6 +292,7 @@ export default function Profile() {
                   </select>
                 </div>
 
+                {form.region === "islamabad" && (
                 <div>
                   <Label htmlFor="sub_region">Sub-Region</Label>
                   <select
@@ -269,6 +307,7 @@ export default function Profile() {
                     ))}
                   </select>
                 </div>
+                )}
 
                 {form.region === "punjab" && (
                   <div>
@@ -282,6 +321,23 @@ export default function Profile() {
                       <option value="">Select cluster</option>
                       {PUNJAB_CLUSTERS.map((c) => (
                         <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {form.region === "rawalpindi" && (
+                  <div>
+                    <Label htmlFor="rawalpindi_cluster">Pindi Cluster (Markaz)</Label>
+                    <select
+                      id="rawalpindi_cluster"
+                      value={form.rawalpindi_cluster}
+                      onChange={(e) => setForm({ ...form, rawalpindi_cluster: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    >
+                      <option value="">Select markaz</option>
+                      {PINDI_MARKAZES.map((m) => (
+                        <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
                   </div>
@@ -365,6 +421,17 @@ export default function Profile() {
                     </p>
                   </div>
                 )}
+
+                {form.region === "rawalpindi" && (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                      Pindi Cluster
+                    </p>
+                    <p className="text-sm font-medium text-foreground">
+                      {form.rawalpindi_cluster || "Not set"}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -423,9 +490,9 @@ export default function Profile() {
                     .sort((a, b) => Number(b.passing_year || 0) - Number(a.passing_year || 0))
                     .map((q, idx) => (
                       <div key={idx} className="flex items-center gap-3 py-2 border-b last:border-0">
-                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 shrink-0">{q.degree_type || "—"}</span>
-                        <span className="text-sm font-medium text-foreground flex-1 min-w-0 truncate">{q.degree || "—"}</span>
-                        <span className="text-xs text-muted-foreground shrink-0">{q.passing_year || "—"}</span>
+                        <span className="text-xs font-semibold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 shrink-0">{q.degree_type || "\u2014"}</span>
+                        <span className="text-sm font-medium text-foreground flex-1 min-w-0 truncate">{q.degree || "\u2014"}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">{q.passing_year || "\u2014"}</span>
                       </div>
                     ))
                 )}
@@ -497,12 +564,12 @@ export default function Profile() {
                     .map((exp, idx) => (
                       <div key={idx} className="flex items-start gap-3 py-2 border-b last:border-0">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground truncate">{exp.designation || "—"}</p>
-                          <p className="text-xs text-muted-foreground truncate">{exp.org || "—"}</p>
+                          <p className="text-sm font-semibold text-foreground truncate">{exp.designation || "\u2014"}</p>
+                          <p className="text-xs text-muted-foreground truncate">{exp.org || "\u2014"}</p>
                         </div>
                         <div className="text-xs text-muted-foreground text-right shrink-0">
                           <span>{formatMonthYear(exp.joining)}</span>
-                          <span className="mx-1">–</span>
+                          <span className="mx-1">{"\u2013"}</span>
                           <span>{exp.current ? "Present" : formatMonthYear(exp.leaving)}</span>
                         </div>
                       </div>
@@ -553,7 +620,6 @@ export default function Profile() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
-            {/* Persona */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                 Assigned Persona
@@ -575,7 +641,6 @@ export default function Profile() {
               )}
             </div>
 
-            {/* Baseline Status */}
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-muted-foreground uppercase">
@@ -607,7 +672,6 @@ export default function Profile() {
               )}
             </div>
 
-            {/* Endline Status */}
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-muted-foreground uppercase">
@@ -658,11 +722,8 @@ export default function Profile() {
                 {profile.weak_modules && profile.weak_modules.length > 0 ? (
                   <div className="space-y-1">
                     {profile.weak_modules.map((module, idx) => (
-                      <p
-                        key={idx}
-                        className="text-sm font-medium text-foreground"
-                      >
-                        • {module}
+                      <p key={idx} className="text-sm font-medium text-foreground">
+                        {"\u2022"} {module}
                       </p>
                     ))}
                   </div>
@@ -681,31 +742,11 @@ export default function Profile() {
                       {profile.persona}
                     </span>
                   )}
-                  {profile.persona === "A" && (
-                    <span className="text-xs font-medium text-green-700">
-                      Advanced
-                    </span>
-                  )}
-                  {profile.persona === "B" && (
-                    <span className="text-xs font-medium text-blue-700">
-                      Intermediate
-                    </span>
-                  )}
-                  {profile.persona === "C" && (
-                    <span className="text-xs font-medium text-yellow-700">
-                      Developing
-                    </span>
-                  )}
-                  {profile.persona === "D" && (
-                    <span className="text-xs font-medium text-orange-700">
-                      Entry-level
-                    </span>
-                  )}
-                  {!profile.persona && (
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Not assigned
-                    </span>
-                  )}
+                  {profile.persona === "A" && <span className="text-xs font-medium text-green-700">Advanced</span>}
+                  {profile.persona === "B" && <span className="text-xs font-medium text-blue-700">Intermediate</span>}
+                  {profile.persona === "C" && <span className="text-xs font-medium text-yellow-700">Developing</span>}
+                  {profile.persona === "D" && <span className="text-xs font-medium text-orange-700">Entry-level</span>}
+                  {!profile.persona && <span className="text-xs font-medium text-muted-foreground">Not assigned</span>}
                 </div>
               </div>
             </div>
