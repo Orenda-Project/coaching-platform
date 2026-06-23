@@ -78,6 +78,9 @@ async def startup_event():
         "ALTER TABLE cot_observations ADD COLUMN IF NOT EXISTS departure_time varchar",
         "ALTER TABLE cot_observations ADD COLUMN IF NOT EXISTS planned_date varchar",
         "ALTER TABLE cot_observations ADD COLUMN IF NOT EXISTS visit_type varchar",
+        # 005: profiles cluster columns
+        "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS punjab_cluster varchar",
+        "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS rawalpindi_cluster varchar",
     ]
     with engine.connect() as conn:
         for sql in _migrations:
