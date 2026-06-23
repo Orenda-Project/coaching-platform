@@ -55,8 +55,6 @@ class UserProfile(Base):
     # Onboarding fields
     region = Column(String, nullable=True)
     sub_region = Column(String, nullable=True)
-    punjab_cluster = Column(String, nullable=True)
-    rawalpindi_cluster = Column(String, nullable=True)
     school_id = Column(String, nullable=True)
     teacher_ids = Column(JSON, nullable=True)
     qualifications = Column(JSON, nullable=True)
@@ -87,8 +85,6 @@ class UserProfile(Base):
             "endline_attempt_count": self.endline_attempt_count or 0,
             "region": self.region,
             "sub_region": self.sub_region,
-            "punjab_cluster": self.punjab_cluster,
-            "rawalpindi_cluster": self.rawalpindi_cluster,
             "school_id": self.school_id,
             "teacher_ids": self.teacher_ids,
             "qualifications": self.qualifications,

@@ -12,6 +12,5 @@ export async function listPunjabTeachersByCluster(cluster: string): Promise<Punj
     .order('overall_percentage', { ascending: true });
 
   if (error) throw error;
-  const rows = (data ?? []) as PunjabTeacher[];
-  return rows.filter((t, i, arr) => arr.findIndex(x => x.id === t.id) === i);
+  return (data ?? []) as PunjabTeacher[];
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { listPunjabTeachersByCluster } from '@/data/punjabTeachers';
 import type { PunjabTeacher } from '@/types/teacher';
 
@@ -48,7 +48,6 @@ export function usePunjabCoaching(): UsePunjabCoachingState & UsePunjabCoachingA
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
-  const teachersLoadedRef = useRef(false);
 
   const loadTeachers = useCallback(async (cluster: string, userId?: string) => {
     setLoading(true);
@@ -60,7 +59,6 @@ export function usePunjabCoaching(): UsePunjabCoachingState & UsePunjabCoachingA
       if (cached) {
         setTeachers(cached.teachers);
         setLastSynced(cached.ts);
-        teachersLoadedRef.current = true;
         setLoading(false);
         // Still attempt background refresh below
       }
@@ -69,7 +67,6 @@ export function usePunjabCoaching(): UsePunjabCoachingState & UsePunjabCoachingA
     try {
       const fresh = await listPunjabTeachersByCluster(cluster);
       setTeachers(fresh);
-      teachersLoadedRef.current = true;
       setIsOffline(false);
 
       if (userId) {
@@ -78,7 +75,7 @@ export function usePunjabCoaching(): UsePunjabCoachingState & UsePunjabCoachingA
       }
     } catch (err) {
       // If we already served from cache, just flag offline — don't show error
-      if (teachersLoadedRef.current) {
+      if (teachers.length > 0) {
         setIsOffline(true);
       } else {
         setError(err instanceof Error ? err.message : 'Failed to load teachers');
@@ -87,7 +84,7 @@ export function usePunjabCoaching(): UsePunjabCoachingState & UsePunjabCoachingA
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [teachers.length]);
 
   return { teachers, loading, error, isOffline, lastSynced, loadTeachers };
 }

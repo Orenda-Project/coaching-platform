@@ -10,9 +10,6 @@ Last updated: 2026-04-23
 - Admin routes not guarded server-side (can be bypassed)
 - Sensitive data logged to console (email, auth tokens, user IDs)
 
-**HIGH — Architecture Boundaries**
-- `supabase.from()` called directly inside `src/hooks/**` violates the `src/data/` contract just as much as calling it from pages or components — any direct Supabase call outside `src/data/` should be flagged during review, regardless of whether it's in a hook, page, or component
-
 **HIGH — Data Integrity**
 - Insert instead of upsert on progress tables (causes duplicates on retake)
 - Hardcoded thresholds (80, 70) instead of constants (brittle on requirement change)

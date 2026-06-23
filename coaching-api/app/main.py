@@ -62,33 +62,17 @@ app.include_router(coaching_controller.router)
 
 @app.on_event("startup")
 async def startup_event():
-    """Create tables that don't exist yet and apply incremental migrations."""
-    import logging
+    """Create tables that don't exist yet."""
     from app.database import engine, Base
+    # Import all models to register them
     import app.models  # noqa: F401
     try:
         Base.metadata.create_all(bind=engine)
     except Exception as e:
+        # Non-fatal: tables may already exist with different column types
+        # (e.g. UUID vs VARCHAR from Supabase migrations)
+        import logging
         logging.getLogger(__name__).warning(f"create_all partially failed (tables may already exist): {e}")
-
-    # Incremental migrations — idempotent, safe to run on every startup
-    _migrations = [
-        # 004: visit scheduling time columns
-        "ALTER TABLE cot_observations ADD COLUMN IF NOT EXISTS arrival_time varchar",
-        "ALTER TABLE cot_observations ADD COLUMN IF NOT EXISTS departure_time varchar",
-        "ALTER TABLE cot_observations ADD COLUMN IF NOT EXISTS planned_date varchar",
-        "ALTER TABLE cot_observations ADD COLUMN IF NOT EXISTS visit_type varchar",
-        # 005: profiles cluster columns
-        "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS punjab_cluster varchar",
-        "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS rawalpindi_cluster varchar",
-    ]
-    import sqlalchemy as _sa
-    for sql in _migrations:
-        try:
-            with engine.begin() as conn:
-                conn.execute(_sa.text(sql))
-        except Exception as e:
-            logging.getLogger(__name__).warning(f"Migration skipped: {e}")
 
 
 @app.get("/")

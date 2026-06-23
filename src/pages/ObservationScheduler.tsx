@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import { ObservationsOverviewTab } from '@/components/observation/ObservationsOverviewTab';
 import SmartScheduleTab from '@/components/observation/SmartScheduleTab';
 import PunjabSmartScheduleTab from '@/components/observation/PunjabSmartScheduleTab';
-import PindiSmartScheduleTab from '@/components/observation/PindiSmartScheduleTab';
 import { VisitsDashboardTab } from '@/components/observation/VisitsDashboardTab';
 import { QuickObservationPanel } from '@/components/observation/QuickObservationPanel';
 import { DayEndSummaryPanel } from '@/components/observation/DayEndSummaryPanel';
@@ -26,38 +25,16 @@ export default function ObservationScheduler() {
   const [quickObs, setQuickObs] = useState<CotObservation | null>(null);
   const [showDayEndSummary, setShowDayEndSummary] = useState(false);
 
-  // types.ts not regenerated for new profile columns — cast until supabase gen runs
-  const userRegion        = (profile as unknown as Record<string, unknown>)?.region             as string | null ?? null;
-  const punjabCluster     = (profile as unknown as Record<string, unknown>)?.punjab_cluster     as string | null ?? null;
-  const subRegion         = (profile as unknown as Record<string, unknown>)?.sub_region         as string | null ?? null;
-  const rawalpindiCluster = (profile as unknown as Record<string, unknown>)?.rawalpindi_cluster as string | null ?? null;
+  const userRegion   = (profile as Record<string, unknown>)?.region         as string | null ?? null;
+  const punjabCluster = (profile as Record<string, unknown>)?.punjab_cluster as string | null ?? null;
+  const subRegion    = (profile as Record<string, unknown>)?.sub_region     as string | null ?? null;
+  const hasBoth      = Boolean(punjabCluster && subRegion);
 
-  type ActiveRegion = 'ict' | 'punjab' | 'pindi';
-
-  const availableRegions: Array<{ key: ActiveRegion; label: string }> = [
-    subRegion         ? { key: 'ict',    label: `ICT — ${subRegion}` }             : null,
-    punjabCluster     ? { key: 'punjab', label: `Punjab — ${punjabCluster}` }      : null,
-    rawalpindiCluster ? { key: 'pindi',  label: `Pindi — ${rawalpindiCluster}` }   : null,
-  ].filter(Boolean) as Array<{ key: ActiveRegion; label: string }>;
-
-  const hasMultiple = availableRegions.length > 1;
-
-  const [activeRegion, setActiveRegion] = useState<ActiveRegion>(
-    availableRegions[0]?.key ?? 'ict'
+  const [activeRegion, setActiveRegion] = useState<'ict' | 'punjab'>(
+    punjabCluster && !subRegion ? 'punjab' : 'ict'
   );
 
-  useEffect(() => {
-    if (availableRegions.length > 0) {
-      setActiveRegion(prev =>
-        availableRegions.find(r => r.key === prev) ? prev : availableRegions[0].key
-      );
-    }
-  }, [subRegion, punjabCluster, rawalpindiCluster]);
-
-  const observationRegion =
-    activeRegion === 'punjab' ? punjabCluster :
-    activeRegion === 'pindi'  ? rawalpindiCluster :
-    subRegion;
+  const observationRegion = activeRegion === 'punjab' ? punjabCluster : userRegion;
 
   const loadObservations = useCallback(async () => {
     if (!user) return;
@@ -84,10 +61,9 @@ export default function ObservationScheduler() {
     );
   }
 
-  const daySummaryRegion =
-    activeRegion === 'punjab' ? (punjabCluster ?? 'Punjab') :
-    activeRegion === 'pindi'  ? (rawalpindiCluster ?? 'Pindi') :
-    (subRegion ?? 'Unknown');
+  const daySummaryRegion = activeRegion === 'punjab'
+    ? (punjabCluster ?? 'Punjab')
+    : (subRegion ?? 'Unknown');
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,22 +132,29 @@ export default function ObservationScheduler() {
           </p>
         </div>
 
-        {/* Region toggle — only shown when user has multiple region assignments */}
-        {hasMultiple && (
+        {/* Region toggle — only shown when user has both ICT and Punjab assignments */}
+        {hasBoth && (
           <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit mb-4">
-            {availableRegions.map(r => (
-              <button
-                key={r.key}
-                onClick={() => setActiveRegion(r.key)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  activeRegion === r.key
-                    ? 'bg-background shadow-sm text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
+            <button
+              onClick={() => setActiveRegion('ict')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeRegion === 'ict'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              ICT — {subRegion}
+            </button>
+            <button
+              onClick={() => setActiveRegion('punjab')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeRegion === 'punjab'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Punjab — {punjabCluster}
+            </button>
           </div>
         )}
 
@@ -202,10 +185,6 @@ export default function ObservationScheduler() {
           <TabsContent value="scheduler">
             {activeRegion === 'punjab' ? (
               <PunjabSmartScheduleTab
-                onNewObservation={() => { loadObservations(); setActiveTab('visits'); }}
-              />
-            ) : activeRegion === 'pindi' ? (
-              <PindiSmartScheduleTab
                 onNewObservation={() => { loadObservations(); setActiveTab('visits'); }}
               />
             ) : (

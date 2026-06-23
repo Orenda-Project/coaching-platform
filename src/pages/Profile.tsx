@@ -47,32 +47,6 @@ const PUNJAB_CLUSTERS = [
   "Cluster Thatta",
   "Cluster Ziyarat",
 ] as const;
-const PINDI_MARKAZES = [
-  "Addyala",
-  "Adiala",
-  "Bagga Sheikhan",
-  "Bassali",
-  "Bassali W-EE",
-  "Cantt",
-  "Chak Beli Khan",
-  "Chaklala",
-  "Chakri",
-  "Chakri W-EE",
-  "Chauntra",
-  "Chountra",
-  "Jhatta Hathial",
-  "Jhatta Hathial W",
-  "Kolian Hameed",
-  "Lodhran",
-  "Pirwadai",
-  "Pirwadhai",
-  "Raika Maira",
-  "RWP Cantt",
-  "Saddar Berooni",
-  "Shakrial",
-  "Sihal",
-] as const;
-
 const emptyQualification = (): Qualification => ({ degree_type: "", degree: "", passing_year: "" });
 const emptyExperience = (): Experience => ({ org: "", designation: "", joining: "", leaving: "", current: false });
 
@@ -85,13 +59,13 @@ function formatMonthYear(yyyymm: string): string {
 }
 
 export default function Profile() {
-  const { user, profile, refreshProfile, setProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Form state
-  const [form, setForm] = useState({ full_name: "", phone: "", school_id: "", region: "", sub_region: "", punjab_cluster: "", rawalpindi_cluster: "" });
+  const [form, setForm] = useState({ full_name: "", phone: "", school_id: "", region: "", sub_region: "", punjab_cluster: "" });
   const [qualifications, setQualifications] = useState<Qualification[]>([]);
   const [experiences, setExperiences] = useState<Experience[]>([]);
 
@@ -103,10 +77,8 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
-        // types.ts not regenerated for new profile columns — cast until supabase gen runs
-        sub_region: (profile as unknown as Record<string, unknown>).sub_region as string || "",
-        punjab_cluster: (profile as unknown as Record<string, unknown>).punjab_cluster as string || "",
-        rawalpindi_cluster: (profile as unknown as Record<string, unknown>).rawalpindi_cluster as string || "",
+        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
+        punjab_cluster: (profile as Record<string, unknown>).punjab_cluster as string || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
@@ -128,28 +100,24 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      await authApiClient.updateProfile(user.id, {
-        full_name: form.full_name,
-        phone: form.phone,
-        school_id: form.school_id,
-        region: form.region,
-        sub_region: form.region === "islamabad" ? form.sub_region : null,
-        punjab_cluster: form.region === "punjab" ? form.punjab_cluster : null,
-        rawalpindi_cluster: form.region === "rawalpindi" ? form.rawalpindi_cluster : null,
-      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .update({
+          full_name: form.full_name,
+          phone: form.phone,
+          school_id: form.school_id,
+          region: form.region,
+          sub_region: form.sub_region,
+          punjab_cluster: form.punjab_cluster || null,
+          qualifications: qualifications as unknown as Json,
+          experiences: experiences as unknown as Json,
+        })
+        .eq("id", user.id);
 
-      // Update context directly from form so UI reflects the save immediately,
-      // independent of whether the API response has the new cluster columns yet.
-      setProfile({
-        ...profile,
-        full_name: form.full_name || null,
-        phone: form.phone || null,
-        school_id: form.school_id || null,
-        region: form.region || null,
-        sub_region: form.region === "islamabad" ? (form.sub_region || null) : null,
-        punjab_cluster: form.region === "punjab" ? (form.punjab_cluster || null) : null,
-        rawalpindi_cluster: form.region === "rawalpindi" ? (form.rawalpindi_cluster || null) : null,
-      });
+      if (error) throw error;
+
+      await refreshProfile();
       setEditing(false);
       toast.success("Profile updated successfully");
     } catch (error) {
@@ -167,10 +135,8 @@ export default function Profile() {
         phone: profile.phone || "",
         school_id: profile.school_id || "",
         region: profile.region || "",
-        // types.ts not regenerated for new profile columns — cast until supabase gen runs
-        sub_region: (profile as unknown as Record<string, unknown>).sub_region as string || "",
-        punjab_cluster: (profile as unknown as Record<string, unknown>).punjab_cluster as string || "",
-        rawalpindi_cluster: (profile as unknown as Record<string, unknown>).rawalpindi_cluster as string || "",
+        sub_region: (profile as Record<string, unknown>).sub_region as string || "",
+        punjab_cluster: (profile as Record<string, unknown>).punjab_cluster as string || "",
       });
       setQualifications(Array.isArray(profile.qualifications) ? (profile.qualifications as unknown as Qualification[]) : []);
       setExperiences(Array.isArray(profile.experiences) ? (profile.experiences as unknown as Experience[]) : []);
@@ -273,16 +239,7 @@ export default function Profile() {
                   <select
                     id="region"
                     value={form.region}
-                    onChange={(e) => {
-                      const newRegion = e.target.value;
-                      setForm({
-                        ...form,
-                        region: newRegion,
-                        sub_region:         newRegion === "islamabad"  ? form.sub_region         : "",
-                        punjab_cluster:     newRegion === "punjab"     ? form.punjab_cluster     : "",
-                        rawalpindi_cluster: newRegion === "rawalpindi" ? form.rawalpindi_cluster : "",
-                      });
-                    }}
+                    onChange={(e) => setForm({ ...form, region: e.target.value })}
                     className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   >
                     <option value="">Select region</option>
@@ -292,7 +249,6 @@ export default function Profile() {
                   </select>
                 </div>
 
-                {form.region === "islamabad" && (
                 <div>
                   <Label htmlFor="sub_region">Sub-Region</Label>
                   <select
@@ -307,7 +263,6 @@ export default function Profile() {
                     ))}
                   </select>
                 </div>
-                )}
 
                 {form.region === "punjab" && (
                   <div>
@@ -321,23 +276,6 @@ export default function Profile() {
                       <option value="">Select cluster</option>
                       {PUNJAB_CLUSTERS.map((c) => (
                         <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {form.region === "rawalpindi" && (
-                  <div>
-                    <Label htmlFor="rawalpindi_cluster">Pindi Cluster (Markaz)</Label>
-                    <select
-                      id="rawalpindi_cluster"
-                      value={form.rawalpindi_cluster}
-                      onChange={(e) => setForm({ ...form, rawalpindi_cluster: e.target.value })}
-                      className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                    >
-                      <option value="">Select markaz</option>
-                      {PINDI_MARKAZES.map((m) => (
-                        <option key={m} value={m}>{m}</option>
                       ))}
                     </select>
                   </div>
@@ -418,17 +356,6 @@ export default function Profile() {
                     </p>
                     <p className="text-sm font-medium text-foreground">
                       {form.punjab_cluster || "Not set"}
-                    </p>
-                  </div>
-                )}
-
-                {form.region === "rawalpindi" && (
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
-                      Pindi Cluster
-                    </p>
-                    <p className="text-sm font-medium text-foreground">
-                      {form.rawalpindi_cluster || "Not set"}
                     </p>
                   </div>
                 )}
