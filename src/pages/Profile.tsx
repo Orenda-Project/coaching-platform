@@ -85,7 +85,7 @@ function formatMonthYear(yyyymm: string): string {
 }
 
 export default function Profile() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, setProfile } = useAuth();
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -128,7 +128,7 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      await authApiClient.updateProfile(user.id, {
+      const updated = await authApiClient.updateProfile(user.id, {
         full_name: form.full_name,
         phone: form.phone,
         school_id: form.school_id,
@@ -138,7 +138,7 @@ export default function Profile() {
         rawalpindi_cluster: form.region === "rawalpindi" ? form.rawalpindi_cluster : null,
       });
 
-      await refreshProfile();
+      setProfile(updated);
       setEditing(false);
       toast.success("Profile updated successfully");
     } catch (error) {
