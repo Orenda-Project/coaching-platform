@@ -1,8 +1,19 @@
 /**
- * Module 6 seed data — runs in-browser via Supabase client
+ * Module 6 seed data — runs in-browser via backend API
  * Triggered from Admin panel → "Seed Module 6" button
  */
-import { supabase } from "@/integrations/supabase/client";
+import {
+  listModules,
+  createModule,
+  listTrainings,
+  createTraining,
+  listTrainingContent,
+  createTrainingContent,
+  deleteTrainingContent,
+  listAssessments,
+  createAssessment,
+  bulkUpsertQuestions,
+} from "@/lib/apiClients/adminContentApiClient";
 
 // ─── Slides ───────────────────────────────────────────────────────────────────
 
@@ -221,150 +232,108 @@ export async function seedModule6(): Promise<{ success: boolean; log: string[] }
   ];
 
   try {
-    let mod;
-    const { data: existing } = await supabase
-      .from("modules")
-      .select("id")
-      .eq("order_number", 6)
-      .single();
+    const { modules: allModules } = await listModules();
+    type ModuleRow = { id: string; title?: string; order_number?: number };
+    let mod = (allModules as ModuleRow[]).find((m) => m.order_number === 6);
 
-    if (existing) {
-      mod = existing;
-      log.push(`✅ Module already exists: ${existing.id}`);
+    if (mod) {
+      log.push(`✅ Module already exists: ${mod.id}`);
     } else {
-      const { data: created, error: modErr } = await supabase
-        .from("modules")
-        .insert({
-          title: "Module 6: The Excellence Loop",
-          description: "Closing coaching loops, applying protocol guardrails, contextualizing strategies to real classroom constraints, and guarding the Sacred Space through Reciprocity and integrity-based professionalism.",
-          is_mandatory: false,
-          order_number: 6,
-          competencies: "Loop Closure, Protocol Fidelity, Responsive Contextualization, Praxis, Reciprocity Defense, Integrity-Based Professionalism",
-          desired_outcomes: "Apply follow-up protocols, use guardrails against audit drift, adapt strategies to context, facilitate pivots, defend confidentiality under pressure",
-        })
-        .select()
-        .single();
-
-      if (modErr) throw new Error(`Module error: ${modErr.message}`);
-      mod = created;
+      mod = (await createModule({
+        title: "Module 6: The Excellence Loop",
+        description: "Closing coaching loops, applying protocol guardrails, contextualizing strategies to real classroom constraints, and guarding the Sacred Space through Reciprocity and integrity-based professionalism.",
+        is_mandatory: false,
+        order_number: 6,
+        competencies: "Loop Closure, Protocol Fidelity, Responsive Contextualization, Praxis, Reciprocity Defense, Integrity-Based Professionalism",
+        desired_outcomes: "Apply follow-up protocols, use guardrails against audit drift, adapt strategies to context, facilitate pivots, defend confidentiality under pressure",
+      })) as ModuleRow;
       log.push(`✅ Module created: ${mod.title}`);
     }
 
     for (const unit of units) {
-      let training;
-      const { data: existingTraining } = await supabase
-        .from("trainings")
-        .select("id, created_at")
-        .eq("module_id", mod.id)
-        .eq("order_number", unit.order)
-        .single();
+      type TrainingRow = { id: string; order_number?: number };
+      const { trainings: modTrainings } = await listTrainings(mod.id);
+      let training = (modTrainings as TrainingRow[]).find((t) => t.order_number === unit.order);
 
-      if (existingTraining) {
-        training = existingTraining;
+      if (training) {
         log.push(`✅ Unit already exists: ${unit.title}`);
       } else {
-        const { data: created, error: tErr } = await supabase
-          .from("trainings")
-          .insert({
-            title: unit.title,
-            description: unit.description,
-            main_concepts: unit.concepts,
-            is_common: true,
-            module_id: mod.id,
-            order_number: unit.order,
-          })
-          .select()
-          .single();
-
-        if (tErr) { log.push(`❌ Unit error (${unit.title}): ${tErr.message}`); continue; }
-        training = created;
+        training = (await createTraining({
+          title: unit.title,
+          description: unit.description,
+          main_concepts: unit.concepts,
+          is_common: true,
+          module_id: mod.id,
+          order_number: unit.order,
+        })) as TrainingRow;
         log.push(`✅ Unit: ${unit.title}`);
       }
 
-      await supabase.from("training_content").delete().eq("training_id", training.id);
+      const { content: oldContent } = await listTrainingContent(training.id);
+      for (const c of oldContent as { id: string }[]) {
+        await deleteTrainingContent(c.id);
+      }
 
-      const { error: slidesErr } = await supabase.from("training_content").insert({
-        training_id: training.id,
-        format_type: "slides",
-        content_url: JSON.stringify(unit.slides),
+      try {
+        await createTrainingContent({
+          training_id: training.id,
+          format_type: "slides",
+          content_url: JSON.stringify(unit.slides),
+        });
+        log.push(`  📊 Slides: ${unit.slides.length} slides`);
+      } catch (e) {
+        log.push(`  ❌ Slides error: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      try {
+        await createTrainingContent({
+          training_id: training.id,
+          format_type: "scenario",
+          content_url: JSON.stringify(unit.scenario),
+        });
+        log.push(`  🎭 Scenario: ${unit.scenario.steps.length} situations`);
+      } catch (e) {
+        log.push(`  ❌ Scenario error: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      type AssessmentRow = { id: string };
+      const { assessments: existingAssessments } = await listAssessments({
+        trainingId: training.id,
+        type: "module_quiz",
       });
-      if (slidesErr) log.push(`  ❌ Slides error: ${slidesErr.message}`);
-      else log.push(`  📊 Slides: ${unit.slides.length} slides`);
+      let assessment = (existingAssessments as AssessmentRow[])[0];
 
-      const { error: scErr } = await supabase.from("training_content").insert({
-        training_id: training.id,
-        format_type: "scenario",
-        content_url: JSON.stringify(unit.scenario),
-      });
-      if (scErr) log.push(`  ❌ Scenario error: ${scErr.message}`);
-      else log.push(`  🎭 Scenario: ${unit.scenario.steps.length} situations`);
-
-      const { data: existingAssessment } = await supabase
-        .from("assessments")
-        .select("id")
-        .eq("training_id", training.id)
-        .eq("type", "module_quiz")
-        .single();
-
-      let assessment;
-      if (existingAssessment) {
-        assessment = existingAssessment;
+      if (assessment) {
         log.push(`  📋 Assessment already exists`);
       } else {
-        const { data: created, error: aErr } = await supabase
-          .from("assessments")
-          .insert({
-            title: `${unit.title} — Quiz`,
-            type: "module_quiz",
-            training_id: training.id,
-          })
-          .select()
-          .single();
-
-        if (aErr) { log.push(`  ❌ Assessment error: ${aErr.message}`); continue; }
-        assessment = created;
+        assessment = (await createAssessment({
+          title: `${unit.title} — Quiz`,
+          type: "module_quiz",
+          training_id: training.id,
+        })) as AssessmentRow;
         log.push(`  📋 Assessment created`);
       }
 
-      const { data: oldQs } = await supabase.from("questions").select("id").eq("assessment_id", assessment.id);
-      if (oldQs?.length) {
-        const ids = oldQs.map((q: { id: string }) => q.id);
-        await supabase.from("options").delete().in("question_id", ids);
-        await supabase.from("questions").delete().eq("assessment_id", assessment.id);
-      }
-
-      for (let i = 0; i < unit.quiz.length; i++) {
-        const q = unit.quiz[i];
-        const { data: question, error: qErr } = await supabase
-          .from("questions")
-          .insert({ assessment_id: assessment.id, question_text: q.q, question_type: "mcq", order_number: i + 1, max_score: 1 })
-          .select()
-          .single();
-
-        if (qErr) { log.push(`  ❌ Question error: ${qErr.message}`); continue; }
-
-        const optionRows = q.options.map((opt, idx) => ({
-          question_id: question.id,
-          option_text: opt,
-          is_correct: idx === q.correct,
-        }));
-        await supabase.from("options").insert(optionRows);
-      }
-
-      for (let i = 0; i < unit.openEnded.length; i++) {
-        const q = unit.openEnded[i];
-        await supabase
-          .from("questions")
-          .insert({
-            assessment_id: assessment.id,
-            question_text: q.q,
-            question_type: "open",
-            order_number: unit.quiz.length + i + 1,
-            max_score: 2,
-            correct_answer: q.rubric,
-          });
-      }
-
+      const allQuestions = [
+        ...unit.quiz.map((q, i) => ({
+          question_text: q.q,
+          question_type: "mcq",
+          order_number: i + 1,
+          max_score: 1,
+          options: q.options.map((opt, idx) => ({
+            text: opt,
+            is_correct: idx === q.correct,
+          })),
+        })),
+        ...unit.openEnded.map((q, i) => ({
+          question_text: q.q,
+          question_type: "open",
+          order_number: unit.quiz.length + i + 1,
+          max_score: 2,
+          correct_answer: q.rubric,
+        })),
+      ];
+      await bulkUpsertQuestions(assessment.id, allQuestions);
       log.push(`  ❓ Quiz: ${unit.quiz.length} MCQ + ${unit.openEnded.length} open-ended questions`);
     }
 

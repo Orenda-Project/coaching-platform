@@ -15,6 +15,7 @@ class Module(Base):
     is_mandatory = Column(Boolean, default=False)
     order_number = Column(Integer)
     competencies = Column(String)
+    desired_outcomes = Column(Text, nullable=True)
     persona_required = Column(ARRAY(String), default=[])
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -28,6 +29,7 @@ class Module(Base):
             "is_mandatory": self.is_mandatory,
             "order_number": self.order_number,
             "competencies": self.competencies,
+            "desired_outcomes": self.desired_outcomes,
             "persona_required": self.persona_required,
         }
 
@@ -152,6 +154,7 @@ class Question(Base):
     question_text = Column(Text, nullable=False)
     order_number = Column(Integer)
     max_score = Column(Integer, default=1)
+    correct_answer = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     assessment = relationship("AssessmentContent", back_populates="questions")
@@ -163,6 +166,8 @@ class Question(Base):
             "question_text": self.question_text,
             "question_type": self.question_type,
             "order_number": self.order_number,
+            "max_score": self.max_score,
+            "correct_answer": self.correct_answer,
             "options": [o.to_dict() for o in self.options],
         }
 

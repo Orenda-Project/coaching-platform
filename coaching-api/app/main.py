@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.controllers import export_controller, quiz_controller, auth_controller, assessment_controller, training_controller, analytics_controller, admin_controller, coaching_controller
 # Temporarily disabled: scenario_controller has import error (depends on Scenario model conflict)
@@ -58,6 +60,11 @@ app.include_router(admin_controller.router)
 # Phase 3: Coaching APIs
 # app.include_router(observation_controller.router)  # Old Phase 3 observation controller (disabled)
 app.include_router(coaching_controller.router)
+
+# Static file serving for uploaded content (videos, etc.)
+_upload_dir = os.environ.get("UPLOAD_DIR", "/data/uploads")
+Path(_upload_dir).mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=_upload_dir), name="uploads")
 
 
 @app.on_event("startup")

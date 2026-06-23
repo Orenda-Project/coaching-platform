@@ -1,12 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-// Keep supabase import ONLY for storage upload (training-videos bucket)
-import { supabase } from "@/integrations/supabase/client";
 import {
   listTrainings,
   listTrainingContent,
   createTrainingContent,
   deleteTrainingContent,
+  uploadTrainingVideo,
 } from "@/lib/apiClients/adminContentApiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,33 +64,23 @@ export default function AdminUnitContent() {
     setUploading(true);
     setUploadProgress(0);
 
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${unitId}/${Date.now()}.${fileExt}`;
-
-    // Storage upload still uses supabase client directly
-    const { data, error } = await supabase.storage
-      .from("training-videos")
-      .upload(filePath, file, { upsert: false });
-
-    if (error) {
-      toast.error("Failed to upload video: " + error.message);
-      setUploading(false);
-      return;
-    }
-
-    const { data: urlData } = supabase.storage.from("training-videos").getPublicUrl(filePath);
-    const publicUrl = urlData.publicUrl;
-
-    // Save content record via API
     try {
+      // Upload file to backend
+      const { url } = await uploadTrainingVideo(file, unitId);
+
+      // Build full URL for the content record
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const publicUrl = `${apiUrl}${url}`;
+
+      // Save content record via API
       await createTrainingContent({
         training_id: unitId,
         format_type: "video",
         content_url: publicUrl,
       });
       toast.success("Video uploaded successfully!");
-    } catch {
-      toast.error("Video uploaded but failed to save record");
+    } catch (err) {
+      toast.error("Failed to upload video: " + (err instanceof Error ? err.message : String(err)));
     }
 
     setUploading(false);

@@ -33,6 +33,7 @@ class AdminContentService:
             is_mandatory=data.get("is_mandatory", False),
             order_number=data.get("order_number"),
             competencies=data.get("competencies"),
+            desired_outcomes=data.get("desired_outcomes"),
             persona_required=data.get("persona_required", []),
         )
         self.db.add(module)
@@ -44,7 +45,7 @@ class AdminContentService:
         module = self.db.get(Module, module_id)
         if not module:
             return None
-        for key in ("title", "description", "is_mandatory", "order_number", "competencies", "persona_required"):
+        for key in ("title", "description", "is_mandatory", "order_number", "competencies", "desired_outcomes", "persona_required"):
             if key in data:
                 setattr(module, key, data[key])
         self.db.commit()
@@ -265,6 +266,7 @@ class AdminContentService:
                 question.question_type = qdata.get("question_type", "mcq")
                 question.order_number = qdata.get("order_number")
                 question.max_score = qdata.get("max_score", 1)
+                question.correct_answer = qdata.get("correct_answer")
             else:
                 question = Question(
                     id=q_id,
@@ -273,6 +275,7 @@ class AdminContentService:
                     question_type=qdata.get("question_type", "mcq"),
                     order_number=qdata.get("order_number"),
                     max_score=qdata.get("max_score", 1),
+                    correct_answer=qdata.get("correct_answer"),
                 )
                 self.db.add(question)
 

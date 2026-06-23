@@ -100,24 +100,30 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from("profiles")
-        .update({
-          full_name: form.full_name,
-          phone: form.phone,
-          school_id: form.school_id,
-          region: form.region,
-          sub_region: form.sub_region,
-          punjab_cluster: form.punjab_cluster || null,
-          qualifications: qualifications as unknown as Json,
-          experiences: experiences as unknown as Json,
-        })
-        .eq("id", user.id);
+      await authApiClient.updateProfile(user.id, {
+        full_name: form.full_name,
+        phone: form.phone,
+        school_id: form.school_id,
+        region: form.region,
+        sub_region: form.region === "islamabad" ? form.sub_region : null,
+        punjab_cluster: form.region === "punjab" ? form.punjab_cluster : null,
+        rawalpindi_cluster: form.region === "rawalpindi" ? form.rawalpindi_cluster : null,
+        qualifications: qualifications,
+        experiences: experiences,
+      });
 
-      if (error) throw error;
-
-      await refreshProfile();
+      // Update context directly from form so UI reflects the save immediately,
+      // independent of whether the API response has the new cluster columns yet.
+      setProfile({
+        ...profile,
+        full_name: form.full_name || null,
+        phone: form.phone || null,
+        school_id: form.school_id || null,
+        region: form.region || null,
+        sub_region: form.region === "islamabad" ? (form.sub_region || null) : null,
+        punjab_cluster: form.region === "punjab" ? (form.punjab_cluster || null) : null,
+        rawalpindi_cluster: form.region === "rawalpindi" ? (form.rawalpindi_cluster || null) : null,
+      });
       setEditing(false);
       toast.success("Profile updated successfully");
     } catch (error) {
