@@ -128,7 +128,7 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      const updated = await authApiClient.updateProfile(user.id, {
+      await authApiClient.updateProfile(user.id, {
         full_name: form.full_name,
         phone: form.phone,
         school_id: form.school_id,
@@ -138,7 +138,18 @@ export default function Profile() {
         rawalpindi_cluster: form.region === "rawalpindi" ? form.rawalpindi_cluster : null,
       });
 
-      setProfile(updated);
+      // Update context directly from form so UI reflects the save immediately,
+      // independent of whether the API response has the new cluster columns yet.
+      setProfile({
+        ...profile,
+        full_name: form.full_name || null,
+        phone: form.phone || null,
+        school_id: form.school_id || null,
+        region: form.region || null,
+        sub_region: form.region === "islamabad" ? (form.sub_region || null) : null,
+        punjab_cluster: form.region === "punjab" ? (form.punjab_cluster || null) : null,
+        rawalpindi_cluster: form.region === "rawalpindi" ? (form.rawalpindi_cluster || null) : null,
+      });
       setEditing(false);
       toast.success("Profile updated successfully");
     } catch (error) {

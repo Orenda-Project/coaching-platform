@@ -82,13 +82,13 @@ async def startup_event():
         "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS punjab_cluster varchar",
         "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS rawalpindi_cluster varchar",
     ]
-    with engine.connect() as conn:
-        for sql in _migrations:
-            try:
-                conn.execute(__import__('sqlalchemy').text(sql))
-            except Exception as e:
-                logging.getLogger(__name__).warning(f"Migration skipped: {e}")
-        conn.commit()
+    import sqlalchemy as _sa
+    for sql in _migrations:
+        try:
+            with engine.begin() as conn:
+                conn.execute(_sa.text(sql))
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Migration skipped: {e}")
 
 
 @app.get("/")
