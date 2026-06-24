@@ -596,6 +596,45 @@ class ScenarioOptionsRequest(BaseModel):
 
 # ===== FEEDBACK ENDPOINTS =====
 
+class FeedbackCreateRequest(BaseModel):
+    """Request body for creating user feedback."""
+    user_id: str
+    category: str = Field(..., pattern=r"^(module|platform|bug|other)$")
+    rating: int = Field(..., ge=1, le=5)
+    positive_feedback: Optional[str] = None
+    improvement_feedback: Optional[str] = None
+    context_page: Optional[str] = None
+    module_id: Optional[str] = None
+    training_id: Optional[str] = None
+    persona: Optional[str] = None
+    user_agent: Optional[str] = None
+
+
+@router.post("/feedback", response_model=dict, status_code=201)
+async def create_feedback(
+    request: FeedbackCreateRequest,
+    db: Session = Depends(get_db),
+):
+    """Create a new feedback record."""
+    service = AdminFeedbackService(db)
+    try:
+        record = service.create_feedback(
+            user_id=request.user_id,
+            category=request.category,
+            rating=request.rating,
+            positive_feedback=request.positive_feedback,
+            improvement_feedback=request.improvement_feedback,
+            context_page=request.context_page,
+            module_id=request.module_id,
+            training_id=request.training_id,
+            persona=request.persona,
+            user_agent=request.user_agent,
+        )
+        return record
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.get("/feedback", response_model=dict)
 async def get_feedback(
     days: int = Query(30, ge=1, le=365),

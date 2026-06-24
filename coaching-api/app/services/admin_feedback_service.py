@@ -1,19 +1,61 @@
 """Admin feedback service — queries user_feedback with profile joins."""
 
+import uuid
+import logging
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 
 from app.models.user_feedback import UserFeedback
-from app.models.user import UserProfile
+from app.models.user import UserProfile, User
+
+logger = logging.getLogger(__name__)
 
 
 class AdminFeedbackService:
-    """Service for admin feedback queries (read-only)."""
+    """Service for admin feedback queries and creation."""
 
     def __init__(self, db: Session):
         self.db = db
+
+    def create_feedback(
+        self,
+        user_id: str,
+        category: str,
+        rating: int,
+        positive_feedback: Optional[str] = None,
+        improvement_feedback: Optional[str] = None,
+        context_page: Optional[str] = None,
+        module_id: Optional[str] = None,
+        training_id: Optional[str] = None,
+        persona: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a new feedback record in user_feedback table."""
+        feedback = UserFeedback(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            category=category,
+            rating=rating,
+            positive_feedback=positive_feedback,
+            improvement_feedback=improvement_feedback,
+            context_page=context_page,
+            module_id=module_id,
+            training_id=training_id,
+            persona=persona,
+            user_agent=user_agent,
+        )
+        try:
+            self.db.add(feedback)
+            self.db.commit()
+            self.db.refresh(feedback)
+            return feedback.to_dict()
+        except IntegrityError as e:
+            self.db.rollback()
+            logger.error(f"Feedback insert failed for user_id={user_id}: {e.orig}")
+            raise ValueError(f"Failed to create feedback: {e.orig}")
 
     def get_feedback(
         self,

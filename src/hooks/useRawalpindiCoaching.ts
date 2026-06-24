@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
-import { listPunjabTeachersByCluster } from '@/data/punjabTeachers';
+import { listRawalpindiTeachersByCluster } from '@/data/rawalpindiTeachers';
 import type { PunjabTeacher } from '@/types/teacher';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 function cacheKey(userId: string, cluster: string) {
-  return `punjab_teachers_${userId}_${cluster}`;
+  return `rawalpindi_teachers_${userId}_${cluster}`;
 }
 
 function readCache(userId: string, cluster: string): { teachers: PunjabTeacher[]; ts: string } | null {
@@ -30,7 +30,7 @@ function writeCache(userId: string, cluster: string, teachers: PunjabTeacher[]):
   return ts;
 }
 
-export interface UsePunjabCoachingState {
+export interface UseRawalpindiCoachingState {
   teachers: PunjabTeacher[];
   loading: boolean;
   error: string | null;
@@ -38,11 +38,11 @@ export interface UsePunjabCoachingState {
   lastSynced: string | null;
 }
 
-export interface UsePunjabCoachingActions {
+export interface UseRawalpindiCoachingActions {
   loadTeachers: (cluster: string, userId?: string) => Promise<void>;
 }
 
-export function usePunjabCoaching(): UsePunjabCoachingState & UsePunjabCoachingActions {
+export function useRawalpindiCoaching(): UseRawalpindiCoachingState & UseRawalpindiCoachingActions {
   const [teachers, setTeachers] = useState<PunjabTeacher[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export function usePunjabCoaching(): UsePunjabCoachingState & UsePunjabCoachingA
     }
 
     try {
-      const fresh = await listPunjabTeachersByCluster(cluster);
+      const fresh = await listRawalpindiTeachersByCluster(cluster);
       setTeachers(fresh);
       teachersLoadedRef.current = true;
       setIsOffline(false);

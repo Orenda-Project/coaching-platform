@@ -1,40 +1,8 @@
 -- Migration: Add ICT sub-regions with coach-school mappings
 -- Purpose: Populate teacher_dc_scores with ICT region data for Smart Scheduler
 
--- Insert test user profiles for coaches if they don't exist
-INSERT INTO public.profiles (id, full_name, phone, region, sub_region)
-SELECT
-  gen_random_uuid(),
-  coach_name,
-  '+92300000000',
-  'ICT',
-  region
-FROM (
-  SELECT DISTINCT coach_name, 'Urban-1' as region FROM (
-    VALUES ('Bushra'), ('Hiba'), ('Hifza'), ('Maroof'), ('Khadija Akbar'), ('Mubashar'), ('Saba'), ('Saima Jabeen'), ('Shazmina'), ('Irum'), ('Aleeha')
-  ) AS coaches(coach_name)
-  UNION ALL
-  SELECT DISTINCT coach_name, 'Urban-2' as region FROM (
-    VALUES ('Misbah'), ('Esha Qadeer'), ('Zainab'), ('Waneza'), ('Munira'), ('Hareem'), ('Rabia Javed'), ('Warda'), ('Shafaq Tahir'), ('Mehwish'), ('Aneela')
-  ) AS coaches(coach_name)
-  UNION ALL
-  SELECT DISTINCT coach_name, 'Sihala' as region FROM (
-    VALUES ('Ateeb'), ('Hamza'), ('Hira'), ('Meerab'), ('Mehwish'), ('Rida Abbas'), ('Saaim'), ('Moiz')
-  ) AS coaches(coach_name)
-  UNION ALL
-  SELECT DISTINCT coach_name, 'Barakhau' as region FROM (
-    VALUES ('Abdul Malik'), ('Ashas Khan'), ('Jamshaid'), ('Javeria Nayab'), ('Javeria Khalil'), ('Hafsa'), ('Nidda Asif'), ('Noman Alam'), ('Zarmeen Kausar'), ('Zarmeen')
-  ) AS coaches(coach_name)
-  UNION ALL
-  SELECT DISTINCT coach_name, 'Tarnol' as region FROM (
-    VALUES ('Saman Zahoor')
-  ) AS coaches(coach_name)
-  UNION ALL
-  SELECT DISTINCT coach_name, 'Nilore' as region FROM (
-    VALUES ('Areej'), ('Fakhr'), ('Waleed'), ('Maria'), ('Toseef'), ('Mubasher'), ('Sehar')
-  ) AS coaches(coach_name)
-) as all_coaches
-ON CONFLICT (id) DO NOTHING;
+-- Skip coach profile inserts — profiles are created via signup flow, not seeded.
+-- Coaches register themselves through the app which creates both user and profile records.
 
 -- Update existing teacher_dc_scores records to assign regions based on school names
 -- Urban-1 schools

@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export type FeedbackCategory = 'module' | 'platform' | 'bug' | 'other';
 
@@ -38,17 +39,23 @@ export function useFeedback() {
       user_agent: (typeof navigator !== 'undefined' ? navigator.userAgent : '').slice(0, 500),
     };
 
-    // The `feedback` table isn't yet in the generated types.ts, so the
-    // typed `from` overload rejects the literal. Runtime is correct —
-    // matches migration `20260506000000_feedback_chatbot.sql`.
-    // @ts-expect-error feedback table not yet present in generated types
-    const { error } = await supabase.from('feedback').insert(payload);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    if (error) {
-      console.error('[feedback] insert failed', error);
-      return { ok: false, error: error.message };
+      if (!res.ok) {
+        const errData = await res.text();
+        console.error('[feedback] insert failed', res.status, errData);
+        return { ok: false, error: `Failed to submit feedback (${res.status})` };
+      }
+      return { ok: true };
+    } catch (err) {
+      console.error('[feedback] network error', err);
+      return { ok: false, error: 'Network error submitting feedback' };
     }
-    return { ok: true };
   };
 
   return { submit };

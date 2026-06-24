@@ -207,7 +207,11 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         grade: teacher.grade,
         topic: formData.lesson_topic || null,
         framework: 'FICO',
+        visit_type: formData.visit_type,
         date: formData.date,
+        planned_date: formData.planned_date || formData.date,
+        arrival_time: formData.arrival_time,
+        departure_time: formData.departure_time,
         visit_purpose: formData.visit_purpose,
         status: 'Scheduled',
         region: coachSubRegion || teacher.sector,
@@ -228,23 +232,6 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
       setSchedulingTeacherId(null);
     }
   }, [user, onNewObservation, coachSubRegion]);
-
-  // Region routing
-  const regionLower = (profile?.region ?? '').toLowerCase();
-  const isPindi = regionLower.includes('pindi') || regionLower.includes('rawalpindi');
-
-  // Pindi view (placeholder)
-  if (isPindi) {
-    return (
-      <div className="flex flex-col items-center justify-center py-14 text-center">
-        <AlertCircle className="w-10 h-10 text-blue-600 mb-3" />
-        <h3 className="font-semibold text-foreground mb-1">Pindi Smart Schedule</h3>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Coming soon — Pindi coaching structure is being set up
-        </p>
-      </div>
-    );
-  }
 
   // ICT view - requires sub-region
   if (!coachSubRegion) {
