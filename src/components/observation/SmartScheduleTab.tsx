@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { scheduleVisit } from '@/data/observations';
 import type { CotObservation, ScheduleVisitFormData } from '@/types/observation';
 import type { DCTeacher } from '@/types/teacher';
+import type { TeacherDCScoreRow } from '@/lib/apiClients/coachingApiClient';
 
 interface SmartScheduleTabProps {
   onNewObservation?: (obs: CotObservation) => void;
@@ -113,7 +114,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     }
   }, [user, getCacheKey]);
 
-  const mapTeachersData = useCallback((data: typeof apiTeachers): DCTeacher[] => {
+  const mapTeachersData = useCallback((data: TeacherDCScoreRow[]): DCTeacher[] => {
     return data.map((row) => ({
       user_id: row.id,
       teacher_name: row.teacher_name,

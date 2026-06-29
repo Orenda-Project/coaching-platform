@@ -503,7 +503,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   };
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
-    let progressInterval: ReturnType<typeof setInterval> | undefined;
+    let progressInterval: number | undefined;
     try {
       if (!observation?.id) {
         toast.error('No observation selected. Please schedule a visit first.');

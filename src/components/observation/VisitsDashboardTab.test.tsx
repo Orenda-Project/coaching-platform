@@ -1,9 +1,10 @@
 /**
- * Tests for VisitsDashboardTab — Complete button gate during Neo analysis.
+ * Tests for VisitsDashboardTab — action buttons on scheduled visit cards.
+ * Buttons are now always-visible labeled icons (no popover required).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { CotObservation } from '@/types/observation';
 
 vi.mock('sonner', () => ({
@@ -47,7 +48,7 @@ function makeObs(overrides: Partial<CotObservation> = {}): CotObservation {
   };
 }
 
-function renderAndOpenMenu(observations: CotObservation[]) {
+function renderTab(observations: CotObservation[]) {
   render(
     <VisitsDashboardTab
       observations={observations}
@@ -55,80 +56,52 @@ function renderAndOpenMenu(observations: CotObservation[]) {
       onRefresh={vi.fn()}
     />,
   );
-  // Complete button is inside a Popover — open it first
-  const trigger = screen.getByRole('button', { name: '' });
-  fireEvent.click(trigger);
 }
 
-describe('VisitsDashboardTab – Complete button Neo gate', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+describe('VisitsDashboardTab – Debrief button', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('shows "Analyzing…" and is disabled when neo_status is processing', () => {
+    renderTab([makeObs({ neo_status: 'processing' })]);
+    const btn = screen.getByText('Analyzing…').closest('button');
+    expect(btn).not.toBeNull();
+    expect(btn).toBeDisabled();
   });
 
-  it('Complete button is disabled when neo_status is processing', () => {
-    render(
-      <VisitsDashboardTab
-        observations={[makeObs({ neo_status: 'processing' })]}
-        onStartDebrief={vi.fn()}
-        onRefresh={vi.fn()}
-      />,
-    );
-    // Open the popover
-    const triggers = screen.getAllByRole('button');
-    const menuTrigger = triggers.find(b => b.querySelector('svg'));
-    if (menuTrigger) fireEvent.click(menuTrigger);
-
-    const button = screen.queryByTitle(/Neo is analyzing/i);
-    expect(button).not.toBeNull();
-    expect(button).toBeDisabled();
+  it('shows "Debrief" and is enabled when neo_status is null', () => {
+    renderTab([makeObs({ neo_status: null })]);
+    const btn = screen.getByText('Debrief').closest('button');
+    expect(btn).not.toBeNull();
+    expect(btn).not.toBeDisabled();
   });
 
-  it('Complete button shows "Analyzing…" label when neo_status is processing', () => {
-    render(
-      <VisitsDashboardTab
-        observations={[makeObs({ neo_status: 'processing' })]}
-        onStartDebrief={vi.fn()}
-        onRefresh={vi.fn()}
-      />,
-    );
-    const triggers = screen.getAllByRole('button');
-    const menuTrigger = triggers.find(b => b.querySelector('svg'));
-    if (menuTrigger) fireEvent.click(menuTrigger);
+  it('shows "Debriefed" when neo_status is completed', () => {
+    renderTab([makeObs({ neo_status: 'completed' })]);
+    expect(screen.getByText('Debriefed')).toBeTruthy();
+  });
+});
 
-    expect(screen.queryByText('Analyzing…')).not.toBeNull();
+describe('VisitsDashboardTab – Done button', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('is disabled when neo_status is processing', () => {
+    renderTab([makeObs({ neo_status: 'processing' })]);
+    const btn = screen.getByText('Done').closest('button');
+    expect(btn).not.toBeNull();
+    expect(btn).toBeDisabled();
   });
 
-  it('Complete button is enabled when neo_status is completed', () => {
-    render(
-      <VisitsDashboardTab
-        observations={[makeObs({ neo_status: 'completed' })]}
-        onStartDebrief={vi.fn()}
-        onRefresh={vi.fn()}
-      />,
-    );
-    const triggers = screen.getAllByRole('button');
-    const menuTrigger = triggers.find(b => b.querySelector('svg'));
-    if (menuTrigger) fireEvent.click(menuTrigger);
-
-    const button = screen.queryByTitle(/Mark as complete/i);
-    expect(button).not.toBeNull();
-    expect(button).not.toBeDisabled();
+  it('is enabled when neo_status is completed', () => {
+    renderTab([makeObs({ neo_status: 'completed' })]);
+    const btn = screen.getByText('Done').closest('button');
+    expect(btn).not.toBeNull();
+    expect(btn).not.toBeDisabled();
   });
 
-  it('Complete button is enabled when neo_status is null', () => {
-    render(
-      <VisitsDashboardTab
-        observations={[makeObs({ neo_status: null })]}
-        onStartDebrief={vi.fn()}
-        onRefresh={vi.fn()}
-      />,
-    );
-    const triggers = screen.getAllByRole('button');
-    const menuTrigger = triggers.find(b => b.querySelector('svg'));
-    if (menuTrigger) fireEvent.click(menuTrigger);
-
-    const button = screen.queryByTitle(/Mark as complete/i);
-    expect(button).not.toBeNull();
-    expect(button).not.toBeDisabled();
+  it('is enabled when neo_status is null', () => {
+    renderTab([makeObs({ neo_status: null })]);
+    const btn = screen.getByText('Done').closest('button');
+    expect(btn).not.toBeNull();
+    expect(btn).not.toBeDisabled();
   });
 });
