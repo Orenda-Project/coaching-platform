@@ -96,7 +96,9 @@ export function ScheduleVisitModal({
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Subject & Grade</p>
-                <p className="text-sm text-foreground">{teacher.subject} · {teacher.grade}</p>
+                <p className="text-sm text-foreground">
+                  {[teacher.subject, teacher.grade].filter(Boolean).join(' · ') || '—'}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Coach</p>

@@ -131,7 +131,7 @@ export default function ObservationScheduler() {
             setQuickObs(null);
             setActiveTab('draft');
           }}
-          onClose={() => setQuickObs(null)}
+          onClose={() => { loadObservations(); setQuickObs(null); }}
         />
       )}
 

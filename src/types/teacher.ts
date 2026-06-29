@@ -30,9 +30,9 @@ export interface DCTeacher {
   sector: string;
   overall_percentage: number;
   total_score: number;
-  created_date: string;
-  grade: string;
-  subject: string;
+  created_date: string | null;
+  grade: string | null;
+  subject: string | null;
   accurate_lesson_planning: number;
   timely_lesson_delivery: number;
   subject_command: number;

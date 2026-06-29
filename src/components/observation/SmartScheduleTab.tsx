@@ -5,6 +5,13 @@ import DCDashboard from './DCDashboard';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { scheduleVisit } from '@/data/observations';
 import type { CotObservation, ScheduleVisitFormData } from '@/types/observation';
@@ -16,7 +23,7 @@ interface SmartScheduleTabProps {
 
 export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabProps) {
   const { user, profile } = useAuth();
-  const { teachers: apiTeachers, loading: apiLoading, error: apiError, loadTeachers } = useCoaching();
+  const { loadTeachers } = useCoaching();
   const [teachers, setTeachers] = useState<DCTeacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,32 +31,52 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
   const [isOffline, setIsOffline] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState(false);
-  const [visitedTeachers] = useState<Set<string>>(new Set());
   const [showCycleResetModal, setShowCycleResetModal] = useState(false);
 
   const coachName = profile?.full_name || user?.email || 'Coach';
   const coachSubRegion = (profile as Record<string, unknown>)?.sub_region as string | null || null;
 
-  // Coaching cycle management
-  const getCycleStartDate = () => {
+  const [cycleStart, setCycleStart] = useState<Date | null>(() => {
     if (!user?.id) return null;
     const stored = localStorage.getItem(`cycle_start_${user.id}`);
     return stored ? new Date(stored) : null;
+  });
+
+  const [visitedTeachers, setVisitedTeachers] = useState<Set<string>>(() => {
+    if (!user?.id) return new Set();
+    try {
+      const raw = localStorage.getItem(`ict_visited_${user.id}`);
+      return new Set(raw ? JSON.parse(raw) : []);
+    } catch { return new Set(); }
+  });
+
+  const markVisitedLocally = (teacherName: string) => {
+    if (!user?.id) return;
+    const updated = new Set(visitedTeachers);
+    updated.add(teacherName);
+    localStorage.setItem(`ict_visited_${user.id}`, JSON.stringify([...updated]));
+    setVisitedTeachers(updated);
+    if (!cycleStart) {
+      const newStart = new Date();
+      localStorage.setItem(`cycle_start_${user.id}`, newStart.toISOString());
+      setCycleStart(newStart);
+    }
   };
 
   const resetCycle = () => {
     if (!user?.id) return;
-    const existing = getCycleStartDate();
-    if (existing) {
+    if (cycleStart) {
       const prev = JSON.parse(localStorage.getItem(`cycle_history_${user.id}`) || '[]');
-      prev.unshift({ startDate: existing.toISOString(), endDate: new Date().toISOString(), visitedCount: visitedTeachers.size, totalCount: teachers.length });
+      prev.unshift({ startDate: cycleStart.toISOString(), endDate: new Date().toISOString(), visitedCount: visitedTeachers.size, totalCount: teachers.length });
       localStorage.setItem(`cycle_history_${user.id}`, JSON.stringify(prev.slice(0, 10)));
     }
-    localStorage.setItem(`cycle_start_${user.id}`, new Date().toISOString());
+    const newStart = new Date();
+    localStorage.setItem(`cycle_start_${user.id}`, newStart.toISOString());
+    localStorage.removeItem(`ict_visited_${user.id}`);
+    setCycleStart(newStart);
+    setVisitedTeachers(new Set());
     toast.success('New cycle started');
   };
-
-  const cycleStart = getCycleStartDate();
 
   // Cache management helpers
   const getCacheKey = useCallback((suffix: string) => `scheduler_${suffix}_${user?.id}`, [user?.id]);
@@ -94,9 +121,9 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
       sector: row.region,
       overall_percentage: row.raw_results?.overall_percentage || 0,
       total_score: row.total_score,
-      created_date: row.scored_at,
-      grade: row.grade,
-      subject: row.subject,
+      created_date: row.scored_at ?? null,
+      grade: row.grade ?? null,
+      subject: row.subject ?? null,
       accurate_lesson_planning: row.raw_results?.accurate_lesson_planning || 0,
       timely_lesson_delivery: row.raw_results?.timely_lesson_delivery || 0,
       subject_command: row.raw_results?.subject_command || 0,
@@ -134,21 +161,11 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
 
     try {
       setError(null);
-      await loadTeachers(coachSubRegion || undefined);
+      const fetchedTeachers = await loadTeachers(coachSubRegion || undefined);
 
       clearTimeout(timeoutId);
 
-      if (apiError) {
-        // Network error - show cached data if available, otherwise show error
-        if (cache.teachers) {
-          setIsOffline(true);
-          setConnectionError(false);
-        } else {
-          setError(apiError.message || 'Failed to load teachers');
-          setTeachers([]);
-          setConnectionError(false);
-        }
-      } else if (!apiTeachers || apiTeachers.length === 0) {
+      if (!fetchedTeachers || fetchedTeachers.length === 0) {
         if (cache.teachers) {
           setIsOffline(true);
         } else {
@@ -156,9 +173,10 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         }
         setTeachers([]);
       } else {
-        const mappedTeachers = mapTeachersData(apiTeachers);
+        const mappedTeachers = mapTeachersData(fetchedTeachers);
         setTeachers(mappedTeachers);
         writeCache(mappedTeachers, coachSubRegion);
+        setIsOffline(false);
         setConnectionError(false);
       }
     } catch (err) {
@@ -174,7 +192,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
     } finally {
       setLoading(false);
     }
-  }, [coachSubRegion, readCache, writeCache, loadTeachers, apiTeachers, apiError, mapTeachersData]);
+  }, [coachSubRegion, readCache, writeCache, loadTeachers, mapTeachersData]);
 
   useEffect(() => {
     loadData();
@@ -217,6 +235,7 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         region: coachSubRegion || teacher.sector,
       });
 
+      markVisitedLocally(teacher.teacher_name);
       toast.success('Visit scheduled! Opening Neo recording...');
       onNewObservation?.(data);
     } catch (err) {
@@ -333,43 +352,33 @@ export default function SmartScheduleTab({ onNewObservation }: SmartScheduleTabP
         visitedTeachers={visitedTeachers}
       />
 
-      {/* Cycle Reset Confirmation Modal */}
-      {showCycleResetModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-sm">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold text-foreground">Start New Cycle?</h3>
-            <p className="text-sm text-muted-foreground">
-              Your progress will reset to 0. Previous cycle data will be saved.
-            </p>
-            {cycleStart && (
-              <div className="bg-slate-50 border border-slate-200 rounded p-3 text-sm">
-                <p className="font-medium text-foreground">Current cycle</p>
-                <p className="text-muted-foreground">
-                  {visitedTeachers.size}/{teachers.length} teachers visited
-                  · since {cycleStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                </p>
-              </div>
-            )}
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setShowCycleResetModal(false)}>
-                Cancel
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => {
-                  resetCycle();
-                  setShowCycleResetModal(false);
-                  window.location.reload();
-                }}
-              >
-                Start New Cycle
-              </Button>
+      <Dialog open={showCycleResetModal} onOpenChange={setShowCycleResetModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Start New Cycle?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Your progress will reset to 0. Previous cycle data will be saved.
+          </p>
+          {cycleStart && (
+            <div className="bg-slate-50 border border-slate-200 rounded p-3 text-sm">
+              <p className="font-medium text-foreground">Current cycle</p>
+              <p className="text-muted-foreground">
+                {visitedTeachers.size}/{teachers.length} teachers visited
+                {' · '}since {cycleStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+              </p>
             </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowCycleResetModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => { resetCycle(); setShowCycleResetModal(false); }}>
+              Start New Cycle
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

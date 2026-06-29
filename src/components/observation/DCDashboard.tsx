@@ -213,7 +213,11 @@ export default function DCDashboard({ teachers, onScheduleVisit, coachName, subR
                     </div>
                     <p className="text-sm text-muted-foreground">{teacher.school}</p>
                     <p className="text-xs text-muted-foreground">
-                      Grade {teacher.grade} · {teacher.subject} · Last assessed: {new Date(teacher.created_date).toLocaleDateString()}
+                      {[
+                        teacher.grade ? `Grade ${teacher.grade}` : null,
+                        teacher.subject || null,
+                        teacher.created_date ? `Last assessed: ${new Date(teacher.created_date).toLocaleDateString()}` : null,
+                      ].filter(Boolean).join(' · ')}
                       {!teacher.neverObserved && teacher.lastVisitDate && (
                         <> · Last visited: {teacher.lastVisitDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</>
                       )}

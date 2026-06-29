@@ -185,6 +185,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [savedAudioMimeType, setSavedAudioMimeType] = useState<string>('audio/webm');
   const [savedAudioUrl, setSavedAudioUrl] = useState<string | null>(null);
   const [neoTaskId, setNeoTaskId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
@@ -192,6 +193,18 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const autoResumedRef = useRef(false);
+
+  const refreshResults = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const refreshed = await getObservation(observation.id);
+      onSaved(refreshed);
+    } catch {
+      // silently ignore — user can retry manually
+    } finally {
+      setRefreshing(false);
+    }
+  }, [observation.id, onSaved]);
 
   // Translation function
   const translateText = async (text: string): Promise<string> => {
@@ -288,6 +301,14 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
     };
   }, []);
+
+  // Auto-retry when stuck: completed phase but results haven't propagated
+  useEffect(() => {
+    if (phase === 'completed' && !observation.neo_results) {
+      const timer = setTimeout(refreshResults, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, observation.neo_results, refreshResults]);
 
   const startRecording = async () => {
     try {
@@ -700,8 +721,18 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           patchObservation(observation.id, {
             neo_status: 'completed',
             neo_results: neoResults || undefined,
-          }).then(updated => {
-            onSaved(updated);
+          }).then(async updated => {
+            if (updated.neo_results) {
+              onSaved(updated);
+            } else {
+              // Patch succeeded but results weren't returned — fetch directly
+              try {
+                const refreshed = await getObservation(observation.id);
+                onSaved(refreshed);
+              } catch {
+                onSaved(updated);
+              }
+            }
           }).catch(async () => {
             // Fallback: merge locally and try getObservation
             const mergedObs = { ...observation, neo_status: 'completed' as const, neo_results: neoResults };
@@ -891,39 +922,80 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   // Uploading phase
   if (phase === 'uploading') {
     return (
-      <div className="space-y-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-sm font-medium text-blue-900">{t('Uploading audio')}</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Upload className="w-4 h-4 text-blue-700" />
+          <p className="text-sm font-medium text-blue-900">Uploading audio…</p>
+          <span className="ml-auto text-xs text-blue-700 tabular-nums">{Math.round(uploadProgress)}%</span>
+        </div>
+        <Progress value={uploadProgress} className="h-2.5" />
+        <p className="text-xs text-blue-600">Please keep this page open while the audio uploads.</p>
+      </div>
+    );
+  }
+
+  // Processing phase — staged progress card
+  if (phase === 'processing') {
+    const stage = pollProgress < 30 ? 0 : pollProgress < 70 ? 1 : 2;
+    const stages = [
+      'Transcribing audio',
+      'Analyzing coaching quality',
+      'Generating feedback',
+    ];
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Brain className="w-4 h-4 text-blue-700 animate-pulse" />
+          <p className="text-sm font-medium text-blue-900">Neo is analyzing your debrief</p>
         </div>
 
-        {savedAudioUrl && <audio controls className="w-full" src={savedAudioUrl} />}
+        <div className="space-y-2.5">
+          {stages.map((label, i) => (
+            <div key={i} className="flex items-center gap-2.5 text-xs">
+              {i < stage ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
+              ) : i === stage ? (
+                <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+              ) : (
+                <div className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0" />
+              )}
+              <span className={
+                i < stage
+                  ? 'text-green-700'
+                  : i === stage
+                  ? 'text-blue-800 font-medium'
+                  : 'text-muted-foreground'
+              }>
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
 
-        <Button disabled className="w-full py-6">
-          ⏳ {t('Uploading audio')}...
-        </Button>
-
-        <Progress value={uploadProgress} className="h-2" />
+        <Progress value={pollProgress} className="h-2.5" />
+        <p className="text-xs text-blue-600">This usually takes 2–5 minutes. You can close this panel — Neo will keep running.</p>
       </div>
     );
   }
 
-  // Queued phase (offline)
-  // Processing phase
-  if (phase === 'processing') {
-    return (
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">{t('Neo is analyzing')}</p>
-        <Progress value={pollProgress} className="h-2" />
-      </div>
-    );
-  }
-
-  // Completed phase — show loading state if results haven't propagated yet
+  // Completed phase — results propagating
   if (phase === 'completed' && !observation.neo_results) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        {t('Loading analysis results…')}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-green-600" />
+          <p className="text-sm font-medium text-green-900">Analysis complete — loading results</p>
+        </div>
+        <Progress value={100} className="h-2.5" />
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full border-green-400 text-green-800 hover:bg-green-100"
+          onClick={refreshResults}
+          disabled={refreshing}
+        >
+          {refreshing ? 'Refreshing…' : 'Refresh Results'}
+        </Button>
       </div>
     );
   }
