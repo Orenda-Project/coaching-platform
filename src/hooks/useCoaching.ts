@@ -25,7 +25,7 @@ export interface UseCoachingState {
 }
 
 export interface UseCoachingActions {
-  loadTeachers: (region?: string) => Promise<void>;
+  loadTeachers: (region?: string) => Promise<TeacherDCScoreRow[]>;
   clearError: () => void;
   clearCache: () => void;
 }
@@ -45,13 +45,14 @@ export function useCoaching(): UseCoachingState & UseCoachingActions {
    * Load teachers from a specific region
    */
   const loadTeachers = useCallback(
-    async (region?: string): Promise<void> => {
+    async (region?: string): Promise<TeacherDCScoreRow[]> => {
       try {
         setLoading(true);
         setError(null);
 
         const response = await coachingApiClient.getTeacherDCScores(region);
         setTeachers(response.teachers);
+        return response.teachers;
       } catch (err) {
         const apiError = err instanceof Error ? (err as ApiError) : new Error(String(err));
         setError(apiError as ApiError);

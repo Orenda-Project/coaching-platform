@@ -67,6 +67,7 @@ export function QuickObservationPanel({
 
   const displayType = current.visit_type || current.framework || 'General Visit';
   const isFico = displayType === 'FICO';
+  const neoComplete = current.neo_status === 'completed';
 
   return (
     <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
@@ -125,14 +126,21 @@ export function QuickObservationPanel({
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Close — save to draft
           </Button>
-          <Button
-            onClick={markVisitComplete}
-            disabled={saving}
-            className="gap-2"
-          >
-            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-            Mark Visit Complete
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              onClick={markVisitComplete}
+              disabled={saving || !neoComplete}
+              className="gap-2"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              Mark Visit Complete
+            </Button>
+            {!neoComplete && (
+              <p className="text-xs text-muted-foreground">
+                Complete Neo debrief first
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
