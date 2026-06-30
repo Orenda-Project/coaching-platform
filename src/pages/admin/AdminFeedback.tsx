@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import {
   fetchAdminFeedback,
   type FeedbackRecord,
   type FeedbackKPIs,
 } from '@/lib/apiClients/adminFeedbackApiClient';
+import { exportFeedbackToPdf } from '@/domain/feedback-pdf-export';
 import {
   Select,
   SelectContent,
@@ -32,6 +33,7 @@ export default function AdminFeedback() {
     endDate: '',
   });
   const [selectedFeedback, setSelectedFeedback] = useState<FeedbackRecord | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // Fetch from API whenever filters change
   const loadFeedback = useCallback(async () => {
@@ -83,6 +85,19 @@ export default function AdminFeedback() {
   const dateRangeLabel = filters.startDate || filters.endDate
     ? `${filters.startDate || '...'} to ${filters.endDate || 'now'}`
     : 'Last 30 days';
+
+  const handleDownloadReport = async () => {
+    setGeneratingPdf(true);
+    try {
+      await exportFeedbackToPdf(feedbackData, kpis, dateRangeLabel);
+      toast.success('Report downloaded');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      toast.error('Failed to generate report');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -212,11 +227,26 @@ export default function AdminFeedback() {
 
       {/* Feedback Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Feedback Entries</CardTitle>
-          <CardDescription>
-            Page {page} of {Math.max(totalPages, 1)} &bull; {totalCount} total
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle>Feedback Entries</CardTitle>
+            <CardDescription>
+              Page {page} of {Math.max(totalPages, 1)} &bull; {totalCount} total
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadReport}
+            disabled={feedbackData.length === 0 || loading || generatingPdf}
+          >
+            {generatingPdf ? (
+              <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-current mr-2" />
+            ) : (
+              <Download className="w-3.5 h-3.5 mr-2" />
+            )}
+            {generatingPdf ? 'Generating...' : 'Download Report'}
+          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
