@@ -12,7 +12,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 import { TeacherAbsentModal } from './TeacherAbsentModal';
-import type { CotObservation } from '@/types/observation';
+import type { CotObservation, NeoObserverFeedback, NeoResults } from '@/types/observation';
 import { deleteObservation, updateObservationStatus } from '@/data/observations';
 import { getSavedAudio } from '@/lib/audioQueue';
 import { toast } from 'sonner';
@@ -120,9 +120,97 @@ export function VisitsDashboardTab({
     }
   };
 
+  const NeoFeedbackSection = ({ results }: { results: NeoResults }) => {
+    const fb = results.observer_feedback as NeoObserverFeedback | undefined;
+    return (
+      <div className="space-y-3 pt-1">
+        {/* Score + grade */}
+        <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2">
+          <div>
+            <p className="text-xs text-muted-foreground">Overall Score</p>
+            <p className="text-xl font-bold text-foreground">{results.overall_score}</p>
+          </div>
+          {results.grade && (
+            <span className="text-sm font-bold px-3 py-1 rounded-full border bg-background">{results.grade}</span>
+          )}
+        </div>
+
+        {/* Readiness level */}
+        {results.readiness_level && (
+          <div className="bg-blue-50 border border-blue-200 rounded p-2">
+            <p className="text-xs text-muted-foreground mb-0.5">Readiness Level</p>
+            <p className="text-xs font-medium text-blue-900">{results.readiness_level}</p>
+          </div>
+        )}
+
+        {/* Section scores */}
+        {results.section_scores && Object.keys(results.section_scores).length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-foreground mb-1">Section Scores</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {Object.entries(results.section_scores).map(([k, v]) => (
+                <div key={k} className="bg-muted rounded p-1.5 text-center">
+                  <p className="text-[10px] text-muted-foreground">{k}</p>
+                  <p className="text-sm font-bold">{v as number}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {fb && (
+          <>
+            {fb.overall_summary && (
+              <div className="bg-muted/40 rounded p-2 text-xs text-foreground leading-relaxed">
+                {fb.overall_summary}
+              </div>
+            )}
+            {fb.strengths && fb.strengths.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-green-700">Strengths</p>
+                {fb.strengths.map((s, i) => (
+                  <div key={i} className="bg-green-50 border border-green-200 rounded p-2 text-xs text-green-900">{s}</div>
+                ))}
+              </div>
+            )}
+            {fb.next_steps && fb.next_steps.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium text-blue-700">Next Steps for Growth</p>
+                {fb.next_steps.map((step, i) => (
+                  <div key={i} className="bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-900">
+                    <p className="font-medium">{step.growth_area}</p>
+                    <p className="mt-0.5">{step.specific_behavior}</p>
+                    {step.self_reflection_question && (
+                      <p className="mt-1 italic opacity-80">🤔 {step.self_reflection_question}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {fb.priority_growth_areas && fb.priority_growth_areas.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-orange-700">Priority Areas</p>
+                {fb.priority_growth_areas.map((area, i) => (
+                  <div key={i} className="bg-orange-50 border border-orange-200 rounded p-2 text-xs text-orange-900">{area}</div>
+                ))}
+              </div>
+            )}
+            {fb.closing_encouragement && (
+              <div className="bg-purple-50 border border-purple-200 rounded p-2 text-xs text-purple-900">
+                <p className="font-medium mb-1">💪 Forward Momentum</p>
+                <p>{fb.closing_encouragement}</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
   const ScheduledVisitCard = ({ obs }: { obs: CotObservation }) => {
     const isDraft = obs.status === 'Draft';
     const lastVisited = lastVisitedByTeacher.get(obs.teacher_name);
+    const [neoExpanded, setNeoExpanded] = useState(false);
 
     return (
     <Card className={`hover:shadow-lg transition-all duration-200 ${isDraft ? 'border-2 border-dashed border-amber-300 bg-amber-50/30' : ''}`}>
@@ -246,6 +334,22 @@ export function VisitsDashboardTab({
             </button>
           </div>
 
+          {/* Neo feedback — shown when analysis is complete */}
+          {obs.neo_results && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setNeoExpanded(!neoExpanded)}
+                className="w-full justify-between text-xs border-t pt-2 mt-1"
+              >
+                <span>{neoExpanded ? 'Hide' : 'View'} Neo Feedback</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${neoExpanded ? 'rotate-180' : ''}`} />
+              </Button>
+              {neoExpanded && <NeoFeedbackSection results={obs.neo_results} />}
+            </>
+          )}
+
         </div>
       </CardContent>
     </Card>
@@ -319,36 +423,17 @@ export function VisitsDashboardTab({
 
           {expanded && (
             <div className="border-t pt-3 space-y-3 text-sm">
-              {obs.neo_results?.section_scores && (
-                <div>
-                  <p className="font-medium text-foreground mb-1">NEO Section Scores</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {Object.entries(obs.neo_results.section_scores).map(([section, score]: [string, any]) => (
-                      <div key={section} className="bg-muted p-2 rounded">
-                        <span className="text-xs text-muted-foreground">{section}</span>
-                        <p className="font-semibold">{score}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {obs.neo_results?.readiness_level && (
-                <div className="bg-blue-50 border border-blue-200 rounded p-2">
-                  <p className="text-xs text-muted-foreground">Readiness Level</p>
-                  <p className="font-semibold text-blue-900">{obs.neo_results.readiness_level}</p>
-                </div>
-              )}
+              {obs.neo_results && <NeoFeedbackSection results={obs.neo_results} />}
               {obs.notes_for_teacher && (
                 <div>
                   <p className="font-medium text-foreground mb-1">Coach Notes</p>
-                  <p className="text-foreground bg-amber-50 border border-amber-200 rounded p-2">{obs.notes_for_teacher}</p>
+                  <p className="text-foreground bg-amber-50 border border-amber-200 rounded p-2 text-xs">{obs.notes_for_teacher}</p>
                 </div>
               )}
               {obs.hots_notes && (
                 <div>
                   <p className="font-medium text-foreground mb-1">HOTS Notes</p>
-                  <p className="text-foreground bg-amber-50 border border-amber-200 rounded p-2">{obs.hots_notes}</p>
+                  <p className="text-foreground bg-amber-50 border border-amber-200 rounded p-2 text-xs">{obs.hots_notes}</p>
                 </div>
               )}
             </div>
