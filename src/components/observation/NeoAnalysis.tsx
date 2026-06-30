@@ -17,6 +17,7 @@ import {
   Play,
   RotateCcw,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CotObservation, NeoResults, NeoObserverFeedback } from '@/types/observation';
@@ -207,10 +208,19 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
-  const translateFeedback = async (feedback: any) => {
+  const translateFeedback = async (feedback: any, readinessLevel?: string) => {
     setTranslating(true);
     try {
-      const translated = { ...feedback };
+      const translated: any = { ...feedback };
+
+      // Translate readiness_level (lives on results, not observer_feedback)
+      if (readinessLevel) {
+        translated.readiness_level = await translateText(readinessLevel);
+      }
+
+      if (feedback.overall_summary) {
+        translated.overall_summary = await translateText(feedback.overall_summary);
+      }
 
       if (feedback.strengths && Array.isArray(feedback.strengths)) {
         translated.strengths = await Promise.all(
@@ -223,8 +233,21 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           feedback.next_steps.map(async (step: any) => ({
             growth_area: await translateText(step.growth_area),
             specific_behavior: await translateText(step.specific_behavior),
+            self_reflection_question: step.self_reflection_question
+              ? await translateText(step.self_reflection_question)
+              : undefined,
           }))
         );
+      }
+
+      if (feedback.priority_growth_areas && Array.isArray(feedback.priority_growth_areas)) {
+        translated.priority_growth_areas = await Promise.all(
+          feedback.priority_growth_areas.map((area: string) => translateText(area))
+        );
+      }
+
+      if (feedback.closing_encouragement) {
+        translated.closing_encouragement = await translateText(feedback.closing_encouragement);
       }
 
       setTranslatedFeedback(translated);
@@ -288,6 +311,19 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
       if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
     };
   }, []);
+
+  // Silent auto-retry when results haven't propagated yet after completion
+  useEffect(() => {
+    if (phase === 'completed' && !observation.neo_results) {
+      const timer = setTimeout(async () => {
+        try {
+          const refreshed = await getObservation(observation.id);
+          if (refreshed.neo_results) onSaved(refreshed);
+        } catch (_) { /* silent retry */ }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, observation.neo_results, observation.id, onSaved]);
 
   const startRecording = async () => {
     try {
@@ -482,7 +518,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   };
 
   const uploadAudio = async (blob: Blob, mimeType: string) => {
-    let progressInterval: ReturnType<typeof setInterval> | undefined;
+    let progressInterval: number | undefined;
     try {
       if (!observation?.id) {
         toast.error('No observation selected. Please schedule a visit first.');
@@ -696,21 +732,31 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
           const neoResults = data.results || observation.neo_results;
 
-          // Persist neo_results + neo_status to Railway Postgres
+          // Show results immediately from the API response — don't wait for DB round-trip
+          if (neoResults) {
+            onSaved({ ...observation, neo_status: 'completed' as const, neo_results: neoResults });
+          }
+
+          // Persist to DB in the background
           patchObservation(observation.id, {
             neo_status: 'completed',
             neo_results: neoResults || undefined,
-          }).then(updated => {
-            onSaved(updated);
+          }).then(async updated => {
+            if (updated.neo_results) {
+              onSaved(updated);
+            } else if (!neoResults) {
+              // No results from API or patch — try fetching directly
+              try {
+                const refreshed = await getObservation(observation.id);
+                if (refreshed.neo_results) onSaved(refreshed);
+              } catch (_) { /* silent fallback */ }
+            }
           }).catch(async () => {
-            // Fallback: merge locally and try getObservation
-            const mergedObs = { ...observation, neo_status: 'completed' as const, neo_results: neoResults };
-            onSaved(mergedObs);
-            try {
-              const refreshed = await getObservation(observation.id);
-              if (refreshed.neo_results) onSaved(refreshed);
-            } catch {
-              // Use locally merged state — already called onSaved above
+            if (!neoResults) {
+              try {
+                const refreshed = await getObservation(observation.id);
+                if (refreshed.neo_results) onSaved(refreshed);
+              } catch (_) { /* silent fallback */ }
             }
           });
         } else if (data.status === 'failed') {
@@ -891,39 +937,68 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   // Uploading phase
   if (phase === 'uploading') {
     return (
-      <div className="space-y-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-sm font-medium text-blue-900">{t('Uploading audio')}</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Upload className="w-4 h-4 text-blue-700" />
+          <p className="text-sm font-medium text-blue-900">Uploading audio…</p>
+          <span className="ml-auto text-xs text-blue-700 tabular-nums">{Math.round(uploadProgress)}%</span>
+        </div>
+        <Progress value={uploadProgress} className="h-2.5" />
+        <p className="text-xs text-blue-600">Please keep this page open while the audio uploads.</p>
+      </div>
+    );
+  }
+
+  // Processing phase — staged progress card
+  if (phase === 'processing') {
+    const stage = pollProgress < 30 ? 0 : pollProgress < 70 ? 1 : 2;
+    const stages = [
+      'Transcribing audio',
+      'Analyzing coaching quality',
+      'Generating feedback',
+    ];
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Brain className="w-4 h-4 text-blue-700 animate-pulse" />
+          <p className="text-sm font-medium text-blue-900">Neo is analyzing your debrief</p>
         </div>
 
-        {savedAudioUrl && <audio controls className="w-full" src={savedAudioUrl} />}
+        <div className="space-y-2.5">
+          {stages.map((label, i) => (
+            <div key={i} className="flex items-center gap-2.5 text-xs">
+              {i < stage ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
+              ) : i === stage ? (
+                <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+              ) : (
+                <div className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0" />
+              )}
+              <span className={
+                i < stage
+                  ? 'text-green-700'
+                  : i === stage
+                  ? 'text-blue-800 font-medium'
+                  : 'text-muted-foreground'
+              }>
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
 
-        <Button disabled className="w-full py-6">
-          ⏳ {t('Uploading audio')}...
-        </Button>
-
-        <Progress value={uploadProgress} className="h-2" />
+        <Progress value={pollProgress} className="h-2.5" />
+        <p className="text-xs text-blue-600">This usually takes 2–5 minutes. You can close this panel — Neo will keep running.</p>
       </div>
     );
   }
 
-  // Queued phase (offline)
-  // Processing phase
-  if (phase === 'processing') {
-    return (
-      <div className="space-y-2">
-        <p className="text-xs text-muted-foreground">{t('Neo is analyzing')}</p>
-        <Progress value={pollProgress} className="h-2" />
-      </div>
-    );
-  }
-
-  // Completed phase — show loading state if results haven't propagated yet
+  // Completed phase — results still propagating
   if (phase === 'completed' && !observation.neo_results) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        {t('Loading analysis results…')}
+      <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading results…
       </div>
     );
   }
@@ -972,7 +1047,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
               onClick={() => {
                 setLanguage('ur');
                 if (!translatedFeedback) {
-                  translateFeedback(results.observer_feedback);
+                  translateFeedback(results.observer_feedback, results.readiness_level);
                 }
               }}
               disabled={translating}
