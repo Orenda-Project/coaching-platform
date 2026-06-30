@@ -17,6 +17,7 @@ import {
   Play,
   RotateCcw,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CotObservation, NeoResults, NeoObserverFeedback } from '@/types/observation';
@@ -185,7 +186,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const [savedAudioMimeType, setSavedAudioMimeType] = useState<string>('audio/webm');
   const [savedAudioUrl, setSavedAudioUrl] = useState<string | null>(null);
   const [neoTaskId, setNeoTaskId] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<number | null>(null);
@@ -193,18 +193,6 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioPlayerRef = useRef<HTMLAudioElement>(null);
   const autoResumedRef = useRef(false);
-
-  const refreshResults = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const refreshed = await getObservation(observation.id);
-      onSaved(refreshed);
-    } catch {
-      // silently ignore — user can retry manually
-    } finally {
-      setRefreshing(false);
-    }
-  }, [observation.id, onSaved]);
 
   // Translation function
   const translateText = async (text: string): Promise<string> => {
@@ -220,10 +208,19 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     }
   };
 
-  const translateFeedback = async (feedback: any) => {
+  const translateFeedback = async (feedback: any, readinessLevel?: string) => {
     setTranslating(true);
     try {
-      const translated = { ...feedback };
+      const translated: any = { ...feedback };
+
+      // Translate readiness_level (lives on results, not observer_feedback)
+      if (readinessLevel) {
+        translated.readiness_level = await translateText(readinessLevel);
+      }
+
+      if (feedback.overall_summary) {
+        translated.overall_summary = await translateText(feedback.overall_summary);
+      }
 
       if (feedback.strengths && Array.isArray(feedback.strengths)) {
         translated.strengths = await Promise.all(
@@ -236,8 +233,21 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
           feedback.next_steps.map(async (step: any) => ({
             growth_area: await translateText(step.growth_area),
             specific_behavior: await translateText(step.specific_behavior),
+            self_reflection_question: step.self_reflection_question
+              ? await translateText(step.self_reflection_question)
+              : undefined,
           }))
         );
+      }
+
+      if (feedback.priority_growth_areas && Array.isArray(feedback.priority_growth_areas)) {
+        translated.priority_growth_areas = await Promise.all(
+          feedback.priority_growth_areas.map((area: string) => translateText(area))
+        );
+      }
+
+      if (feedback.closing_encouragement) {
+        translated.closing_encouragement = await translateText(feedback.closing_encouragement);
       }
 
       setTranslatedFeedback(translated);
@@ -302,13 +312,18 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     };
   }, []);
 
-  // Auto-retry when stuck: completed phase but results haven't propagated
+  // Silent auto-retry when results haven't propagated yet after completion
   useEffect(() => {
     if (phase === 'completed' && !observation.neo_results) {
-      const timer = setTimeout(refreshResults, 4000);
+      const timer = setTimeout(async () => {
+        try {
+          const refreshed = await getObservation(observation.id);
+          if (refreshed.neo_results) onSaved(refreshed);
+        } catch {}
+      }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [phase, observation.neo_results, refreshResults]);
+  }, [phase, observation.neo_results, observation.id, onSaved]);
 
   const startRecording = async () => {
     try {
@@ -717,31 +732,31 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
 
           const neoResults = data.results || observation.neo_results;
 
-          // Persist neo_results + neo_status to Railway Postgres
+          // Show results immediately from the API response — don't wait for DB round-trip
+          if (neoResults) {
+            onSaved({ ...observation, neo_status: 'completed' as const, neo_results: neoResults });
+          }
+
+          // Persist to DB in the background
           patchObservation(observation.id, {
             neo_status: 'completed',
             neo_results: neoResults || undefined,
           }).then(async updated => {
             if (updated.neo_results) {
               onSaved(updated);
-            } else {
-              // Patch succeeded but results weren't returned — fetch directly
+            } else if (!neoResults) {
+              // No results from API or patch — try fetching directly
               try {
                 const refreshed = await getObservation(observation.id);
-                onSaved(refreshed);
-              } catch {
-                onSaved(updated);
-              }
+                if (refreshed.neo_results) onSaved(refreshed);
+              } catch {}
             }
           }).catch(async () => {
-            // Fallback: merge locally and try getObservation
-            const mergedObs = { ...observation, neo_status: 'completed' as const, neo_results: neoResults };
-            onSaved(mergedObs);
-            try {
-              const refreshed = await getObservation(observation.id);
-              if (refreshed.neo_results) onSaved(refreshed);
-            } catch {
-              // Use locally merged state — already called onSaved above
+            if (!neoResults) {
+              try {
+                const refreshed = await getObservation(observation.id);
+                if (refreshed.neo_results) onSaved(refreshed);
+              } catch {}
             }
           });
         } else if (data.status === 'failed') {
@@ -978,24 +993,12 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
     );
   }
 
-  // Completed phase — results propagating
+  // Completed phase — results still propagating
   if (phase === 'completed' && !observation.neo_results) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-green-600" />
-          <p className="text-sm font-medium text-green-900">Analysis complete — loading results</p>
-        </div>
-        <Progress value={100} className="h-2.5" />
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full border-green-400 text-green-800 hover:bg-green-100"
-          onClick={refreshResults}
-          disabled={refreshing}
-        >
-          {refreshing ? 'Refreshing…' : 'Refresh Results'}
-        </Button>
+      <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading results…
       </div>
     );
   }
@@ -1044,7 +1047,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
               onClick={() => {
                 setLanguage('ur');
                 if (!translatedFeedback) {
-                  translateFeedback(results.observer_feedback);
+                  translateFeedback(results.observer_feedback, results.readiness_level);
                 }
               }}
               disabled={translating}
