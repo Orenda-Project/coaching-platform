@@ -319,7 +319,7 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
         try {
           const refreshed = await getObservation(observation.id);
           if (refreshed.neo_results) onSaved(refreshed);
-        } catch {}
+        } catch (_) { /* silent retry */ }
       }, 2000);
       return () => clearTimeout(timer);
     }
@@ -749,14 +749,14 @@ export function NeoAnalysis({ observation, onSaved }: Props) {
               try {
                 const refreshed = await getObservation(observation.id);
                 if (refreshed.neo_results) onSaved(refreshed);
-              } catch {}
+              } catch (_) { /* silent fallback */ }
             }
           }).catch(async () => {
             if (!neoResults) {
               try {
                 const refreshed = await getObservation(observation.id);
                 if (refreshed.neo_results) onSaved(refreshed);
-              } catch {}
+              } catch (_) { /* silent fallback */ }
             }
           });
         } else if (data.status === 'failed') {

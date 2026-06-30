@@ -35,9 +35,9 @@ export default function ObservationScheduler() {
   type ActiveRegion = 'ict' | 'punjab' | 'pindi';
 
   const availableRegions: Array<{ key: ActiveRegion; label: string }> = [
-    subRegion         ? { key: 'ict',    label: `ICT — ${subRegion}` }             : null,
-    punjabCluster     ? { key: 'punjab', label: `Punjab — ${punjabCluster}` }      : null,
-    rawalpindiCluster ? { key: 'pindi',  label: `Pindi — ${rawalpindiCluster}` }   : null,
+    subRegion         && userRegion === 'islamabad'   ? { key: 'ict',    label: `ICT — ${subRegion}` }           : null,
+    punjabCluster     && userRegion === 'punjab'      ? { key: 'punjab', label: `Punjab — ${punjabCluster}` }    : null,
+    rawalpindiCluster && userRegion === 'rawalpindi'  ? { key: 'pindi',  label: `Pindi — ${rawalpindiCluster}` } : null,
   ].filter(Boolean) as Array<{ key: ActiveRegion; label: string }>;
 
   const hasMultiple = availableRegions.length > 1;
