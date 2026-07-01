@@ -582,7 +582,7 @@ export default function Profile() {
               <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
                 Email Address
               </p>
-              <p className="text-sm font-medium text-foreground">{user.email}</p>
+              <p className="text-sm font-medium text-foreground">{profile.email || user.email}</p>
             </div>
 
             <div>

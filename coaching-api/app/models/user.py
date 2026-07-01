@@ -72,6 +72,7 @@ class UserProfile(Base):
             "id": self.id,
             "user_id": self.user_id,
             "full_name": self.full_name,
+            "email": self.user.email if self.user else None,
             "phone": self.phone,
             "avatar_url": self.avatar_url,
             "bio": self.bio,
