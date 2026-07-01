@@ -58,6 +58,7 @@ class ProfileResponse(BaseModel):
     id: str
     user_id: Optional[str] = None
     full_name: Optional[str] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
@@ -216,7 +217,19 @@ async def get_profile(user_id: str, db: Session = Depends(get_db)):
 async def update_profile(user_id: str, request: ProfileRequest, db: Session = Depends(get_db)):
     service = AuthService(db)
 
-    update_data = {k: v for k, v in request.dict().items() if v is not None}
+    # Fields that can be explicitly set to null to clear them
+    nullable_fields = {
+        "sub_region", "punjab_cluster", "rawalpindi_cluster",
+        "avatar_url", "bio", "persona", "weak_modules",
+    }
+
+    raw = request.dict()
+    # Include fields that are either non-None OR explicitly nullable
+    update_data = {
+        k: v for k, v in raw.items()
+        if v is not None or k in nullable_fields
+    }
+
     profile = service.update_profile(user_id, **update_data)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")

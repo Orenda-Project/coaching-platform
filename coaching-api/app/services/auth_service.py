@@ -1,7 +1,7 @@
 """Authentication service for user management."""
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from typing import Optional, Dict, Any, List
@@ -67,13 +67,13 @@ class AuthService:
     def get_profile(self, user_id: str) -> Optional[UserProfile]:
         """Get profile by user_id, with fallback to id (PK) for pre-migration profiles."""
         profile = self.db.execute(
-            select(UserProfile).filter(UserProfile.user_id == user_id)
-        ).scalar_one_or_none()
+            select(UserProfile).options(joinedload(UserProfile.user)).filter(UserProfile.user_id == user_id)
+        ).unique().scalar_one_or_none()
         if not profile:
             # Fallback: old profiles have id=user_id but user_id column may be NULL
             profile = self.db.execute(
-                select(UserProfile).filter(UserProfile.id == user_id)
-            ).scalar_one_or_none()
+                select(UserProfile).options(joinedload(UserProfile.user)).filter(UserProfile.id == user_id)
+            ).unique().scalar_one_or_none()
         return profile
 
     def repair_profile_link(self, profile: UserProfile, user_id: str) -> bool:

@@ -71,8 +71,9 @@ export default function AdminAnalytics() {
       const q = search.toLowerCase();
       const name = (c.full_name || "").toLowerCase();
       const phone = (c.phone || "").toLowerCase();
+      const email = (c.email || "").toLowerCase();
       const school = (c.school_id || "").toLowerCase();
-      if (!name.includes(q) && !phone.includes(q) && !school.includes(q)) return false;
+      if (!name.includes(q) && !phone.includes(q) && !email.includes(q) && !school.includes(q)) return false;
     }
     return true;
   });
@@ -92,6 +93,7 @@ export default function AdminAnalytics() {
   const handleExportToExcel = async () => {
     const exportData = filtered.map((c) => ({
       full_name: c.full_name,
+      email: c.email,
       phone: c.phone,
       region: c.region,
       sub_region: c.region === "islamabad" ? c.sub_region : undefined,
@@ -262,6 +264,7 @@ export default function AdminAnalytics() {
                     <td className="px-3 py-2">
                       <p className="font-medium text-foreground text-sm">{c.full_name || "--"}</p>
                       <p className="text-xs text-muted-foreground">{c.phone || "--"}</p>
+                      {c.email && <p className="text-xs text-muted-foreground truncate max-w-48" title={c.email}>{c.email}</p>}
                     </td>
 
                     {/* Region */}
