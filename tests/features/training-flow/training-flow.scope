@@ -1,17 +1,31 @@
+# Module-Based Training Journey feature scope
+
+# ── Pages: module content viewer + module quiz ──────────────────────────────
 src/pages/TrainingModule.tsx
-src/pages/Training.tsx
-src/components/TrainingModule/TrainingModule.tsx
-src/components/TrainingModule/SlideViewer.tsx
-src/components/TrainingModule/PracticeSection.tsx
-src/components/TrainingModule/CompletionStatus.tsx
-src/components/TrainingModule/Navigation.tsx
+src/pages/ModuleQuiz.tsx
+
+# ── Module list / card UI ────────────────────────────────────────────────────
+src/components/ModuleCard.tsx
+
+# ── Training content players: slides + scenario, content gate (90% / 30s) ────
+src/components/training/TrainingContentViewer.tsx
+src/components/training/SlidesPlayer.tsx
+src/components/training/ScenarioPlayer.tsx
+
+# ── Business rules: content gate, sequential unlock, quiz pass %, attempts ───
+src/domain/trainingRules.ts
+src/domain/thresholds.ts
+
+# ── Hooks: training progress + quiz state ────────────────────────────────────
 src/hooks/useTraining.ts
-src/hooks/useTrainingProgress.ts
-src/services/api/training.ts
-src/services/api/modules.ts
-src/types/training.ts
-src/types/module.ts
-src/store/trainingStore.ts
-src/store/moduleStore.ts
-src/utils/trainingHelpers.ts
-src/db/queries/trainingQueries.ts
+src/hooks/useQuiz.ts
+
+# ── Data access layer (frontend → FastAPI) ───────────────────────────────────
+src/lib/apiClients/trainingApiClient.ts
+src/lib/quizApiClient.ts
+
+# ── Backend: training + quiz endpoints and models (FastAPI) ──────────────────
+coaching-api/app/controllers/training_controller.py
+coaching-api/app/controllers/quiz_controller.py
+coaching-api/app/models/training.py
+coaching-api/app/models/training_progress.py
