@@ -281,3 +281,222 @@ Feature: Universal Scheduler — Coach Visit Planning & Management
     And I see the message "Your region assignment is invalid. Please contact an administrator."
     And the visit is not created
     And I am prompted to re-authenticate
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # ADDED — scenarios written to match the ACTUAL implementation (2026-07-01)
+  # Verified against: src/lib/scheduler-utils.ts, src/components/observation/*,
+  # src/data/observations.ts, src/types/observation.ts. In this codebase a visit is a
+  # cot_observations row; statuses are Scheduled | Draft | Submitted | Approved
+  # (the "Completed" tab = Submitted + Approved). Neo scoring runs in the debrief
+  # flow, decoupled from marking a visit done.
+  # ══════════════════════════════════════════════════════════════════════════════
+
+  # ── PRIORITIZATION (scheduler-utils.ts) ───────────────────────────────────────
+
+  @chunk
+  @positive
+  Scenario: Never-observed teachers are ranked as top priority
+    Given a teacher "Zainab Bibi" has never been observed
+    And a teacher "Ahmed Ali" has an observation score of 82%
+    When the roster is ranked by urgency
+    Then "Zainab Bibi" is assigned the CRITICAL tier
+    And "Zainab Bibi" is given an urgency value of 9999
+    And "Zainab Bibi" appears above "Ahmed Ali" in the ranked list
+
+  @chunk
+  @positive
+  Scenario Outline: Priority tier and visit interval are derived from the latest score
+    Given a teacher has a latest score of <score>%
+    And the teacher has been observed before
+    When the priority tier is assigned
+    Then the tier is "<tier>"
+    And the recommended visit interval is <interval> days
+
+    Examples:
+      | score | tier     | interval |
+      | 30    | CRITICAL | 7        |
+      | 55    | HIGH     | 14       |
+      | 70    | MEDIUM   | 21       |
+      | 90    | LOW      | 30       |
+
+  @chunk
+  @positive
+  Scenario: A falling score trend increases a teacher's urgency
+    Given a teacher has three observations scored 80%, then 72%, then 63%
+    When the score trend is calculated
+    Then the trend is "falling"
+    And the urgency for that teacher is increased by 10
+
+  @chunk
+  @edge
+  Scenario: A single dip across three observations is treated as flat, not falling
+    Given a teacher has three observations scored 80%, then 70%, then 78%
+    When the score trend is calculated
+    Then the trend is "flat"
+    And no falling-trend urgency bonus is applied
+
+  # ── WEEKLY PLAN GENERATION (scheduler-utils.ts) ───────────────────────────────
+
+  @chunk
+  @positive
+  Scenario: Weekly schedule fills at most 10 slots across Monday to Friday
+    Given a ranked roster of 14 teachers
+    When the weekly schedule is generated with 2 visits per day over 5 working days
+    Then exactly 10 visits are scheduled
+    And no day is assigned more than 2 visits
+    And no visit is placed on Saturday or Sunday
+    And the remaining 4 teachers are returned as overflow
+
+  @chunk
+  @positive
+  Scenario: Visits are clustered by school to reduce travel
+    Given the ranked roster contains multiple teachers at "Al-Noor School"
+    When the weekly schedule is generated
+    Then teachers at "Al-Noor School" are scheduled together before moving to another school
+
+  @chunk
+  @edge
+  Scenario: The four-week plan rolls overflow forward into later weeks
+    Given a ranked roster larger than 10 teachers
+    When the four-week plan is generated
+    Then week 1 schedules the highest-urgency teachers first
+    And teachers not scheduled in week 1 are carried into subsequent weeks
+
+  # ── MULTI-REGION ROUTING (ObservationScheduler.tsx) ───────────────────────────
+
+  @chunk
+  @positive
+  Scenario Outline: The scheduler renders the tab matching the coach's assigned region
+    Given I am logged in as a coach assigned to "<assignment>"
+    When I open the Observation Scheduler
+    Then the "<tab>" smart-schedule view is displayed
+
+    Examples:
+      | assignment       | tab             |
+      | ICT sub-region   | ICT Smart Plan  |
+      | Punjab cluster   | Punjab Smart Plan |
+      | Rawalpindi cluster | Rawalpindi Smart Plan |
+
+  @chunk
+  @negative
+  Scenario: ICT coach without a sub-region cannot use the smart schedule
+    Given I am an ICT coach with no sub-region assigned
+    When I open the ICT smart-schedule view
+    Then I see the message "No region assigned"
+    And I am advised to contact admin
+
+  # ── VISIT STATE TRANSITIONS (VisitsDashboardTab.tsx) ──────────────────────────
+
+  @chunk
+  @positive
+  Scenario: Marking a scheduled visit done moves it to the Completed tab as Submitted
+    Given I have a scheduled visit for "Ahmed Ali"
+    When I click the "Done" action on the visit
+    Then the visit status becomes "Submitted"
+    And the visit appears in the "Completed" tab
+    And I see the message "Visit marked complete"
+
+  @chunk
+  @positive
+  Scenario: Saving a scheduled visit as draft moves it to the Draft tab
+    Given I have a scheduled visit for "Ahmed Ali"
+    When I click the "Draft" action on the visit
+    Then the visit status becomes "Draft"
+    And the visit appears in the "Draft" tab
+    And I see the message "Visit saved to draft"
+
+  @chunk
+  @positive
+  Scenario: Deleting a visit requires confirmation before removal
+    Given I have a scheduled visit
+    When I click the "Delete" action
+    Then a confirmation dialog "Delete this visit?" is shown
+    And the visit is only removed after I confirm
+    And I see the message "Visit deleted"
+
+  @chunk
+  @edge
+  Scenario: A draft visit with saved audio shows an "Audio saved" badge
+    Given I have a draft visit with locally saved debrief audio
+    When I view the draft visit card
+    Then an "Audio saved" badge is displayed on the card
+
+  # ── NEO DEBRIEF IS DECOUPLED FROM COMPLETION (VisitsDashboardTab.tsx) ─────────
+
+  @chunk
+  @positive
+  Scenario Outline: The debrief button label reflects the Neo analysis status
+    Given a visit has a Neo status of "<neo_status>"
+    When I view the visit card
+    Then the debrief button shows "<label>"
+
+    Examples:
+      | neo_status | label      |
+      | none       | Debrief    |
+      | processing | Analyzing… |
+      | completed  | Debriefed  |
+
+  @chunk
+  @negative
+  Scenario: The Done action is disabled while Neo analysis is processing
+    Given a visit has a Neo status of "processing"
+    When I view the visit card
+    Then the "Done" action is disabled
+    And the "Debrief" action is disabled
+
+  # ── NOTIFY TEACHER (VisitsDashboardTab.tsx) ───────────────────────────────────
+
+  @chunk
+  @positive
+  Scenario: Notify opens WhatsApp with a pre-filled visit message
+    Given I have a scheduled visit for "Ahmed Ali" at "Al-Noor School"
+    When I click the "Notify" action
+    Then a WhatsApp share link opens in a new tab
+    And the message includes the teacher name, school, visit date, and arrival time
+
+  # ── OFFLINE SUPPORT (punjabOfflineQueue.ts / rawalpindiOfflineQueue.ts) ───────
+
+  @chunk
+  @edge
+  Scenario: Scheduling a Punjab visit while offline queues it locally
+    Given I am a Punjab coach and my device is offline
+    When I schedule a visit
+    Then the visit is stored in the local offline queue
+    And a pseudo visit is shown in the dashboard immediately
+    And I see a message that the visit will sync when back online
+
+  @chunk
+  @positive
+  Scenario: Queued offline visits sync automatically when the connection returns
+    Given I have visits stored in the Punjab offline queue
+    When the device reconnects to the internet
+    Then the queued visits are uploaded to the backend
+    And each successfully uploaded visit is removed from the queue
+    And the teacher list is refreshed
+
+  @chunk
+  @error
+  Scenario: Scheduling an ICT visit with no connection shows a reconnect prompt
+    Given I am an ICT coach and the network request fails to fetch
+    When I click the "Schedule Visit" button
+    Then I see the message "No connection — reconnect and try again"
+    And the visit is not added to any offline queue
+
+  # ── DATA-LAYER CONTRACT (observations.ts) ─────────────────────────────────────
+
+  @chunk
+  @positive
+  Scenario: A scheduled visit is created via the coaching observations API
+    Given I confirm a valid visit for "Ahmed Ali"
+    When the visit is submitted
+    Then a POST request is sent to "/api/coaching/observations"
+    And the payload status is "Scheduled"
+    And the payload region is set to the coach's active region
+
+  @chunk
+  @positive
+  Scenario: Observations are listed for the current observer and region
+    Given I am viewing the Visits dashboard
+    When the observations are loaded
+    Then a GET request is sent to "/api/coaching/observations" with my observer id
+    And only observations belonging to my observer id are returned

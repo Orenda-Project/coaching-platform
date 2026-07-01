@@ -1,63 +1,65 @@
-# Backend — Visit model, serializers, and CRUD API endpoints for scheduling, state management, and completion
-backend/apps/coaching/models/visit.py
-backend/apps/coaching/models/visit_feedback.py
-backend/apps/coaching/serializers/visit_serializers.py
-backend/apps/coaching/views/visit_views.py
-backend/apps/coaching/permissions/region_permissions.py
+# Scheduler (Observation Scheduler) feature scope
+# NOTE: In this codebase a "visit" is a row in the cot_observations table.
+# Statuses are: Scheduled | Draft | Submitted | Approved (there is no "Completed" status —
+# the "Completed" tab shows Submitted + Approved). Neo AI scoring runs in the debrief flow,
+# decoupled from marking a visit done. RLS is per-observer (not per-region).
 
-# Backend — Smart Plan teacher prioritization, ranking algorithm, and engagement score calculation
-backend/apps/coaching/models/teacher.py
-backend/apps/coaching/views/smart_plan_views.py
-backend/apps/coaching/services/engagement_service.py
+# ── Page / container: region detection + tab routing ─────────────────────────
+src/pages/ObservationScheduler.tsx
 
-# Backend — Neo AI integration, audio processing (conversion, upload, scoring), and feedback recording
-backend/apps/neo/neo_client.py
-backend/apps/neo/services/audio_processor.py
-backend/apps/neo/services/audio_converter.py
-backend/apps/neo/services/scorer.py
+# ── Smart Plan: teacher prioritization UI (one tab per region) ───────────────
+src/components/observation/SmartScheduleTab.tsx
+src/components/observation/PunjabSmartScheduleTab.tsx
+src/components/observation/PindiSmartScheduleTab.tsx
+src/components/observation/DCDashboard.tsx
+src/components/observation/PriorityList.tsx
+src/components/observation/FourWeekOverview.tsx
+src/components/observation/WeeklyPlanView.tsx
 
-# Backend — Region-level access control and API-level security validation
-backend/apps/auth/permissions/region_access.py
-backend/apps/auth/middleware/region_validation_middleware.py
+# ── Prioritization / ranking / weekly-plan business logic ────────────────────
+src/lib/scheduler-utils.ts
+src/domain/thresholds.ts
 
-# Backend — Database migrations for visit and feedback tables
-backend/apps/coaching/migrations/
+# ── Schedule form: field validation + Schedule Visit button gating ───────────
+src/components/observation/ScheduleVisitModal.tsx
 
-# Frontend — Scheduler page, visit form, field validation, and button enablement logic
-frontend/src/pages/Scheduler/
-frontend/src/components/VisitForm/
-frontend/src/components/VisitForm/validation.ts
+# ── Visits dashboard: Scheduled/Draft/Completed tabs, state transitions, delete
+src/components/observation/VisitsDashboardTab.tsx
+src/components/observation/ObservationsOverviewTab.tsx
+src/components/observation/TeacherAbsentModal.tsx
 
-# Frontend — Smart Plan component with teacher prioritization and engagement display
-frontend/src/components/SmartPlan/
-frontend/src/components/SmartPlan/TeacherList.tsx
-frontend/src/hooks/useSmartPlan.ts
+# ── Neo AI debrief: audio capture, processing, scoring feedback ──────────────
+src/components/observation/DebriefForm.tsx
+src/components/observation/QuickObservationPanel.tsx
+src/components/observation/NeoAnalysis.tsx
+src/lib/audioQueue.ts
 
-# Frontend — Tab navigation component for Scheduled/Draft/Completed visit filtering
-frontend/src/components/SchedulerTabs/
-frontend/src/components/SchedulerTabs/TabFilter.tsx
-frontend/src/hooks/useVisitFilter.ts
+# ── Data access layer (frontend → FastAPI) ───────────────────────────────────
+src/data/observations.ts
+src/data/punjabTeachers.ts
+src/data/rawalpindiTeachers.ts
 
-# Frontend — Visit card component displaying teacher, school, date, time, notes, and status
-frontend/src/components/VisitCard/
-frontend/src/components/VisitCard/VisitCard.tsx
+# ── Hooks: teacher-score loading (24h cache) + observation state ─────────────
+src/hooks/useCoaching.ts
+src/hooks/usePunjabCoaching.ts
+src/hooks/useRawalpindiCoaching.ts
+src/hooks/useObservation.ts
 
-# Frontend — Visit completion workflow with and without Neo feedback recording
-frontend/src/pages/VisitCompletion/
-frontend/src/components/VisitCompletion/CompletionForm.tsx
+# ── Offline support: queue visits, sync on reconnect (Punjab / Rawalpindi) ───
+src/lib/punjabOfflineQueue.ts
+src/lib/rawalpindiOfflineQueue.ts
 
-# Frontend — Neo AI audio recording, processing, conversion, upload, and scoring UI
-frontend/src/components/NeoRecorder/
-frontend/src/components/NeoRecorder/AudioRecorder.tsx
-frontend/src/components/NeoRecorder/AudioProcessor.tsx
-frontend/src/hooks/useNeoRecording.ts
-frontend/src/services/neoAudioService.ts
+# ── Types ─────────────────────────────────────────────────────────────────────
+src/types/observation.ts
+src/types/teacher.ts
 
-# Frontend — Dashboard with real-time updates reflecting visit state changes and visit deletion
-frontend/src/pages/Dashboard/
-frontend/src/components/Dashboard/VisitDashboard.tsx
-frontend/src/hooks/useVisitDashboard.ts
+# ── Backend: observation CRUD + status endpoints (FastAPI, /api/coaching) ────
+coaching-api/app/controllers/coaching_controller.py
+coaching-api/app/models/observation.py
+coaching-api/app/models/coaching.py
 
-# Frontend — Region-level access control and client-side security checks
-frontend/src/hooks/useRegionAccess.ts
-frontend/src/services/regionService.ts
+# ── Database migrations for cot_observations + visit metadata ────────────────
+supabase/migrations/20260425000001_observation_feature.sql
+supabase/migrations/20260512000003_add_visit_purpose.sql
+supabase/migrations/20260515000003_add_framework_to_cot_observations.sql
+supabase/migrations/20260601000001_add_visit_metadata_to_observations.sql
