@@ -302,8 +302,10 @@ try {
   const page = await browser.newPage();
   page.setDefaultTimeout(30000);
 
+  let ranFull = false;
   if (!FRESH) {
     // ---- Configured account path (from SKILL.md) with completion-aware branching ----
+    await setupToastObserver(page); // capture toasts before navigation (needed if full flow runs)
     await login(page, CONFIGURED);
     const email = CONFIGURED.email;
     const userId = await currentUserId(page);
@@ -331,8 +333,17 @@ try {
         recordBaselineCompletion({ email, userId, persona: v.persona, score: v.score, source: 'observed (live run, learning was stale)' });
         for (const [id, name] of FLOW_SCENARIOS) rec(id, name, '⏭️ SKIPPED', '—', '—', 'Baseline found completed on live check — full flow skipped.');
       } else {
-        console.log('[flow] Baseline NOT completed → full flow would run here.');
-        rec('FULL', 'Full baseline flow', 'ℹ️ INFO', '—', '—', `${CONFIGURED.email} is not completed; run with the full-flow implementation. (Use --fresh to exercise full flow on a throwaway account.)`);
+        console.log('[flow] Baseline NOT completed → running FULL @regression flow on the configured account (authorized).');
+        const outcome = await runFullFlow(page, userId);
+        ranFull = true;
+        // After submission the configured account IS completed → verify S18 + lock.
+        const v = await verifyCannotRetake(page, WHO);
+        recordBaselineCompletion({
+          email, userId,
+          persona: outcome.persona ?? v.persona,
+          score: outcome.score ?? v.score,
+          source: `full live run ${new Date().toISOString().slice(0, 10)} (configured account, authorized)`,
+        });
       }
     }
 
@@ -341,7 +352,7 @@ try {
     rec('S10', 'Persona B (≥70%,<75%)', '⏭️ SKIPPED', '—', '—', 'Single account / no answer key.');
     rec('S11', 'Persona C (≥65%,<70%)', '⏭️ SKIPPED', '—', '—', 'Single account / no answer key.');
     rec('S12', 'Persona D (≥60%,<65%)', '⏭️ SKIPPED', '—', '—', 'Single account / no answer key.');
-    rec('S21', 'Cannot navigate to training modules without baseline', '⏭️ SKIPPED', '—', '—', 'Requires a no-baseline account; not testable on an already-completed account (use --fresh).');
+    if (!ranFull) rec('S21', 'Cannot navigate to training modules without baseline', '⏭️ SKIPPED', '—', '—', 'Requires a no-baseline account; not testable on an already-completed account (use --fresh).');
     rec('S22', 'Profile update fails during submission', '⏭️ SKIPPED', '—', '—', 'Needs induced DB write failure — cover at unit/integration tier.');
   } else {
     // ---- --fresh: sign up a throwaway account and run the FULL new-user flow ----

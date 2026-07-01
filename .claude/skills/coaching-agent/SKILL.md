@@ -42,7 +42,7 @@ authorization for all routine work:
 ## Application Under Test
 
 - **URL:** https://coaching-platform-production-43ff.up.railway.app/
-- **Login email:** umar.kabaili@yopmail.com
+- **Login email:** azam.sawati@yomail.com 
 
 
 - **Login password:** Umar@123!@#
@@ -173,6 +173,20 @@ store [`baseline-completion.json`](baseline-completion.json) — a list of
 4. **If not completed:** execute the normal baseline assessment flow → record
    completion on submission.
 
+## Single-Pass Execution (one linear flow — do NOT re-trigger)
+
+When `/coaching-agent` is invoked, run **exactly one linear pass** and then stop:
+
+> **login → baseline (complete, or verify-only if already done) → training → report + LEARNING.md**
+
+- The agent moves through these stages **once, in order**. It must **not** re-invoke
+  itself, loop, or re-run the whole agent again and again within a session.
+- A stage that fails is **retried/adapted in place** (per Autonomy), not by restarting
+  the agent from the top. Record the failure as evidence and continue forward.
+- After the report is written and `LEARNING.md` / `baseline-completion.json` are updated,
+  the run is **done** — no automatic repeat. A new run happens only on a fresh
+  `/coaching-agent` invocation by the user.
+
 ## Execution Flow
 
 1. **Launch a headed browser immediately** (visible window; `HEADLESS=1` to override).
@@ -267,6 +281,26 @@ in different order than presented → all recorded regardless of order.
    requirement → module completion → access control → persistence.
 5. Record pass/fail; capture screenshots for failures; report gaps/inconsistencies.
 6. Append results to `LEARNING.md`.
+
+#### Practice-scenario answering strategy (correct by default, one deliberate wrong)
+
+When answering practice/scenario situations, the agent picks the **correct** branch
+(the option flagged `isCorrect` in the unit's training payload) — **always**, in every
+training, by default.
+
+**Exception (test coverage):** in **exactly ONE randomly chosen unit** across the whole
+run, the agent deliberately answers **ONE** situation **incorrectly** — to exercise the
+wrong-answer / scoring / feedback path. Never more than one unit, never more than one
+wrong answer total; every other answer stays correct.
+
+- Implemented in [`runs/training-agent.mjs`](runs/training-agent.mjs) `completePractice()`:
+  `WRONG_ANSWER_TEST` (on by default; set `NO_WRONG=1` to disable) and `WRONG_PROB`
+  (per-eligible-unit selection probability, default `0.5`). The run-wide `wrongInjected`
+  flag guarantees at most one wrong answer.
+- The wrong-answer injection only activates for units whose **answer key is known**
+  (the `isCorrect` branches were captured). If the key is not exposed for a unit, the
+  agent cannot distinguish correct/wrong and falls back to the first option — note this
+  in the report when it happens.
 
 > **UI selectors for the training module are not yet mapped** (only the baseline UI has been
 > driven so far). On the first training run, discover and record the relevant selectors

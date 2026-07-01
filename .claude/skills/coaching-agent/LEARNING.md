@@ -9,6 +9,8 @@ Update it **after every execution**. Keep entries append-only; newest at the top
 
 | Date | Suite | Total | Passed | Failed | Skipped/NX | Notes |
 |------|-------|-------|--------|--------|------------|-------|
+| 2026-06-18 | Baseline | 22 | 15 | 0 | 5 (+2 partial) | Full live flow on **production**, configured account `azam.sawati@yomail.com` (NEW — baseline was incomplete). Submitted → Persona E, 13%. S18 ✅ lock confirmed. PARTIAL: S1 (intro missing explicit question-count text), S4 (nav model wouldn't reproduce skip-ahead). Driver gap filled: non-`--fresh` path now runs full flow when configured account is incomplete (authorized). |
+| 2026-06-18 | Training Flow | 15 | 5 | 1 | 6 NX (+3 partial) | Production, azam (Persona E). Completed **Unit 1.0** (8 slides→3-situation practice→Passed). 13 slide-gates all enforced (~12–14s, no early-advance). **T10 VIOLATION re-corroborated** (dashboard: all Modules 1–6 `locked=false` at 0 progress). Run **crashed at Unit 1.1** with reproducible CDP `Runtime.callFunctionOn timed out` (headed); self-healed 2× then exited. Net: 0 Supabase-data / 108 content-API calls. |
 | 2026-06-16 | Baseline | 22 | 1 | 0 | 21 | Verification-only re-run (completion-aware). Production, account: umar.kabaili@yopmail.com (Persona E, 3%). S18 ✅ COVERED; fresh evidence `runs/evidence/umar_kabaili-baseline-redirect.png`. Training NOT driven live this session (bundled driver is baseline-only); T10 module-gating VIOLATION from 2026-06-10 remains open. |
 | 2026-06-16 | Baseline | 22 | 1 | 0 | 21 | Verification-only (completion-aware). Driver made **generic** — URL + account now sourced from SKILL.md, not hardcoded. Production, account: umar.kabaili@yopmail.com (Persona E, 37%). S18 ✅ COVERED. |
 | 2026-06-10 | Baseline | 22 | 17 | 0 | 5 | First full run vs production. CDP port 9222. Account: umar.kabaili@yopmail.com. |
@@ -25,6 +27,7 @@ completed baseline that the cache had missed).
 
 | User (email) | user_id | Baseline Completed | Persona | Score | Recorded | Source |
 |--------------|---------|--------------------|---------|-------|----------|--------|
+| azam.sawati@yomail.com | aed1c44c-df5a-4f58-b0bc-ffb6de613037 | ✅ YES | E | 13% | 2026-06-18 | production full live run — all-first-option submission scored 13% → Persona E; `/assessment/baseline` redirects to `/dashboard` (S18 ✅). Configured account, authorized completion. |
 | umar.kabaili@yopmail.com | 66e67e8e-0ed9-4850-acb4-095a727a7f2e | ✅ YES | E | 37% | 2026-06-16 | production live run — dashboard Persona E / 37%; `/assessment/baseline` redirects to `/dashboard` (S18 ✅) |
 | noor@yopmail.com | f1c8caeb-5f54-429d-96a1-edce436e46f7 | ✅ YES | E | 33% | 2026-06-12 | staging recon — dashboard Persona E / 33%; `/assessment/baseline` redirects to `/dashboard` |
 
@@ -66,6 +69,7 @@ completed baseline that the cache had missed).
 ## Pass / Fail Trends
 
 - 2026-06-10: First run — 0 failures across all 17 executable scenarios. Baseline flow healthy in production.
+- 2026-06-18: Baseline still 0 failures (15 pass / 2 partial) on a fresh full submission (azam → Persona E, 13%). Training flow remains **FAIL** — T10 module-gating VIOLATION persists (now seen twice: 2026-06-10 and 2026-06-18).
 
 ## Common Failures
 
@@ -150,6 +154,8 @@ Units 1.3–1.6 remained locked. Completion status (Not Started→Passed) and Pr
   with per-situation feedback; buttons: `Dashboard`, `Try Again`, `Finish Training`.
 
 ### Open items
+- **[2026-06-18] Training walk crashes at Unit 1.1 (CDP protocol timeout).** Reproducible `Runtime.callFunctionOn timed out` (a single `evaluate` hung >5min) in headed mode; driver self-healed/relaunched 2× then exited. Modules 2–6, module quizzes, and T1/T3/T9/T12/T13/T14 left unverified. Re-run with `HEADLESS=1` + higher per-call timeout to push past Unit 1.1.
+- **[2026-06-18] ✅ FIXED — Practice answer key `0/0`.** Root cause was **two bugs**: (1) [net-monitor.mjs](runs/net-monitor.mjs) truncated all response bodies to 6000 chars, so the ~200KB training payload couldn't `JSON.parse` (the per-unit `/api/training/{unitId}` body was cut at 6009 chars); (2) `correctAnswersForUnit()` only matched URLs containing the unitId. Fix: net-monitor now keeps **content-api** bodies whole (5MB cap; others still 6000); `correctAnswersForUnit()` is now shape-resilient (per-unit object, per-unit `/content` array, OR bulk `/api/training?limit` keyed by `id`) and parses the `content_url` JSON string → `steps[].branches[].isCorrect`. Verified against all 3 shapes in isolation; **end-to-end confirmation pending the next training run** (key was truncated this run, so picks were blind). The `isCorrect` answer key IS exposed by the content API.
 - **T6 exact message** ("Please complete all training slides before attempting the practice
   section.") was NOT surfaced by clicking the greyed Practice stepper — find the path/route that
   triggers it (e.g. direct URL to practice), or confirm the spec message exists in this build.
