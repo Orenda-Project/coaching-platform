@@ -115,10 +115,11 @@ class AdminFeedbackService:
             "lowRatingCount": kpi_row.low_rating_count,
         }
 
-        # Paginated feedback with LEFT JOIN to profiles
+        # Paginated feedback with LEFT JOIN to profiles and users
         query = (
-            select(UserFeedback, UserProfile)
+            select(UserFeedback, UserProfile, User)
             .outerjoin(UserProfile, UserFeedback.user_id == UserProfile.id)
+            .outerjoin(User, UserFeedback.user_id == User.id)
             .where(where_clause)
             .order_by(UserFeedback.created_at.desc())
             .limit(limit)
@@ -128,14 +129,14 @@ class AdminFeedbackService:
         rows = self.db.execute(query).all()
 
         items: List[Dict[str, Any]] = []
-        for fb, profile in rows:
+        for fb, profile, user in rows:
             record = fb.to_dict()
             record["profiles"] = {
                 "id": profile.id if profile else None,
                 "full_name": profile.full_name if profile else None,
-                "email": None,  # email lives on User, not UserProfile
+                "email": user.email if user else None,
                 "phone": profile.phone if profile else None,
-            } if profile else None
+            } if profile or user else None
             items.append(record)
 
         return {

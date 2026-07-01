@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 
 interface CoachExportData {
   full_name: string | null;
+  email?: string | null;
   phone: string;
   region: string | null;
   school_id: string | null;
@@ -20,11 +21,12 @@ const REGION_LABELS: Record<string, string> = {
 // Header colors - vibrant and professional
 const HEADER_COLORS: Record<number, string> = {
   0: "1C3A70", // Coach Name - Dark Blue
-  1: "2E5090", // Region - Medium Blue
-  2: "3A6BB5", // School - Light Blue
-  3: "0D5D3F", // Persona - Dark Green
-  4: "D97706", // Baseline Score - Amber
-  5: "059669", // Endline Score - Emerald
+  1: "1E3A5F", // Email - Dark Blue variant
+  2: "2E5090", // Region - Medium Blue
+  3: "3A6BB5", // School - Light Blue
+  4: "0D5D3F", // Persona - Dark Green
+  5: "D97706", // Baseline Score - Amber
+  6: "059669", // Endline Score - Emerald
 };
 
 // Persona colors - vibrant with better contrast
@@ -68,7 +70,7 @@ export async function exportCoachDataToExcel(coaches: CoachExportData[], filenam
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Analytics");
 
-  const headers = ["Coach Name", "Region", "School", "Persona", "Baseline Score", "Endline Score"];
+  const headers = ["Coach Name", "Email", "Region", "School", "Persona", "Baseline Score", "Endline Score"];
 
   // Add headers
   const headerRow = worksheet.addRow(headers);
@@ -76,6 +78,7 @@ export async function exportCoachDataToExcel(coaches: CoachExportData[], filenam
   // Set column widths
   worksheet.columns = [
     { width: 28 }, // Coach Name
+    { width: 30 }, // Email
     { width: 22 }, // Region
     { width: 28 }, // School
     { width: 14 }, // Persona
@@ -114,6 +117,7 @@ export async function exportCoachDataToExcel(coaches: CoachExportData[], filenam
   coaches.forEach((coach, rowIdx) => {
     const rowData = [
       getCoachIdentifier(coach),
+      formatCellValue(coach.email),
       formatCellValue(REGION_LABELS[coach.region || ""] || coach.region),
       formatCellValue(coach.school_id),
       formatCellValue(coach.persona),
@@ -151,7 +155,7 @@ export async function exportCoachDataToExcel(coaches: CoachExportData[], filenam
       };
 
       // Persona column - apply vibrant persona colors
-      if (colNumber === 4) {
+      if (colNumber === 5) {
         if (cellValue !== "NULL" && PERSONA_COLORS[cellValue]) {
           cell.fill = {
             type: "pattern",
@@ -167,7 +171,7 @@ export async function exportCoachDataToExcel(coaches: CoachExportData[], filenam
         }
       }
       // Score columns - bold
-      else if (colNumber === 5 || colNumber === 6) {
+      else if (colNumber === 6 || colNumber === 7) {
         cell.font = {
           bold: true,
           size: 11,

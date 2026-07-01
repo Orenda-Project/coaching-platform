@@ -33,6 +33,7 @@ export interface ModuleDetail {
 export interface CoachRow {
   id: string;
   full_name: string | null;
+  email: string | null;
   phone: string | null;
   region: string | null;
   sub_region?: string | null;

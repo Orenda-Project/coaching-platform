@@ -1,11 +1,11 @@
 """Admin analytics service — replicates the 5-query aggregation from AdminAnalytics.tsx server-side."""
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 
-from app.models.user import UserProfile
+from app.models.user import User, UserProfile
 from app.models.training import Module, Training, AssessmentContent
 from app.models.training_progress import TrainingProgress
 
@@ -29,13 +29,13 @@ class AdminAnalyticsService:
 
         Returns dict with 'coaches' list (pre-aggregated CoachRow objects).
         """
-        # 1. Fetch all profiles
-        profile_query = select(UserProfile).order_by(UserProfile.created_at.desc())
+        # 1. Fetch all profiles (eager-load user for email)
+        profile_query = select(UserProfile).options(joinedload(UserProfile.user)).order_by(UserProfile.created_at.desc())
         if region:
             profile_query = profile_query.filter(UserProfile.region == region)
         if persona:
             profile_query = profile_query.filter(UserProfile.persona == persona)
-        profiles = self.db.execute(profile_query).scalars().all()
+        profiles = self.db.execute(profile_query).unique().scalars().all()
 
         # 2. Fetch all training_progress
         progress_rows = self.db.execute(select(TrainingProgress)).scalars().all()
@@ -172,6 +172,7 @@ class AdminAnalyticsService:
             coaches.append({
                 "id": p.id,
                 "full_name": p.full_name,
+                "email": p.user.email if p.user else None,
                 "phone": p.phone,
                 "region": p.region,
                 "sub_region": p.sub_region,
