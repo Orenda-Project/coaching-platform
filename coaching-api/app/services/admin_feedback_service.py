@@ -20,6 +20,24 @@ class AdminFeedbackService:
     def __init__(self, db: Session):
         self.db = db
 
+    def _ensure_user_exists(self, user_id: str) -> None:
+        """Ensure a User row exists for the given user_id (pre-migration Supabase users may be missing)."""
+        existing = self.db.execute(
+            select(User).filter(User.id == user_id)
+        ).scalar_one_or_none()
+        if existing:
+            return
+        # Auto-create a minimal user record so FK constraints pass.
+        # Email is unknown here; use a placeholder that can be updated later.
+        try:
+            user = User(id=user_id, email=f"{user_id}@placeholder.local")
+            self.db.add(user)
+            self.db.flush()
+            logger.info(f"Auto-created user record for pre-migration user_id={user_id}")
+        except IntegrityError:
+            # Race condition: another request created it between our check and insert
+            self.db.rollback()
+
     def create_feedback(
         self,
         user_id: str,
@@ -34,6 +52,7 @@ class AdminFeedbackService:
         user_agent: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create a new feedback record in user_feedback table."""
+        self._ensure_user_exists(user_id)
         feedback = UserFeedback(
             id=str(uuid.uuid4()),
             user_id=user_id,
